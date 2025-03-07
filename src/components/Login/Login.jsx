@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
+import Cookies from "js-cookie";
+
+const API_BASE_URL = "http://localhost:3000/api";
 
 export default function PattonLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -7,11 +12,35 @@ export default function PattonLoginPage() {
     identifier: "",
     password: "",
   });
+  const [error, setError] = useState(null); // State to handle login errors
+  const navigate = useNavigate(); // Hook for navigation
 
-  const handleSubmit = e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", formData);
+
+    try {
+      // Make the API call to the login endpoint
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email: formData.identifier, // Assuming identifier can be an email
+        password: formData.password,
+      });
+
+      // Save token in a cookie
+      Cookies.set("token", response.data.token, {
+        expires: 30, // Expires in 30 days
+        secure: true, // Only send over HTTPS
+        sameSite: "strict", // Prevent CSRF
+      });
+
+      // Optionally, save user details in localStorage or context
+      // localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      // Redirect to a protected route or dashboard
+      navigate("/users"); // Change this to your desired route
+    } catch (err) {
+      // Handle errors
+      setError(err.response?.data?.message || err.message || "Login failed. Please try again.");
+    }
   };
 
   return (
@@ -49,6 +78,8 @@ export default function PattonLoginPage() {
             <p className="text-gray-600">Please login to access your account</p>
           </div>
 
+          {error && <div className="text-red-500 text-center">{error}</div>}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div>
@@ -64,7 +95,7 @@ export default function PattonLoginPage() {
                   placeholder="Enter your username or email"
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000060]"
                   value={formData.identifier}
-                  onChange={e =>
+                  onChange={(e) =>
                     setFormData({ ...formData, identifier: e.target.value })
                   }
                   required
@@ -85,7 +116,7 @@ export default function PattonLoginPage() {
                     placeholder="Enter your password"
                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#000060]"
                     value={formData.password}
-                    onChange={e =>
+                    onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
                     required
@@ -105,12 +136,20 @@ export default function PattonLoginPage() {
               </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-between">
               <button
                 type="button"
                 className="text-sm text-[#000060] hover:text-[#2D4DBF]"
+                onClick={() => { navigate("/forgot/password") }}
               >
                 Forgot password?
+              </button>
+              <button
+                type="button"
+                className="text-sm text-[#000060] hover:text-[#2D4DBF]"
+                onClick={() => { navigate("/first-time/login") }}
+              >
+                First time login?
               </button>
             </div>
 

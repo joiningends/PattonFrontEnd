@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import {
   Users,
   Mail,
@@ -27,8 +26,8 @@ import {
   UserCog,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "../../axiosConfig";
 
-const API_BASE_URL = "http://localhost:3000/api";
 
 export default function UserPage() {
   const navigate = useNavigate();
@@ -54,7 +53,7 @@ export default function UserPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users/`);
+      const response = await axiosInstance.get(`/users/`);
       if (response.data.success) {
         setUsers(response.data.data);
         console.log(response.data.data);
@@ -84,8 +83,8 @@ export default function UserPage() {
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
       const newStatus = currentStatus ? 1 : 2; // 1 to disable, 2 to enable
-      const response = await axios.post(
-        `${API_BASE_URL}/users/status/${userId}`,
+      const response = await axiosInstance.post(
+        `/users/status/${userId}`,
         { status: newStatus }
       );
       if (response.data.success) {
@@ -117,7 +116,7 @@ export default function UserPage() {
   const handleDeleteUser = async id => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
-        const response = await axios.get(`${API_BASE_URL}/users/delete/${id}`);
+        const response = await axiosInstance.get(`/users/delete/${id}`);
         if (response.data.success) {
           setUsers(users.filter(user => user.id !== id));
           setAlertMessage({
@@ -170,8 +169,8 @@ export default function UserPage() {
     }
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/users/edit/${editingUser.id}`,
+      const response = await axiosInstance.post(
+        `/users/edit/${editingUser.id}`,
         {
           username: editingUser.username,
           phone: editingUser.phone,
@@ -210,7 +209,7 @@ export default function UserPage() {
 
   const fetchRoles = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/role/view`);
+      const response = await axiosInstance.get(`/role/view`);
       if (response.data.success) {
         setRoles(response.data.roles);
       } else {
@@ -238,7 +237,7 @@ export default function UserPage() {
     if (!selectedUser || !selectedRole) return;
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/users/map`, {
+      const response = await axiosInstance.post(`/users/map`, {
         p_user_id: selectedUser.id,
         p_role_id: selectedRole,
       });
@@ -492,7 +491,7 @@ export default function UserPage() {
                         {user.username.charAt(0).toUpperCase()}
                       </div>
                       <span className="font-semibold text-[#000060] text-sm lg:text-base">
-                        {user.username}
+                        {user.first_name + " " + user.last_name}
                       </span>
                     </div>
                   </td>

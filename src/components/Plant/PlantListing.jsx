@@ -15,9 +15,8 @@ import {
   X,
   MapPin,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
-const API_BASE_URL = "http://localhost:3000/api";
 
 export default function PlantListingPage() {
   const navigate = useNavigate();
@@ -36,9 +35,11 @@ export default function PlantListingPage() {
   const fetchPlants = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/plant`);
+      const response = await axiosInstance.get(`/plant`);
+
+      console.log("Plant response: ", response);
       if (response.data.success) {
-        setPlants(response.data.data);
+        setPlants(response.data.data[0]);
       } else {
         setError("Failed to fetch plants");
       }
@@ -87,8 +88,8 @@ export default function PlantListingPage() {
   const handleDelete = async plantId => {
     if (window.confirm("Are you sure you want to delete this plant?")) {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/plant/delete/${plantId}`
+        const response = await axiosInstance.get(
+          `/plant/delete/${plantId}`
         );
         if (response.data.success) {
           fetchPlants();
@@ -204,13 +205,13 @@ export default function PlantListingPage() {
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <User className="mr-2" />
-                        Plant Head ID
+                        Plant Head
                       </div>
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <User className="mr-2" />
-                        Plant Engineer ID
+                        Plant Engineer
                       </div>
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">

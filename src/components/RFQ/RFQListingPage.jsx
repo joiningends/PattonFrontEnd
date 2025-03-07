@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
+import axiosInstance from "../../axiosConfig"
 
 // Icons (you may need to install an icon library or use SVGs)
 const SearchIcon = () => (
@@ -177,7 +178,7 @@ export default function RFQListingPage() {
   const fetchRFQs = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await axios.post("http://localhost:3000/api/rfq/getrfq", {
+      const response = await axiosInstance.post("http://localhost:3000/api/rfq/getrfq", {
         p_user_id: 3, // This should be dynamically set based on the logged-in user
         p_rfq_id: null,
         p_client_id: null,
@@ -195,7 +196,7 @@ export default function RFQListingPage() {
 
   const fetchPlants = useCallback(async () => {
     try {
-      const response = await axios.get("http://localhost:3000/api/plant")
+      const response = await axiosInstance.get("http://localhost:3000/api/plant")
       if (response.data.success) {
         setPlants(response.data.data)
       } else {
@@ -239,7 +240,7 @@ export default function RFQListingPage() {
   const handleDelete = async (rfqId) => {
     if (window.confirm("Are you sure you want to delete this RFQ?")) {
       try {
-        const response = await axios.delete(`http://localhost:3000/api/rfq/delete/${rfqId}`)
+        const response = await axiosInstance.delete(`http://localhost:3000/api/rfq/delete/${rfqId}`)
         if (response.data.success) {
           fetchRFQs()
           setSuccessMessage("RFQ deleted successfully")
@@ -271,7 +272,7 @@ export default function RFQListingPage() {
       return
     }
     try {
-      const response = await axios.post("http://localhost:3000/api/rfq/approve", {
+      const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
         user_id: 6, // This should be dynamically set based on the logged-in user
         state_id: 2,
@@ -299,7 +300,7 @@ export default function RFQListingPage() {
       return
     }
     try {
-      const response = await axios.post("http://localhost:3000/api/rfq/approve", {
+      const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
         user_id: 6, // This should be dynamically set based on the logged-in user
         state_id: 0,

@@ -24,6 +24,9 @@ import EditPlantPage from "./components/Plant/EditPlantPage";
 import RawMaterialListingPage from "./components/RAWMaterial/RawMatrialListingPage";
 import CreateRawMaterialPage from "./components/RAWMaterial/CreateRawMaterialPage";
 import EditRawMaterialPage from "./components/RAWMaterial/EditRawMaterialPage";
+import ForgotPassword from "./components/Login/ForgotPassword";
+import ResetPassword from "./components/Login/ResetPassword";
+import FirstTimeLogin from "./components/Login/FirstTimeLogin";
 
 export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -42,46 +45,49 @@ export default function App() {
         {/* Main Content */}
         <main className="bg-[#e1e1f5] pl-16 overflow-auto">
           <Routes>
-            {/* <Route path="/" element={<PattonLoginPage />} /> */}
+            <Route path="/" element={<PattonLoginPage />} />
+            <Route path="/forgot/password" element={<ForgotPassword />} />
+            <Route path="/reset/password" element={<ResetPassword />} />
+            <Route path="/first-time/login" element={<FirstTimeLogin />} />
+
 
             <Route path="/users" element={<UserPage />} />
             <Route path="/addUser" element={<AddUser />} />
+
+            {/* Role module */}
             <Route path="/Roles" element={<RolesPage />} />
-            <Route path="/roles/edit/:id" element={<EditRolePage />} />
             <Route path="/AddRole" element={<AddRolePage />} />
-            {/* <Route
-              path="/manage-permissions"
-              element={<ManagePermissionsPage />}
-            />
-            <Route
-              path="/role-permissions/:roleId"
-              element={<RolePermissionsPage />}
-            /> */}
+            <Route path="/roles/edit/:id" element={<EditRolePage />} />
+
+
+            {/* <Route path="/manage-permissions" element={<ManagePermissionsPage />} />
+            <Route path="/role-permissions/:roleId" element={<RolePermissionsPage />} /> */}
+
+            {/* Page module */}
             <Route path="/pages" element={<PagesListPage />} />
             <Route path="/create-page" element={<CreatePagePage />} />
+
+            {/* Client module */}
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/client/:id" element={<EditClientPage />} />
             <Route path="/add-client" element={<AddClientPage />} />
+
+            {/* RFQ module */}
             <Route path="/RFQ" element={<RFQListingPage />} />
             <Route path="/create_RFQ" element={<CreateRFQPage />} />
-            <Route
-              path="/addProductDetails/:id"
-              element={<AddProductDetailsPage />}
-            />
+            <Route path="/addProductDetails/:id" element={<AddProductDetailsPage />} />
             <Route path="/create_RFQ" element={<CreateRFQPage />} />
             <Route path="/edit_RFQ/:id" element={<EditRFQPage />} />
+
+            {/* Plant module */}
             <Route path="/plants" element={<PlantListingPage />} />
             <Route path="/create-plant" element={<CreatePlantPage />} />
             <Route path="/edit-plant/:id" element={<EditPlantPage />} />
+
+            {/* Raw material module */}
             <Route path="/raw-materials" element={<RawMaterialListingPage />} />
-            <Route
-              path="/create-raw-material"
-              element={<CreateRawMaterialPage />}
-            />
-            <Route
-              path="/edit-raw-material/:id"
-              element={<EditRawMaterialPage />}
-            />
+            <Route path="/create-raw-material" element={<CreateRawMaterialPage />} />
+            <Route path="/edit-raw-material/:id" element={<EditRawMaterialPage />} />
           </Routes>
         </main>
       </div>

@@ -8,15 +8,15 @@ import {
   Plus,
   Package,
   Percent,
+  IndianRupee,
   ChevronLeft,
   ChevronRight,
   Edit,
   Trash2,
   X,
 } from "lucide-react";
-import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
-const API_BASE_URL = "http://localhost:3000/api";
 
 export default function RawMaterialListingPage() {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export default function RawMaterialListingPage() {
   const fetchRawMaterials = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/rawmaterial`);
+      const response = await axiosInstance.get(`/rawmaterial`);
       if (response.data.success) {
         const parsedData = response.data.data.map(material => ({
           ...material,
@@ -84,8 +84,8 @@ export default function RawMaterialListingPage() {
   const handleDelete = async materialId => {
     if (window.confirm("Are you sure you want to delete this raw material?")) {
       try {
-        const response = await axios.get(
-          `${API_BASE_URL}/rawmaterial/delete/${materialId}`
+        const response = await axiosInstance.get(
+          `/rawmaterial/delete/${materialId}`
         );
         if (response.data.success) {
           fetchRawMaterials();
@@ -209,7 +209,7 @@ export default function RawMaterialListingPage() {
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
-                        <Percent className="mr-2" />
+                        <IndianRupee className="mr-2" />
                         Scrap Rate
                       </div>
                     </th>
@@ -253,7 +253,7 @@ export default function RawMaterialListingPage() {
                       <td className="px-6 py-4">
                         {isNaN(material.scrap_rate)
                           ? "N/A"
-                          : `${material.scrap_rate.toFixed(2)}%`}
+                          : `${material.scrap_rate.toFixed(2)}`}
                       </td>
                       <td className="px-6 py-4">
                         <span

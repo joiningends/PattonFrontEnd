@@ -5,6 +5,9 @@ import {
   FolderKanban,
   Clock,
   Users2,
+  BookUserIcon,
+  UserRoundPen,
+  ContainerIcon,
   Settings,
   FileIcon,
   GanttChartSquare,
@@ -14,6 +17,9 @@ import {
   X,
   ChevronRight,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
+
 
 export default function Sidebar({ isOpen, toggleSidebar }) {
   const location = useLocation();
@@ -29,18 +35,32 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
     return () => window.removeEventListener("resize", handleResize);
   }, [toggleSidebar]);
 
+
+  //handle logout
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear the token from cookies
+    Cookies.remove("token");
+
+    // Optionally, clear any user-related state 
+    // dispatch(logout());
+
+    // Redirect to the login page
+    navigate("/");
+  };
+
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-    { icon: FolderKanban, label: "Projects", path: "/projects" },
-    { icon: Clock, label: "Time log", path: "/time-log" },
-    {
-      icon: GanttChartSquare,
-      label: "Resource mgmt",
-      path: "/resource-management",
-    },
-    { icon: Users2, label: "Users", path: "/users" },
-    { icon: FileIcon, label: "Project template", path: "/project-template" },
-    { icon: Settings, label: "Menu settings", path: "/menu-settings" },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/RFQ" },
+    { icon: Users2, label: "User management", path: "/users" },
+    { icon: BookUserIcon, label: "Client management", path: "/clients" },
+    { icon: UserRoundPen, label: "Role management", path: "/Roles" },
+    { icon: FolderKanban, label: "Factory Plants", path: "/plants" },
+    { icon: ContainerIcon, label: "Raw material", path: "/raw-materials" },
+    // { icon: Clock, label: "Time log", path: "/time-log" },
+    // { icon: GanttChartSquare, label: "Resource mgmt", path: "/resource-management" },
+    // { icon: FileIcon, label: "Project template", path: "/project-template" },
+    // { icon: Settings, label: "Menu settings", path: "/menu-settings" },
   ];
 
   return (
@@ -76,30 +96,27 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               key={index}
               to={item.path}
               className={`group flex items-center justify-between px-5 py-3.5 rounded-xl  relative overflow-hidden
-                ${
-                  location.pathname === item.path
-                    ? "bg-white/10 text-white shadow-lg"
-                    : "text-blue-100 hover:bg-white hover:text-[#000060]"
+                ${location.pathname === item.path
+                  ? "bg-white/10 text-white shadow-lg"
+                  : "text-blue-100 hover:bg-white hover:text-[#000060]"
                 }`}
             >
               <div className="flex items-center gap-4 z-10 relative">
                 <item.icon
-                  className={`h-5 w-5  ${
-                    location.pathname === item.path
-                      ? "text-white"
-                      : "text-blue-300 group-hover:text-[#000060]"
-                  }`}
+                  className={`h-5 w-5  ${location.pathname === item.path
+                    ? "text-white"
+                    : "text-blue-300 group-hover:text-[#000060]"
+                    }`}
                 />
                 <span className="font-medium ">
                   {item.label}
                 </span>
               </div>
               <ChevronRight
-                className={`h-4 w-4  ${
-                  location.pathname === item.path
-                    ? "text-white"
-                    : "text-blue-300 group-hover:text-[#000060] "
-                }`}
+                className={`h-4 w-4  ${location.pathname === item.path
+                  ? "text-white"
+                  : "text-blue-300 group-hover:text-[#000060] "
+                  }`}
               />
             </Link>
           ))}
@@ -119,7 +136,7 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             </div>
             <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-[#000060] transition-all duration-300 group-hover:translate-x-1" />
           </a>
-          <button className="group flex items-center justify-between px-5 py-3.5 rounded-xl w-full text-blue-100 transition-all duration-300 relative overflow-hidden">
+          <button onClick={handleLogout} className="group flex items-center justify-between px-5 py-3.5 rounded-xl w-full text-blue-100 transition-all duration-300 relative overflow-hidden">
             <div className="flex items-center gap-4 relative z-10">
               <LogOut className="h-5 w-5 text-blue-300 group-hover:text-red-300 transition-colors duration-300" />
               <span className="font-medium group-hover:text-red-100 transition-colors duration-300 group-hover:translate-x-1">

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import {
   Mail,
   Phone,
@@ -25,8 +24,8 @@ import {
   X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "../../axiosConfig";
 
-const API_BASE_URL = "http://localhost:3000/api";
 
 export default function ClientsPage() {
   const navigate = useNavigate();
@@ -53,7 +52,7 @@ export default function ClientsPage() {
   const fetchClients = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/client/getall`);
+      const response = await axiosInstance.get(`/client/getall`);
       if (response.data.success) {
         setClients(response.data.data);
       } else {
@@ -73,8 +72,8 @@ export default function ClientsPage() {
   const toggleClientStatus = async (clientId, currentStatus) => {
     try {
       // Assuming there's an API endpoint to update client status
-      const response = await axios.post(
-        `${API_BASE_URL}/client/status/${clientId}`,
+      const response = await axiosInstance.post(
+        `/client/status/${clientId}`,
         {
           status: !currentStatus,
         }

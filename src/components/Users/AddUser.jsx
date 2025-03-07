@@ -62,11 +62,11 @@ export default function AddUser() {
       newErrors.email = "Invalid email address";
     }
 
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters long";
-    }
+    // if (!formData.password) {
+    //   newErrors.password = "Password is required";
+    // } else if (formData.password.length < 8) {
+    //   newErrors.password = "Password must be at least 8 characters long";
+    // }
 
     if (!formData.phone) {
       newErrors.phone = "Phone number is required";
@@ -102,8 +102,10 @@ export default function AddUser() {
       try {
         const userData = {
           username: formData.username, // Use the username from formData
+          first_name: formData.firstName,
+          last_name: formData.lastName,
           email: formData.email,
-          password: formData.password,
+          // password: formData.password,
           phone: formData.phone,
           designation: formData.designation,
           department: formData.department,
@@ -303,7 +305,7 @@ export default function AddUser() {
                 )}
               </div>
 
-              <div>
+              {/* <div>
                 <label
                   htmlFor="password"
                   className="block text-sm font-medium text-[#000060] mb-2"
@@ -337,7 +339,7 @@ export default function AddUser() {
                 {errors.password && (
                   <p className="mt-1 text-sm text-red-500">{errors.password}</p>
                 )}
-              </div>
+              </div> */}
 
               <div>
                 <label

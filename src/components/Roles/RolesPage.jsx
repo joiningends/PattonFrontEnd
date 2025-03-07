@@ -14,9 +14,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
-const API_BASE_URL = "http://localhost:3000/api";
 
 export default function RolesPage() {
   const navigate = useNavigate();
@@ -35,7 +34,7 @@ export default function RolesPage() {
   const fetchRoles = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/role/view`);
+      const response = await axiosInstance.get(`/role/view`);
       if (response.data.success) {
         setRoles(response.data.roles);
       } else {
@@ -67,8 +66,8 @@ export default function RolesPage() {
   const handleDeleteRole = async roleId => {
     if (window.confirm("Are you sure you want to delete this role?")) {
       try {
-        const response = await axios.delete(
-          `${API_BASE_URL}/role/delete/${roleId}`
+        const response = await axiosInstance.delete(
+          `/role/delete/${roleId}`
         );
         if (response.data.success) {
           setRoles(roles.filter(role => role.role_id !== roleId));
