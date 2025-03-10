@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Building, MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Building, MapPin, X } from "lucide-react";
 import axios from "axios";
 import Select from "react-select";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -32,7 +33,7 @@ export default function CreatePlantPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users/`);
+      const response = await axiosInstance.get(`/users/`);
       if (response.data.success) {
         setUsers(response.data.data);
       } else {
@@ -78,8 +79,8 @@ export default function CreatePlantPage() {
     }
     setIsSubmitting(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/plant/save`,
+      const response = await axiosInstance.post(
+        `/plant/save`,
         plantData
       );
       if (response.data.success) {
@@ -133,6 +134,26 @@ export default function CreatePlantPage() {
             Add a new plant to your organization
           </p>
         </motion.div>
+
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between"
+            >
+              <span>{successMessage}</span>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="text-green-700 hover:text-green-900"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.div
           initial={{ y: 20, opacity: 0 }}

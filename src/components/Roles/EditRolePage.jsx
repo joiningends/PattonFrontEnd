@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Save } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft, Save, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -16,6 +17,7 @@ export default function EditRolePage() {
   const [permissions, setPermissions] = useState({});
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     fetchPages();
@@ -24,7 +26,7 @@ export default function EditRolePage() {
 
   const fetchPages = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/pages/`);
+      const response = await axiosInstance.get(`/pages/`);
       if (response.data.success) {
         setPages(response.data.data);
       } else {
@@ -37,7 +39,7 @@ export default function EditRolePage() {
 
   const fetchRoleData = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/role/view/${id}`);
+      const response = await axiosInstance.get(`/role/view/${id}`);
       if (response.data.success) {
         const role = response.data.roles.find(
           role => role.role_id === Number(id)
@@ -101,14 +103,17 @@ export default function EditRolePage() {
         {}
       );
 
-      const response = await axios.put(`${API_BASE_URL}/role/update`, {
+      const response = await axiosInstance.put(`/role/update`, {
         p_role_id: Number(id),
         p_role_name: roleName.trim(),
         p_permission_data: formattedPermissions,
       });
 
       if (response.data.success) {
-        navigate("/roles");
+        setSuccessMessage("Role updated successfuly");
+        setTimeout(() => {
+          navigate("/roles");
+        }, 2000);
       } else {
         setError(
           response.data.message || "An error occurred while updating the role."
@@ -117,7 +122,7 @@ export default function EditRolePage() {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "An error occurred while updating the role. Please try again."
+        "An error occurred while updating the role. Please try again."
       );
     }
 
@@ -176,6 +181,27 @@ export default function EditRolePage() {
           </motion.div>
         )}
 
+
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between"
+            >
+              <span>{successMessage}</span>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="text-green-700 hover:text-green-900"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -196,9 +222,8 @@ export default function EditRolePage() {
                 name="roleName"
                 value={roleName}
                 onChange={e => setRoleName(e.target.value)}
-                className={`w-full px-4 py-3 rounded-lg border-2 ${
-                  error ? "border-red-500" : "border-[#c8c8e6]"
-                } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                className={`w-full px-4 py-3 rounded-lg border-2 ${error ? "border-red-500" : "border-[#c8c8e6]"
+                  } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                 placeholder="Enter role name"
               />
               {error && error.includes("Role name") && (
@@ -264,11 +289,10 @@ export default function EditRolePage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${
-                  isSubmitting
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${isSubmitting
                     ? "opacity-70 cursor-not-allowed"
                     : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                  }`}
               >
                 {isSubmitting ? (
                   <>

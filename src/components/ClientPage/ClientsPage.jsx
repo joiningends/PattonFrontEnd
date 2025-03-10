@@ -70,10 +70,12 @@ export default function ClientsPage() {
   };
 
   const toggleClientStatus = async (clientId, currentStatus) => {
+    console.log("Client Id: ", clientId);
+    console.log("current Status: ", currentStatus);
     try {
       // Assuming there's an API endpoint to update client status
       const response = await axiosInstance.post(
-        `/client/status/${clientId}`,
+        `/client/disable/${clientId}`,
         {
           status: !currentStatus,
         }
@@ -328,12 +330,12 @@ export default function ClientsPage() {
                     Location
                   </div>
                 </th>
-                <th className="px-6 py-4 font-extrabold text-sm cursor-pointer hidden xl:table-cell">
+                {/* <th className="px-6 py-4 font-extrabold text-sm cursor-pointer hidden xl:table-cell">
                   <div className="flex items-center">
                     <Hash className="mr-2 h-4 w-4" />
-                    GST/PAN
+                    PAN
                   </div>
-                </th>
+                </th> */}
                 <th className="px-6 py-4 font-extrabold text-sm">
                   <div className="flex items-center justify-center">
                     <Globe className="mr-2 h-4 w-4" />
@@ -383,9 +385,9 @@ export default function ClientsPage() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 hidden xl:table-cell">
+                  {/* <td className="px-6 py-4 hidden xl:table-cell">
                     <span>{client.pan_gst}</span>
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-3">
                       <motion.button

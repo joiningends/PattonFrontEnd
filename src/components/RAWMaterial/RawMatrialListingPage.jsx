@@ -201,12 +201,12 @@ export default function RawMaterialListingPage() {
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">Rate</div>
                     </th>
-                    <th className="px-6 py-4 font-extrabold text-sm">
+                    {/* <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <Package className="mr-2" />
                         Quantity per Assembly
                       </div>
-                    </th>
+                    </th> */}
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <IndianRupee className="mr-2" />
@@ -245,11 +245,11 @@ export default function RawMaterialListingPage() {
                           ? "N/A"
                           : material.raw_material_rate.toFixed(2)}
                       </td>
-                      <td className="px-6 py-4">
+                      {/* <td className="px-6 py-4">
                         {isNaN(material.quantity_per_assembly)
                           ? "N/A"
                           : material.quantity_per_assembly.toFixed(2)}
-                      </td>
+                      </td> */}
                       <td className="px-6 py-4">
                         {isNaN(material.scrap_rate)
                           ? "N/A"

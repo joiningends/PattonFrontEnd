@@ -8,6 +8,7 @@ import Select from "react-select";
 import axios from "axios";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -58,7 +59,7 @@ export default function CreateRFQPage() {
     setIsLoading(true);
     setErrors(prevErrors => ({ ...prevErrors, client: "" }));
     try {
-      const response = await axios.get(`${API_BASE_URL}/client/getall`);
+      const response = await axiosInstance.get(`/client/getall`);
       console.log("Client data response:", response.data);
       if (response.data.success) {
         const clientOptions = response.data.data.map(client => ({
@@ -137,8 +138,8 @@ export default function CreateRFQPage() {
 
       try {
         console.log("Selected client:", selectedClient);
-        const response = await axios.post(
-          "http://localhost:3000/api/rfq/saverfq",
+        const response = await axiosInstance.post(
+          "/rfq/saverfq",
           {
             p_rfq_name: rfqName,
             p_user_id: 3, // This should be dynamically set based on the logged-in user
@@ -156,7 +157,7 @@ export default function CreateRFQPage() {
 
         if (response.data.success) {
           // For now, we're using a hardcoded ID of 4
-          navigate("/addProductDetails/4");
+          navigate(`/addProductDetails/${response.data.RFQ_id}`);
         } else {
           setErrors({
             submit: response.data.message || "Failed to create RFQ",
@@ -205,15 +206,17 @@ export default function CreateRFQPage() {
     }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/client/save`, {
+      const response = await axiosInstance.post(`/client/save`, {
         p_name: newClient.name,
         p_email: newClient.email,
         p_phone: newClient.phone,
       });
 
+      console.log(response);
+
       if (response.data.success) {
         const newClientOption = {
-          value: response.data.data.id,
+          value: response.data.data.client_id,
           label: newClient.name,
         };
         setClients([...clients, newClientOption]);

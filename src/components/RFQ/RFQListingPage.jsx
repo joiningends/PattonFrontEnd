@@ -198,7 +198,9 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.get("http://localhost:3000/api/plant")
       if (response.data.success) {
-        setPlants(response.data.data)
+        console.log("Plants: ", response.data.data[0]);
+
+        setPlants(response.data.data[0]);
       } else {
         setError("Failed to fetch plants")
       }
@@ -254,6 +256,7 @@ export default function RFQListingPage() {
   }
 
   const openApproveModal = (rfq) => {
+    console.log("REPlant: ", plants);
     setSelectedRFQ(rfq)
     setIsApproveModalOpen(true)
   }
@@ -457,18 +460,18 @@ export default function RFQListingPage() {
                     <td className="px-6 py-4">
                       {rfq.state_id < 2 ? (
                         <div className="flex items-center space-x-2">
-                          <button
+                          {/* <button
                             onClick={() => handleEdit(rfq.rfq_id)}
                             className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
                           >
                             <EditIcon className="w-5 h-5" />
-                          </button>
-                          <button
+                          </button> */}
+                          {/* <button
                             onClick={() => handleDelete(rfq.rfq_id)}
                             className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
                           >
                             <TrashIcon className="w-5 h-5" />
-                          </button>
+                          </button> */}
                           <button
                             onClick={() => openApproveModal(rfq)}
                             className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
@@ -535,15 +538,15 @@ export default function RFQListingPage() {
             <p className="mb-4 text-[#4b4b80]">Select plants and add a comment to approve this RFQ.</p>
             <div className="mb-4 space-y-2">
               {plants.map((plant) => (
-                <label key={plant.id} className="flex items-center space-x-3 cursor-pointer">
+                <label key={plant.plant_id} className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={selectedPlants.includes(plant.id)}
+                    checked={selectedPlants.includes(plant.plant_id)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedPlants([...selectedPlants, plant.id])
+                        setSelectedPlants([...selectedPlants, plant.plant_id])
                       } else {
-                        setSelectedPlants(selectedPlants.filter((id) => id !== plant.id))
+                        setSelectedPlants(selectedPlants.filter((id) => id !== plant.plant_id))
                       }
                     }}
                     className="form-checkbox h-5 w-5 text-[#000060] rounded border-gray-300 focus:ring-[#000060] transition duration-150 ease-in-out"

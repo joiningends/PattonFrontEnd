@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, UserPlus, Trash2, Edit } from "lucide-react";
 import Select from "react-select";
 import axios from "axios";
 import "react-phone-input-2/lib/style.css";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -50,7 +51,7 @@ export default function EditRFQPage() {
   const fetchRFQData = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/rfq/getrfq`, {
+      const response = await axiosInstance.post(`/rfq/getrfq`, {
         p_user_id: 3, // This should be dynamically set based on the logged-in user
         p_rfq_id: id,
         p_client_id: null,
@@ -74,7 +75,7 @@ export default function EditRFQPage() {
 
   const fetchClients = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/client/getall`);
+      const response = await axiosInstance.get(`/client/getall`);
       if (response.data.success) {
         const clientOptions = response.data.data.map(client => ({
           value: client.client_id,
@@ -97,7 +98,7 @@ export default function EditRFQPage() {
 
   const fetchSKUs = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/sku/getsku/${id}`);
+      const response = await axiosInstance.get(`/sku/getsku/${id}`);
       if (response.data.success) {
         setSKUs(response.data.data);
       } else {
@@ -163,7 +164,7 @@ export default function EditRFQPage() {
       }
 
       try {
-        const response = await axios.put(`${API_BASE_URL}/rfq/update/${id}`, {
+        const response = await axiosInstance.put(`/rfq/update/${id}`, {
           p_rfq_name: rfqName,
           p_user_id: 3, // This should be dynamically set based on the logged-in user
           p_client_id: selectedClient.value,

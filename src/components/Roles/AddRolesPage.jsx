@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -22,7 +23,7 @@ export default function AddRolePage() {
 
   const fetchPages = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/pages/`);
+      const response = await axiosInstance.get(`/pages/`);
       if (response.data.success) {
         setPages(response.data.data);
         const initialPermissions = {};
@@ -57,7 +58,7 @@ export default function AddRolePage() {
         }
       });
 
-      const response = await axios.post(`${API_BASE_URL}/role/save`, {
+      const response = await axiosInstance.post(`/role/save`, {
         p_rolename: roleName,
         p_permission_data: permissionData,
       });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   ArrowLeft,
@@ -38,6 +38,7 @@ export default function AddUser() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [backendError, setBackendError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const validateForm = () => {
     const newErrors = {};
@@ -117,18 +118,21 @@ export default function AddUser() {
         );
         if (response.data.success) {
           console.log("User created successfully:", response.data.data);
-          navigate("/");
+          setSuccessMessage("User created successfully");
+          setTimeout(() => {
+            navigate("/users");
+          }, 2000);
         } else {
           setBackendError(
             response.data.message ||
-              "An error occurred while creating the user."
+            "An error occurred while creating the user."
           );
         }
       } catch (error) {
         console.error("Error submitting form:", error);
         setBackendError(
           error.response?.data?.message ||
-            "An error occurred while creating the user. Please try again."
+          "An error occurred while creating the user. Please try again."
         );
       }
     }
@@ -208,6 +212,26 @@ export default function AddUser() {
           </motion.div>
         )}
 
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between"
+            >
+              <span>{successMessage}</span>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="text-green-700 hover:text-green-900"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -234,9 +258,8 @@ export default function AddUser() {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.firstName ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.firstName ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter first name"
                   />
                 </div>
@@ -265,9 +288,8 @@ export default function AddUser() {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.lastName ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.lastName ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter last name"
                   />
                 </div>
@@ -294,9 +316,8 @@ export default function AddUser() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.email ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.email ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter email address"
                   />
                 </div>
@@ -359,9 +380,8 @@ export default function AddUser() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.phone ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.phone ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter phone number"
                   />
                 </div>
@@ -388,9 +408,8 @@ export default function AddUser() {
                     name="designation"
                     value={formData.designation}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.designation ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.designation ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter designation"
                   />
                 </div>
@@ -419,9 +438,8 @@ export default function AddUser() {
                     name="department"
                     value={formData.department}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.department ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.department ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter department"
                   />
                 </div>
@@ -450,9 +468,8 @@ export default function AddUser() {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${
-                      errors.username ? "border-red-500" : "border-[#c8c8e6]"
-                    } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                    className={`w-full pl-10 pr-4 py-3 rounded-lg border-2 ${errors.username ? "border-red-500" : "border-[#c8c8e6]"
+                      } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                     placeholder="Enter username"
                   />
                 </div>
@@ -477,11 +494,10 @@ export default function AddUser() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${
-                  isSubmitting
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${isSubmitting
                     ? "opacity-70 cursor-not-allowed"
                     : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                  }`}
               >
                 {isSubmitting ? (
                   <>

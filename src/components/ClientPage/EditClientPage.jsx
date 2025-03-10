@@ -23,6 +23,7 @@ import { Country, State } from "country-state-city";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -101,6 +102,7 @@ export default function EditClientPage() {
   const [states, setStates] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const {
     control,
@@ -144,7 +146,7 @@ export default function EditClientPage() {
   const fetchClientData = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/client/get/${id}`);
+      const response = await axiosInstance.get(`/client/get/${id}`);
       if (response.data.success) {
         const clientData = response.data.data[0];
         reset({
@@ -200,22 +202,25 @@ export default function EditClientPage() {
           company: data.name, // Using the client's name as the company
         })),
       };
-      const response = await axios.put(
-        `${API_BASE_URL}/client/edit/${id}`,
+      const response = await axiosInstance.put(
+        `/client/edit/${id}`,
         formattedData
       );
       if (response.data.success) {
-        navigate("/clients");
+        setSuccessMessage("Client updated successfully.")
+        setTimeout(() => {
+          navigate("/clients");
+        }, 2000);
       } else {
         setErrorMessage(
           response.data.message ||
-            "An error occurred while updating the client."
+          "An error occurred while updating the client."
         );
       }
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message ||
-          "An error occurred while updating the client. Please try again."
+        "An error occurred while updating the client. Please try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -273,6 +278,26 @@ export default function EditClientPage() {
           )}
         </motion.div>
 
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between"
+            >
+              <span>{successMessage}</span>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="text-green-700 hover:text-green-900"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -307,9 +332,8 @@ export default function EditClientPage() {
                       <input
                         {...field}
                         type="text"
-                        className={`${inputClass} ${
-                          errors.name ? "border-red-500" : ""
-                        }`}
+                        className={`${inputClass} ${errors.name ? "border-red-500" : ""
+                          }`}
                         placeholder="Enter company name"
                       />
                     )}
@@ -341,9 +365,8 @@ export default function EditClientPage() {
                       <input
                         {...field}
                         type="email"
-                        className={`${inputClass} ${
-                          errors.email ? "border-red-500" : ""
-                        }`}
+                        className={`${inputClass} ${errors.email ? "border-red-500" : ""
+                          }`}
                         placeholder="Enter email address"
                       />
                     )}
@@ -374,9 +397,8 @@ export default function EditClientPage() {
                       inputClass={`${inputClass} !w-full !h-12 !pl-12`}
                       buttonClass="!border-0 !border-r !rounded-l-lg"
                       dropdownClass="!w-[300px]"
-                      containerClass={`${
-                        errors.phone ? "!border-red-500" : ""
-                      }`}
+                      containerClass={`${errors.phone ? "!border-red-500" : ""
+                        }`}
                       inputProps={{
                         name: "phone",
                         required: true,
@@ -419,9 +441,8 @@ export default function EditClientPage() {
                       <input
                         {...field}
                         type="text"
-                        className={`${inputClass} ${
-                          errors.street_no ? "border-red-500" : ""
-                        }`}
+                        className={`${inputClass} ${errors.street_no ? "border-red-500" : ""
+                          }`}
                         placeholder="Enter street address"
                       />
                     )}
@@ -453,9 +474,8 @@ export default function EditClientPage() {
                       <input
                         {...field}
                         type="text"
-                        className={`${inputClass} ${
-                          errors.city ? "border-red-500" : ""
-                        }`}
+                        className={`${inputClass} ${errors.city ? "border-red-500" : ""
+                          }`}
                         placeholder="Enter city"
                       />
                     )}
@@ -487,9 +507,8 @@ export default function EditClientPage() {
                         options={states}
                         isDisabled={!selectedCountry}
                         styles={selectStyles}
-                        className={`w-full ${
-                          errors.state ? "border-red-500" : ""
-                        }`}
+                        className={`w-full ${errors.state ? "border-red-500" : ""
+                          }`}
                         classNamePrefix="select"
                         placeholder={
                           selectedCountry
@@ -525,9 +544,8 @@ export default function EditClientPage() {
                         {...field}
                         options={getCountries()}
                         styles={selectStyles}
-                        className={`w-full ${
-                          errors.country ? "border-red-500" : ""
-                        }`}
+                        className={`w-full ${errors.country ? "border-red-500" : ""
+                          }`}
                         classNamePrefix="select"
                         placeholder="Select country"
                       />
@@ -560,9 +578,8 @@ export default function EditClientPage() {
                       <input
                         {...field}
                         type="text"
-                        className={`${inputClass} ${
-                          errors.Pan_gst ? "border-red-500" : ""
-                        }`}
+                        className={`${inputClass} ${errors.Pan_gst ? "border-red-500" : ""
+                          }`}
                         placeholder="Enter GST/PAN number"
                       />
                     )}
@@ -634,11 +651,10 @@ export default function EditClientPage() {
                               <input
                                 {...field}
                                 type="text"
-                                className={`${inputClass} ${
-                                  errors.contacts?.[index]?.name
+                                className={`${inputClass} ${errors.contacts?.[index]?.name
                                     ? "border-red-500"
                                     : ""
-                                }`}
+                                  }`}
                                 placeholder="Enter contact name"
                               />
                             </div>
@@ -666,11 +682,10 @@ export default function EditClientPage() {
                               <input
                                 {...field}
                                 type="email"
-                                className={`${inputClass} ${
-                                  errors.contacts?.[index]?.email
+                                className={`${inputClass} ${errors.contacts?.[index]?.email
                                     ? "border-red-500"
                                     : ""
-                                }`}
+                                  }`}
                                 placeholder="Enter contact email"
                               />
                             </div>
@@ -697,11 +712,10 @@ export default function EditClientPage() {
                               inputClass={`${inputClass} !w-full !h-12 !pl-12`}
                               buttonClass="!border-0 !border-r !rounded-l-lg"
                               dropdownClass="!w-[300px]"
-                              containerClass={`${
-                                errors.contacts?.[index]?.mobile
+                              containerClass={`${errors.contacts?.[index]?.mobile
                                   ? "!border-red-500"
                                   : ""
-                              }`}
+                                }`}
                               inputProps={{
                                 name: `contact_mobile_${index}`,
                                 required: true,
@@ -740,11 +754,10 @@ export default function EditClientPage() {
                               <input
                                 {...field}
                                 type="text"
-                                className={`${inputClass} ${
-                                  errors.contacts?.[index]?.designation
+                                className={`${inputClass} ${errors.contacts?.[index]?.designation
                                     ? "border-red-500"
                                     : ""
-                                }`}
+                                  }`}
                                 placeholder="Enter designation"
                               />
                             </div>
@@ -783,11 +796,10 @@ export default function EditClientPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={isSubmitting}
-                className={`px-6 h-12 rounded-lg bg-[#000060] text-white transition-all duration-300 flex items-center hover:bg-[#0000a0] ${
-                  isSubmitting
+                className={`px-6 h-12 rounded-lg bg-[#000060] text-white transition-all duration-300 flex items-center hover:bg-[#0000a0] ${isSubmitting
                     ? "opacity-70 cursor-not-allowed"
                     : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                  }`}
               >
                 {isSubmitting ? (
                   <>

@@ -95,9 +95,8 @@ export default function UserPage() {
         );
         setAlertMessage({
           type: "success",
-          message: `User ${
-            newStatus === 2 ? "enabled" : "disabled"
-          } successfully`,
+          message: `User ${newStatus === 2 ? "enabled" : "disabled"
+            } successfully`,
         });
         setShowAlert(true);
         setTimeout(() => setShowAlert(false), 3000);
@@ -211,6 +210,7 @@ export default function UserPage() {
     try {
       const response = await axiosInstance.get(`/role/view`);
       if (response.data.success) {
+        console.log("Roles:", response.data.roles);
         setRoles(response.data.roles);
       } else {
         setErrorMessage(response.data.message || "Failed to fetch roles");
@@ -220,9 +220,28 @@ export default function UserPage() {
     }
   };
 
+
+  const fetchUserRole = async (id) => {
+    try {
+      const response = await axiosInstance.get(`users/userRoledata/${id}`);
+      if (response.data.success) {
+        console.log("User Role: ", response);
+        console.log(response.data.data[0]);
+        setSelectedRole(response.data.data[0].role_id);
+      } else {
+        setErrorMessage(error.response?.data?.message || "Error fetching user role");
+      }
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || "Error fetching user role.");
+    }
+  }
+
+
+
   const openRoleModal = user => {
     setSelectedUser(user);
-    setSelectedRole(null);
+    fetchUserRole(user.id);
+    // setSelectedRole(null);
     setIsRoleModalOpen(true);
     fetchRoles();
   };
@@ -249,7 +268,10 @@ export default function UserPage() {
         });
         setShowAlert(true);
         setTimeout(() => setShowAlert(false), 3000);
+        // Refetch users to update the table data
+        await fetchUsers();
         closeRoleModal();
+        // setTimeout(() => navigate("/users"), 1000);
       } else {
         setErrorMessage(response.data.message || "Failed to assign role");
       }
@@ -271,9 +293,8 @@ export default function UserPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-              alertMessage.type === "success" ? "bg-green-100" : "bg-yellow-100"
-            }`}
+            className={`fixed top-4 right-4 z-[1000] p-4 rounded-lg shadow-lg ${alertMessage.type === "success" ? "bg-green-100" : "bg-yellow-100"
+              }`}
           >
             <div className="flex items-center space-x-2">
               {alertMessage.type === "success" ? (
@@ -282,11 +303,10 @@ export default function UserPage() {
                 <ToggleLeft className="h-5 w-5 text-yellow-500" />
               )}
               <span
-                className={`text-sm ${
-                  alertMessage.type === "success"
-                    ? "text-green-700"
-                    : "text-yellow-700"
-                }`}
+                className={`text-sm ${alertMessage.type === "success"
+                  ? "text-green-700"
+                  : "text-yellow-700"
+                  }`}
               >
                 {alertMessage.message}
               </span>
@@ -300,7 +320,7 @@ export default function UserPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 z-[1000]"
           role="alert"
         >
           <strong className="font-bold">Error: </strong>
@@ -314,7 +334,7 @@ export default function UserPage() {
         </motion.div>
       )}
 
-      <header className="mb-16 relative z-[999]">
+      <header className="mb-16 relative z-[10]">
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -463,7 +483,7 @@ export default function UserPage() {
                 >
                   <div className="flex items-center">
                     <UserCircle className="mr-2 h-4 w-4" />
-                    Designation
+                    Role
                   </div>
                 </th>
                 <th className="px-4 py-3 lg:px-6 lg:py-4 font-extrabold text-sm">
@@ -481,9 +501,8 @@ export default function UserPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${
-                    index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
-                  }`}
+                  className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                    }`}
                 >
                   <td className="px-4 py-3 lg:px-6 lg:py-4">
                     <div className="flex items-center">
@@ -515,8 +534,8 @@ export default function UserPage() {
                   <td className="px-4 py-3 lg:px-6 lg:py-4">
                     <div className="flex items-center">
                       <Briefcase className="h-4 w-4 lg:h-5 lg:w-5 mr-2 text-[#000060]" />
-                      <span className="text-sm lg:text-base">
-                        {user.designation}
+                      <span className="text-sm lg:text-base flex-1">
+                        {user.roles[0].roleName}
                       </span>
                     </div>
                   </td>
@@ -534,11 +553,10 @@ export default function UserPage() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => toggleUserStatus(user.id, user.status)}
-                        className={`transition-colors p-1 rounded-full ${
-                          user.status
-                            ? "text-green-500 hover:text-green-700 hover:bg-green-100"
-                            : "text-red-500 hover:text-red-700 hover:bg-red-100"
-                        }`}
+                        className={`transition-colors p-1 rounded-full ${user.status
+                          ? "text-green-500 hover:text-green-700 hover:bg-green-100"
+                          : "text-red-500 hover:text-red-700 hover:bg-red-100"
+                          }`}
                       >
                         {user.status ? (
                           <ToggleRight className="h-4 w-4 lg:h-5 lg:w-5" />
@@ -721,13 +739,24 @@ export default function UserPage() {
         </div>
       )}
       {isRoleModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div
+          className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-[9999]"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            margin: 0,
+            padding: 0
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.3 }}
-            className="bg-white rounded-xl p-6 w-full max-w-md"
+            className="bg-white rounded-xl p-6 w-full max-w-md relative"
           >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-[#000060]">

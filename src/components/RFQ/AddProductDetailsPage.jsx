@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, X, Edit } from "lucide-react";
+import Select from "react-select";
 import axios from "axios";
 import {
   Upload,
@@ -12,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -47,16 +49,18 @@ export default function AddProductDetailsPage() {
   const [documentsPerPage] = useState(5);
   const fileInputRef = useRef(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [rawMaterial, setRawMaterial] = useState([]);
 
   useEffect(() => {
     fetchSkuData();
+    fetchRawMaterial();
   }, []);
 
   const fetchSkuData = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`${API_BASE_URL}/sku/getsku/${id}`);
+      const response = await axiosInstance.get(`/sku/getsku/${id}`);
       if (response.data.success) {
         setSkuData(response.data.data);
       } else {
@@ -70,7 +74,7 @@ export default function AddProductDetailsPage() {
 
   const fetchDocuments = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/rfq/${id}/documents`);
+      const response = await axiosInstance.get(`/rfq/${id}/documents`);
       if (response.data.success) {
         setDocuments(response.data.data);
       } else {
@@ -79,7 +83,7 @@ export default function AddProductDetailsPage() {
     } catch (error) {
       setUploadError(
         "Error fetching documents: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     }
   }, [id]);
@@ -186,9 +190,27 @@ export default function AddProductDetailsPage() {
     }
   };
 
+  const fetchRawMaterial = async () => {
+    try {
+      const response = await axiosInstance.get(`/rawmaterial/`);
+      if (response.data.success) {
+        setRawMaterial(response.data.data);
+      } else {
+        console.error("Failed to fetch users");
+      }
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const rawMaterialOptions = rawMaterial.map(raw => ({
+    value: raw.id,
+    label: raw.raw_material_name,
+  }));
+
   const saveProductsToBackend = async (skuId, products) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/sku/saveproducts/`, {
+      const response = await axiosInstance.post(`/sku/saveproducts/`, {
         p_sku_id: skuId,
         p_products: products,
       });
@@ -208,7 +230,7 @@ export default function AddProductDetailsPage() {
     } catch (error) {
       setError(
         "Error saving products: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     }
   };
@@ -218,8 +240,8 @@ export default function AddProductDetailsPage() {
     if (Object.keys(errors).length === 0) {
       const updatedProducts = isEditMode
         ? selectedSku.products.map((p, index) =>
-            index === editIndex ? newProduct : p
-          )
+          index === editIndex ? newProduct : p
+        )
         : [...(selectedSku.products || []), newProduct];
 
       await saveProductsToBackend(selectedSku.sku_id, updatedProducts);
@@ -237,6 +259,16 @@ export default function AddProductDetailsPage() {
     const { name, value } = e.target;
     setNewProduct(prev => ({ ...prev, [name]: value }));
     setValidationErrors(prev => ({ ...prev, [name]: "" }));
+  };
+
+  const handleSelectChange = (selectedOption, { name }) => {
+    if (name === "raw_material_type") {
+      setNewProduct({
+        ...newProduct,
+        raw_material_type: selectedOption.value,
+      });
+    }
+    setValidationErrors({ ...validationErrors, [name]: "" });
   };
 
   const handleRemoveProduct = async (skuId, productIndex) => {
@@ -259,8 +291,8 @@ export default function AddProductDetailsPage() {
     }
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/rfq/${id}/documents`,
+      const response = await axiosInstance.post(
+        `/rfq/${id}/documents`,
         formData,
         {
           headers: {
@@ -277,7 +309,7 @@ export default function AddProductDetailsPage() {
     } catch (error) {
       setUploadError(
         "Error uploading documents: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     } finally {
       setIsUploading(false);
@@ -286,8 +318,8 @@ export default function AddProductDetailsPage() {
 
   const handleDownload = async (documentId, fileName) => {
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/rfq/${id}/download/${documentId}`,
+      const response = await axiosInstance.get(
+        `/rfq/${id}/download/${documentId}`,
         {
           responseType: "blob",
         }
@@ -302,15 +334,15 @@ export default function AddProductDetailsPage() {
     } catch (error) {
       setUploadError(
         "Error downloading document: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     }
   };
 
   const handleDelete = async documentId => {
     try {
-      const response = await axios.delete(
-        `${API_BASE_URL}/rfq/${id}/docdelete/permanent/${documentId}`
+      const response = await axiosInstance.delete(
+        `/rfq/${id}/docdelete/permanent/${documentId}`
       );
       if (response.data.success) {
         setSuccessMessage("Document deleted successfully");
@@ -321,7 +353,7 @@ export default function AddProductDetailsPage() {
     } catch (error) {
       setUploadError(
         "Error deleting document: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     }
   };
@@ -450,11 +482,10 @@ export default function AddProductDetailsPage() {
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`px-3 py-1 rounded-md transition-colors ${
-                            currentPage === page
-                              ? "bg-[#000060] text-white"
-                              : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                          }`}
+                          className={`px-3 py-1 rounded-md transition-colors ${currentPage === page
+                            ? "bg-[#000060] text-white"
+                            : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                            }`}
                         >
                           {page}
                         </button>
@@ -490,13 +521,12 @@ export default function AddProductDetailsPage() {
                         sku => sku.products && sku.products.length > 0
                       )
                     }
-                    className={`px-6 py-3 rounded-lg text-white transition-all duration-300 ${
-                      skuData.every(
-                        sku => sku.products && sku.products.length > 0
-                      )
-                        ? "bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
-                        : "bg-gray-400 cursor-not-allowed"
-                    }`}
+                    className={`px-6 py-3 rounded-lg text-white transition-all duration-300 ${skuData.every(
+                      sku => sku.products && sku.products.length > 0
+                    )
+                      ? "bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
+                      : "bg-gray-400 cursor-not-allowed"
+                      }`}
                   >
                     Next: Upload Documents
                   </button>
@@ -631,11 +661,10 @@ export default function AddProductDetailsPage() {
                         <button
                           key={page}
                           onClick={() => handleDocumentPageChange(page)}
-                          className={`px-3 py-1 rounded-md transition-colors ${
-                            currentDocumentPage === page
-                              ? "bg-[#000060] text-white"
-                              : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                          }`}
+                          className={`px-3 py-1 rounded-md transition-colors ${currentDocumentPage === page
+                            ? "bg-[#000060] text-white"
+                            : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                            }`}
                         >
                           {page}
                         </button>
@@ -678,11 +707,10 @@ export default function AddProductDetailsPage() {
                     );
                   }
                 }}
-                className={`px-6 py-3 rounded-lg text-white transition-all duration-300 ${
-                  documents.length === 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                className={`px-6 py-3 rounded-lg text-white transition-all duration-300 ${documents.length === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
+                  }`}
                 disabled={documents.length === 0}
               >
                 SAVE RFQ
@@ -781,7 +809,7 @@ export default function AddProductDetailsPage() {
                   >
                     Raw Material Type
                   </label>
-                  <input
+                  {/* <input
                     type="text"
                     id="raw_material_type"
                     name="raw_material_type"
@@ -789,6 +817,17 @@ export default function AddProductDetailsPage() {
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
                     placeholder="Enter raw material type"
+                  /> */}
+                  <Select
+                    id="raw_material_type"
+                    name="raw_material_type"
+                    options={rawMaterialOptions}
+                    onChange={option =>
+                      handleSelectChange(option, { name: "raw_material_type" })
+                    }
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                    placeholder="Select raw material type"
                   />
                   {validationErrors.raw_material_type && (
                     <p className="text-red-500 text-sm mt-1">
@@ -944,11 +983,10 @@ export default function AddProductDetailsPage() {
                         <button
                           key={page}
                           onClick={() => handleProductPageChange(page)}
-                          className={`px-3 py-1 rounded-md transition-colors ${
-                            currentProductPage === page
-                              ? "bg-[#000060] text-white"
-                              : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                          }`}
+                          className={`px-3 py-1 rounded-md transition-colors ${currentProductPage === page
+                            ? "bg-[#000060] text-white"
+                            : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                            }`}
                         >
                           {page}
                         </button>

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Building, MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Building, MapPin, X } from "lucide-react";
 import axios from "axios";
 import Select from "react-select";
+import axiosInstance from "../../axiosConfig";
 
-const API_BASE_URL = "http://localhost:3000/api";
 
 export default function EditPlantPage() {
   const navigate = useNavigate();
@@ -15,7 +15,9 @@ export default function EditPlantPage() {
   const [plantData, setPlantData] = useState({
     plantname: "",
     plant_head: "",
+    plant_head_id: null,
     plant_engineer: "",
+    plant_engineer_id: null,
     address1: "",
     address2: "",
     city: "",
@@ -34,9 +36,10 @@ export default function EditPlantPage() {
 
   const fetchPlantData = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/plant/${id}`);
+      const response = await axiosInstance.get(`/plant/${id}`);
+      console.log("plantData: ", response.data.data[0]);
       if (response.data.success) {
-        setPlantData(response.data.data);
+        setPlantData(response.data.data[0][0]);
       } else {
         setErrors({ submit: "Failed to fetch plant data" });
       }
@@ -47,7 +50,7 @@ export default function EditPlantPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users/`);
+      const response = await axiosInstance.get(`/users/`);
       if (response.data.success) {
         setUsers(response.data.data);
       } else {
@@ -64,9 +67,31 @@ export default function EditPlantPage() {
     setErrors({ ...errors, [name]: "" });
   };
 
+  // const handleSelectChange = (selectedOption, { name }) => {
+  //   setPlantData({ ...plantData, [name]: selectedOption.value });
+  //   setErrors({ ...errors, [name]: "" });
+  // };
+
   const handleSelectChange = (selectedOption, { name }) => {
-    setPlantData({ ...plantData, [name]: selectedOption.value });
+    console.log("Selected Option:", selectedOption);
+    console.log("Field Name:", name);
+
+    if (name === "plant_head") {
+      setPlantData({
+        ...plantData,
+        plant_head: selectedOption.label,
+        plant_head_id: selectedOption.value,
+      });
+    } else if (name === "plant_engineer") {
+      setPlantData({
+        ...plantData,
+        plant_engineer: selectedOption.label,
+        plant_engineer_id: selectedOption.value,
+      });
+    }
     setErrors({ ...errors, [name]: "" });
+
+    console.log("Updated Plant Data:", plantData);
   };
 
   const validateForm = () => {
@@ -80,7 +105,8 @@ export default function EditPlantPage() {
       newErrors.address1 = "Address 1 is required";
     if (!plantData.city?.trim()) newErrors.city = "City is required";
     if (!plantData.state?.trim()) newErrors.state = "State is required";
-    if (!plantData.pincode?.trim()) newErrors.pincode = "Pin code is required";
+    // if (!plantData.pincode?.trim()) newErrors.pincode = "Pin code is required";
+    if (!String(plantData.pincode)?.trim()) newErrors.pincode = "Pin code is required";
     return newErrors;
   };
 
@@ -93,8 +119,8 @@ export default function EditPlantPage() {
     }
     setIsSubmitting(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/plant/edit/${id}`,
+      const response = await axiosInstance.post(
+        `/plant/edit/${id}`,
         plantData
       );
       if (response.data.success) {
@@ -149,6 +175,26 @@ export default function EditPlantPage() {
           </p>
         </motion.div>
 
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between"
+            >
+              <span>{successMessage}</span>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="text-green-700 hover:text-green-900"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -193,16 +239,26 @@ export default function EditPlantPage() {
                 >
                   Plant Head
                 </label>
-                <Select
+                {/* <Select
                   id="plant_head"
                   name="plant_head"
                   options={userOptions}
                   value={userOptions.find(
-                    option => option.value === plantData.plant_head
+                    option => option.value === plantData.plant_head_id
                   )}
                   onChange={option =>
                     handleSelectChange(option, { name: "plant_head" })
                   }
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Plant Head"
+                /> */}
+                <Select
+                  id="plant_head"
+                  name="plant_head"
+                  options={userOptions}
+                  value={userOptions.find(option => option.value === plantData.plant_head_id)}
+                  onChange={option => handleSelectChange(option, { name: "plant_head" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select Plant Head"
@@ -221,16 +277,26 @@ export default function EditPlantPage() {
                 >
                   Plant Engineer
                 </label>
-                <Select
+                {/* <Select
                   id="plant_engineer"
                   name="plant_engineer"
                   options={userOptions}
                   value={userOptions.find(
-                    option => option.value === plantData.plant_engineer
+                    option => option.value === plantData.plant_engineer_id
                   )}
                   onChange={option =>
                     handleSelectChange(option, { name: "plant_engineer" })
                   }
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Plant Engineer"
+                /> */}
+                <Select
+                  id="plant_engineer"
+                  name="plant_engineer"
+                  options={userOptions}
+                  value={userOptions.find(option => option.value === plantData.plant_engineer_id)}
+                  onChange={option => handleSelectChange(option, { name: "plant_engineer" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select Plant Engineer"
@@ -368,11 +434,10 @@ export default function EditPlantPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${
-                  isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${isSubmitting
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:shadow-lg transform hover:-translate-y-1"
+                  }`}
               >
                 {isSubmitting ? "Updating..." : "Update Plant"}
               </button>

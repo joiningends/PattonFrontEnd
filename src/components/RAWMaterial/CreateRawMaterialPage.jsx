@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Package, Percent } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Package, Percent, IndianRupee, X } from "lucide-react";
 import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -32,10 +33,19 @@ export default function CreateRawMaterialPage() {
       newErrors.raw_material_name = "Material name is required";
     if (!materialData.raw_material_rate)
       newErrors.raw_material_rate = "Material rate is required";
-    if (!materialData.quantity_per_assembly)
-      newErrors.quantity_per_assembly = "Quantity per assembly is required";
+    // if (!materialData.quantity_per_assembly)
+    //   newErrors.quantity_per_assembly = "Quantity per assembly is required";
     if (!materialData.scrap_rate)
       newErrors.scrap_rate = "Scrap rate is required";
+
+    // Add validation to check if scrap rate is more than raw material rate
+    const scrapRate = parseFloat(materialData.scrap_rate);
+    const materialRate = parseFloat(materialData.raw_material_rate);
+
+    if (!isNaN(scrapRate) && !isNaN(materialRate) && scrapRate > materialRate) {
+      newErrors.scrap_rate = "Scrap rate cannot be more than raw material rate";
+    }
+    
     return newErrors;
   };
 
@@ -48,8 +58,8 @@ export default function CreateRawMaterialPage() {
     }
     setIsSubmitting(true);
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/rawmaterial/save`,
+      const response = await axiosInstance.post(
+        `/rawmaterial/save`,
         materialData
       );
       if (response.data.success) {
@@ -99,6 +109,26 @@ export default function CreateRawMaterialPage() {
           </p>
         </motion.div>
 
+        <AnimatePresence>
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between"
+            >
+              <span>{successMessage}</span>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="text-green-700 hover:text-green-900"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -144,6 +174,10 @@ export default function CreateRawMaterialPage() {
                   Raw Material Rate
                 </label>
                 <div className="relative">
+                  <IndianRupee
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#000060]"
+                    size={20}
+                  />
                   <input
                     type="number"
                     step="0.01"
@@ -151,7 +185,7 @@ export default function CreateRawMaterialPage() {
                     name="raw_material_rate"
                     value={materialData.raw_material_rate}
                     onChange={handleInputChange}
-                    className="w-full pl-4 pr-4 py-3 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300"
+                    className="w-full pl-10 pr-4 py-3 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300"
                     placeholder="Enter raw material rate"
                   />
                 </div>
@@ -162,7 +196,7 @@ export default function CreateRawMaterialPage() {
                 )}
               </div>
 
-              <div>
+              {/* <div>
                 <label
                   htmlFor="quantity_per_assembly"
                   className="block text-sm font-medium text-[#000060] mb-2"
@@ -190,7 +224,7 @@ export default function CreateRawMaterialPage() {
                     {errors.quantity_per_assembly}
                   </p>
                 )}
-              </div>
+              </div> */}
 
               <div>
                 <label
@@ -200,7 +234,7 @@ export default function CreateRawMaterialPage() {
                   Scrap Rate
                 </label>
                 <div className="relative">
-                  <Percent
+                  <IndianRupee
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#000060]"
                     size={20}
                   />
@@ -234,11 +268,10 @@ export default function CreateRawMaterialPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${
-                  isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${isSubmitting
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:shadow-lg transform hover:-translate-y-1"
+                  }`}
               >
                 {isSubmitting ? "Creating..." : "Create Raw Material"}
               </button>

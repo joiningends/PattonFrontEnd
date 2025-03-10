@@ -254,13 +254,13 @@ export default function PlantListingPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => handleEdit(plant.id)}
+                            onClick={() => handleEdit(plant.plant_id)}
                             className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
                           >
                             <Edit className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(plant.id)}
+                            onClick={() => handleDelete(plant.plant_id)}
                             className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
                           >
                             <Trash2 className="w-5 h-5" />

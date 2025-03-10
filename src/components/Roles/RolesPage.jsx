@@ -13,7 +13,7 @@ import {
   Settings,
   AlertCircle,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 
 
@@ -26,6 +26,7 @@ export default function RolesPage() {
   const [error, setError] = useState(null);
   const [errorMessage, setErrorMessage] = useState(""); // Added error message state
   const rolesPerPage = 10;
+  const [showAlert, setShowAlert] = useState(false);
 
   useEffect(() => {
     fetchRoles();
@@ -97,12 +98,42 @@ export default function RolesPage() {
   }
 
   return (
+
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="bg-gradient-to-br from-[#e1e1f5] to-[#f0f0f9] min-h-screen p-4 lg:p-8 space-y-8"
     >
+
+      <AnimatePresence>
+        {showAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${alertMessage.type === "success" ? "bg-green-100" : "bg-yellow-100"
+              }`}
+          >
+            <div className="flex items-center space-x-2">
+              {alertMessage.type === "success" ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <ToggleLeft className="h-5 w-5 text-yellow-500" />
+              )}
+              <span
+                className={`text-sm ${alertMessage.type === "success"
+                    ? "text-green-700"
+                    : "text-yellow-700"
+                  }`}
+              >
+                {alertMessage.message}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {errorMessage && ( // Added error message display
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -210,9 +241,8 @@ export default function RolesPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${
-                    index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
-                  }`}
+                  className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                    }`}
                 >
                   <td className="px-6 py-4 font-medium">
                     <div className="flex items-center">
@@ -234,14 +264,14 @@ export default function RolesPage() {
                       >
                         <Edit className="h-5 w-5" />
                       </motion.button>
-                      <motion.button
+                      {/* <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleDeleteRole(role.role_id)}
                         className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-100"
                       >
                         <Trash2 className="h-5 w-5" />
-                      </motion.button>
+                      </motion.button> */}
                     </div>
                   </td>
                 </motion.tr>
@@ -271,11 +301,10 @@ export default function RolesPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handlePageChange(page)}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  currentPage === page
-                    ? "bg-[#000060] text-white"
-                    : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                }`}
+                className={`px-3 py-1 rounded-md transition-colors ${currentPage === page
+                  ? "bg-[#000060] text-white"
+                  : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                  }`}
               >
                 {page}
               </motion.button>
@@ -293,5 +322,6 @@ export default function RolesPage() {
         </div>
       </motion.div>
     </motion.div>
+
   );
 }
