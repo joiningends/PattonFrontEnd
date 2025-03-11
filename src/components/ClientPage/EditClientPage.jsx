@@ -488,6 +488,39 @@ export default function EditClientPage() {
                 )}
               </div>
 
+              {/* Country Field */}
+              <div>
+                <label
+                  htmlFor="country"
+                  className="block text-sm font-medium text-[#000060] mb-2"
+                >
+                  Country *
+                </label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#000060] z-10 pointer-events-none" />
+                  <Controller
+                    name="country"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={getCountries()}
+                        styles={selectStyles}
+                        className={`w-full ${errors.country ? "border-red-500" : ""
+                          }`}
+                        classNamePrefix="select"
+                        placeholder="Select country"
+                      />
+                    )}
+                  />
+                </div>
+                {errors.country && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.country.message}
+                  </p>
+                )}
+              </div>
+
               {/* State Field */}
               <div>
                 <label
@@ -526,46 +559,13 @@ export default function EditClientPage() {
                 )}
               </div>
 
-              {/* Country Field */}
-              <div>
-                <label
-                  htmlFor="country"
-                  className="block text-sm font-medium text-[#000060] mb-2"
-                >
-                  Country *
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#000060] z-10 pointer-events-none" />
-                  <Controller
-                    name="country"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        options={getCountries()}
-                        styles={selectStyles}
-                        className={`w-full ${errors.country ? "border-red-500" : ""
-                          }`}
-                        classNamePrefix="select"
-                        placeholder="Select country"
-                      />
-                    )}
-                  />
-                </div>
-                {errors.country && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.country.message}
-                  </p>
-                )}
-              </div>
-
               {/* GST/PAN Field */}
               <div>
                 <label
                   htmlFor="Pan_gst"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  GST/PAN Number *
+                  PAN Number *
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

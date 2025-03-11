@@ -184,7 +184,8 @@ export default function RFQListingPage() {
         p_client_id: null,
       })
       if (response.data.success) {
-        setRFQs(response.data.data)
+        setRFQs(response.data.data);
+        console.log("RFQ: ", response.data.data);
       } else {
         setError("Failed to fetch RFQs")
       }
@@ -277,7 +278,7 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
-        user_id: 6, // This should be dynamically set based on the logged-in user
+        user_id: 3, // This should be dynamically set based on the logged-in user
         state_id: 2,
         plant_id: selectedPlants[0], // We're using the first selected plant for now
         comments: approveComment || null,
@@ -305,7 +306,7 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
-        user_id: 6, // This should be dynamically set based on the logged-in user
+        user_id: 3, // This should be dynamically set based on the logged-in user
         state_id: 0,
         plant_id: null,
         comments: rejectComment || null,
@@ -458,7 +459,7 @@ export default function RFQListingPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      {rfq.state_id < 2 ? (
+                      {(rfq.state_id !== 2 && rfq.state_id !== 0) ? (
                         <div className="flex items-center space-x-2">
                           {/* <button
                             onClick={() => handleEdit(rfq.rfq_id)}
@@ -539,7 +540,7 @@ export default function RFQListingPage() {
             <div className="mb-4 space-y-2">
               {plants.map((plant) => (
                 <label key={plant.plant_id} className="flex items-center space-x-3 cursor-pointer">
-                  <input
+                  <input  
                     type="checkbox"
                     checked={selectedPlants.includes(plant.plant_id)}
                     onChange={(e) => {

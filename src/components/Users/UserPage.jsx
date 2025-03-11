@@ -509,7 +509,7 @@ export default function UserPage() {
                       <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-[#000060] to-[#0000a0] text-white flex items-center justify-center mr-3 text-sm lg:text-lg font-semibold shadow-md">
                         {user.username.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-semibold text-[#000060] text-sm lg:text-base">
+                      <span className="font-semibold text-[#000060] text-sm lg:text-base flex-1">
                         {user.first_name + " " + user.last_name}
                       </span>
                     </div>
