@@ -46,9 +46,11 @@ export default function UserPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  const [filterRoles, setFilterRoles] = useState([]);
 
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, []);
 
   const fetchUsers = async () => {
@@ -64,6 +66,37 @@ export default function UserPage() {
       setErrorMessage(error.response?.data?.message || "Error fetching users");
     }
   };
+
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearchTerm =
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.designation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.department.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesRole =
+      filterRole === "All" ||
+      user.roles.some(role => role.roleName === filterRole);
+
+    return matchesSearchTerm && matchesRole;
+  });
+
+
+  const sortedUsers = filteredUsers.sort((a, b) => {
+    const fieldA = a[sortField];
+    const fieldB = b[sortField];
+
+    if (fieldA < fieldB) {
+      return sortDirection === "asc" ? -1 : 1;
+    }
+    if (fieldA > fieldB) {
+      return sortDirection === "asc" ? 1 : -1;
+    }
+    return 0;
+  });
+
 
   const rolesArray = [
     "All",
@@ -212,6 +245,10 @@ export default function UserPage() {
       if (response.data.success) {
         console.log("Roles:", response.data.roles);
         setRoles(response.data.roles);
+
+        // Set filterRoles with the "All" option
+        const rolesWithAll = [{ role_id: "All", role_name: "All" }, ...response.data.roles];
+        setFilterRoles(rolesWithAll);
       } else {
         setErrorMessage(response.data.message || "Failed to fetch roles");
       }
@@ -402,15 +439,15 @@ export default function UserPage() {
                     className="absolute z-[999] w-full mt-2 bg-white rounded-lg shadow-lg"
                     style={{ position: "absolute", minWidth: "200px" }}
                   >
-                    {rolesArray.map(role => (
+                    {filterRoles.map(role => (
                       <motion.button
-                        key={role}
+                        key={role.role_id}
                         whileHover={{ backgroundColor: "#f0f0f9" }}
-                        onClick={() => handleRoleSelect(role)}
+                        onClick={() => handleRoleSelect(role.role_name)}
                         className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
                       >
-                        <span>{role}</span>
-                        {role === filterRole && (
+                        <span>{role.role_name}</span>
+                        {role.role_name === filterRole && (
                           <Check className="h-4 w-4 text-[#000060]" />
                         )}
                       </motion.button>
@@ -495,7 +532,7 @@ export default function UserPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user, index) => (
+              {sortedUsers.map((user, index) => (
                 <motion.tr
                   key={user.id}
                   initial={{ opacity: 0, y: 20 }}

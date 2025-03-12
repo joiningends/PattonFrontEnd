@@ -80,8 +80,8 @@ const schema = yup.object().shape({
   country: yup.object().required("Country is required"),
   Pan_gst: yup
     .string()
-    .matches(/^[0-9A-Z]{10}$|^[0-9A-Z]{15}$/, "Invalid PAN or GST format")
-    .required("PAN/GST number is required"),
+    .matches(/^[0-9A-Z]{10}$|^[0-9A-Z]{15}$/, "Invalid PAN or GST format"),
+    // .required("PAN/GST number is required"),
   contacts: yup.array().of(
     yup.object().shape({
       name: yup.string().required("Contact name is required"),
@@ -90,7 +90,7 @@ const schema = yup.object().shape({
         .email("Invalid email format")
         .required("Contact email is required"),
       mobile: yup.string().required("Contact mobile is required"),
-      designation: yup.string().required("Designation is required"),
+      // designation: yup.string().required("Designation is required"),
     })
   ),
 });

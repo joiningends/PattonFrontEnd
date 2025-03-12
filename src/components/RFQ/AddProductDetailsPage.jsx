@@ -427,8 +427,8 @@ export default function AddProductDetailsPage() {
                       <th className="p-3 text-left">SKU Name</th>
                       <th className="p-3 text-left">Description</th>
                       <th className="p-3 text-left">Quantity</th>
-                      <th className="p-3 text-center">Products</th>
-                      <th className="p-3 text-center">Action</th>
+                      {/* <th className="p-3 text-center">Products</th> */}
+                      {/* <th className="p-3 text-center">Action</th> */}
                     </tr>
                   </thead>
                   <tbody>
@@ -443,7 +443,7 @@ export default function AddProductDetailsPage() {
                         <td className="p-3 border-b border-[#e1e1f5]">
                           {sku.quantity}
                         </td>
-                        <td className="p-3 border-b border-[#e1e1f5] text-center">
+                        {/* <td className="p-3 border-b border-[#e1e1f5] text-center">
                           {sku.products && sku.products.length > 0 ? (
                             <span className="text-green-500">
                               {sku.products.length} product(s)
@@ -461,7 +461,7 @@ export default function AddProductDetailsPage() {
                               ? "Edit Products"
                               : "Add Products"}
                           </button>
-                        </td>
+                        </td> */}
                       </tr>
                     ))}
                   </tbody>
@@ -502,7 +502,7 @@ export default function AddProductDetailsPage() {
                 </div>
 
                 {/* Next button */}
-                <div className="mt-8 flex justify-end">
+                {/* <div className="mt-8 flex justify-end">
                   <button
                     onClick={() => {
                       const allSkusHaveProducts = skuData.every(
@@ -527,6 +527,18 @@ export default function AddProductDetailsPage() {
                       ? "bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
                       : "bg-gray-400 cursor-not-allowed"
                       }`}
+                  >
+                    Next: Upload Documents
+                  </button>
+                </div> */}
+
+                <div className="mt-8 flex justify-end">
+                  <button
+                    onClick={() => {
+                      // Remove the validation check for products
+                      setShowDocumentUpload(true);
+                    }}
+                    className="px-6 py-3 rounded-lg text-white transition-all duration-300 bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
                   >
                     Next: Upload Documents
                   </button>
@@ -720,7 +732,7 @@ export default function AddProductDetailsPage() {
         )}
       </div>
 
-      <AnimatePresence>
+      {/* <AnimatePresence>
         {isModalOpen && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -809,15 +821,7 @@ export default function AddProductDetailsPage() {
                   >
                     Raw Material Type
                   </label>
-                  {/* <input
-                    type="text"
-                    id="raw_material_type"
-                    name="raw_material_type"
-                    value={newProduct.raw_material_type}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                    placeholder="Enter raw material type"
-                  /> */}
+                 
                   <Select
                     id="raw_material_type"
                     name="raw_material_type"
@@ -1012,7 +1016,7 @@ export default function AddProductDetailsPage() {
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md">
