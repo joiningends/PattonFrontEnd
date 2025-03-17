@@ -3,6 +3,7 @@ import { EyeIcon, EyeOffIcon } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import Cookies from "js-cookie";
+import useAppStore from "../../zustandStore";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -14,6 +15,10 @@ export default function PattonLoginPage() {
   });
   const [error, setError] = useState(null); // State to handle login errors
   const navigate = useNavigate(); // Hook for navigation
+
+  // App state
+  const { isLoggedIn, setUser, setRole, setPermission, setIsLoggedIn, setAppError, fetchPermissions }  = useAppStore();
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,8 +40,15 @@ export default function PattonLoginPage() {
       // Optionally, save user details in localStorage or context
       // localStorage.setItem("user", JSON.stringify(response.data.user));
 
+      // Update the App state
+      setUser(response.data.user);
+      setRole(response.data.user.roleid);
+      setIsLoggedIn(true);
+
+      await fetchPermissions();
+
       // Redirect to a protected route or dashboard
-      navigate("/users"); // Change this to your desired route
+      navigate("/"); // Change this to your desired route
     } catch (err) {
       // Handle errors
       setError(err.response?.data?.message || err.message || "Login failed. Please try again.");

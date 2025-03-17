@@ -9,6 +9,7 @@ import axios from "axios";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import axiosInstance from "../../axiosConfig";
+import * as XLSX from "xlsx";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -20,9 +21,10 @@ export default function CreateRFQPage() {
   const [skus, setSKUs] = useState([]);
   const [newSKU, setNewSKU] = useState({
     name: "",
-    quantity: "",
+    annual_usage: "",
     description: "",
     drawingNo: "",
+    part_no: "",
     size: "",
   });
   const [errors, setErrors] = useState({});
@@ -93,9 +95,10 @@ export default function CreateRFQPage() {
   const validateSKU = () => {
     const newErrors = {};
     if (!newSKU.name) newErrors.name = "SKU name is required";
-    if (!newSKU.quantity) newErrors.quantity = "Quantity is required";
+    if (!newSKU.annual_usage) newErrors.annual_usage = "Annual usage is required";
     if (!newSKU.description) newErrors.description = "Description is required";
     if (!newSKU.drawingNo) newErrors.drawingNo = "Drawing number is required";
+    if (!newSKU.part_no) newErrors.part_no = "Drawing number is required";
     if (!newSKU.size) newErrors.size = "Size is required";
     return newErrors;
   };
@@ -106,14 +109,44 @@ export default function CreateRFQPage() {
       setSKUs([...skus, { ...newSKU, repeat: 0 }]);
       setNewSKU({
         name: "",
-        quantity: "",
+        annual_usage: "",
         description: "",
         drawingNo: "",
+        part_no: "",
         size: "",
       });
     } else {
       setErrors(skuErrors);
     }
+  };
+
+
+  // Excel handle file upload and parsing
+  const handleBulkUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(worksheet);
+
+
+      const newSKUs = json.map((row) => ({
+        name: row.SKU_Name,
+        annual_usage: row.Annual_Usage,
+        part_no: row.Part_No,
+        drawingNo: row.Drawing_No,
+        size: row.Size,
+        description: row.Description,
+      }));
+
+      setSKUs((prevSKUs) => [...prevSKUs, ...newSKUs]);
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleRemoveSKU = index => {
@@ -147,9 +180,10 @@ export default function CreateRFQPage() {
             p_skus: skus.map(sku => ({
               sku_name: sku.name,
               repeat: 0,
-              quantity: Number.parseInt(sku.quantity),
+              annual_usage: Number.parseInt(sku.annual_usage),
               description: sku.description,
               drawing_no: sku.drawingNo,
+              part_no: sku.part_no,
               size: Number.parseFloat(sku.size) || 0,
             })),
           }
@@ -351,8 +385,8 @@ export default function CreateRFQPage() {
                       backgroundColor: isSelected
                         ? "#f3f4f6"
                         : isFocused
-                        ? "#f9fafb"
-                        : "white",
+                          ? "#f9fafb"
+                          : "white",
                       color: "#000000",
                       cursor: "pointer",
                       "&:active": {
@@ -395,22 +429,20 @@ export default function CreateRFQPage() {
                 <button
                   type="button"
                   onClick={() => setProductType("existing")}
-                  className={`flex-1 py-3 px-4 rounded-lg transition-colors ${
-                    productType === "existing"
-                      ? "bg-[#000060] text-white"
-                      : "bg-white text-[#000060] border-2 border-[#000060]"
-                  }`}
+                  className={`flex-1 py-3 px-4 rounded-lg transition-colors ${productType === "existing"
+                    ? "bg-[#000060] text-white"
+                    : "bg-white text-[#000060] border-2 border-[#000060]"
+                    }`}
                 >
                   Existing Product
                 </button>
                 <button
                   type="button"
                   onClick={() => setProductType("new")}
-                  className={`flex-1 py-3 px-4 rounded-lg transition-colors ${
-                    productType === "new"
-                      ? "bg-[#000060] text-white"
-                      : "bg-white text-[#000060] border-2 border-[#000060]"
-                  }`}
+                  className={`flex-1 py-3 px-4 rounded-lg transition-colors ${productType === "new"
+                    ? "bg-[#000060] text-white"
+                    : "bg-white text-[#000060] border-2 border-[#000060]"
+                    }`}
                 >
                   New Product
                 </button>
@@ -431,10 +463,13 @@ export default function CreateRFQPage() {
                             Name
                           </th>
                           <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
-                            Quantity
+                            Annual Usage
                           </th>
                           <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
                             Drawing No
+                          </th>
+                          <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
+                            Part No
                           </th>
                           <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
                             Size
@@ -448,13 +483,13 @@ export default function CreateRFQPage() {
                         {skus.map((sku, index) => (
                           <tr
                             key={index}
-                            className={`border-b border-[#e1e1f5] transition-colors ${
-                              index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
-                            } hover:bg-[#f0f0f9]`}
+                            className={`border-b border-[#e1e1f5] transition-colors ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                              } hover:bg-[#f0f0f9]`}
                           >
                             <td className="p-3 text-sm">{sku.name}</td>
-                            <td className="p-3 text-sm">{sku.quantity}</td>
+                            <td className="p-3 text-sm">{sku.annual_usage}</td>
                             <td className="p-3 text-sm">{sku.drawingNo}</td>
+                            <td className="p-3 text-sm">{sku.part_no}</td>
                             <td className="p-3 text-sm">{sku.size}</td>
                             <td className="p-3 text-sm">
                               <div className="flex items-center space-x-2">
@@ -516,22 +551,22 @@ export default function CreateRFQPage() {
                     </div>
                     <div>
                       <label
-                        htmlFor="skuQuantity"
+                        htmlFor="skuAnnualUsage"
                         className="block text-sm font-medium text-[#000060] mb-2"
                       >
-                        Quantity
+                        Annual Usage
                       </label>
                       <input
                         type="number"
-                        id="skuQuantity"
-                        name="quantity"
-                        value={newSKU.quantity}
+                        id="skuAnnualUsage"
+                        name="annual_usage"
+                        value={newSKU.annual_usage}
                         onChange={handleInputChange}
                         className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-md focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300"
                       />
-                      {errors.quantity && (
+                      {errors.annual_usage && (
                         <p className="mt-1 text-sm text-red-500">
-                          {errors.quantity}
+                          {errors.annual_usage}
                         </p>
                       )}
                     </div>
@@ -553,6 +588,27 @@ export default function CreateRFQPage() {
                       {errors.drawingNo && (
                         <p className="mt-1 text-sm text-red-500">
                           {errors.drawingNo}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="skuPart_no"
+                        className="block text-sm font-medium text-[#000060] mb-2"
+                      >
+                        Part No
+                      </label>
+                      <input
+                        type="text"
+                        id="skuPart_no"
+                        name="part_no"
+                        value={newSKU.part_no}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-md focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300"
+                      />
+                      {errors.part_no && (
+                        <p className="mt-1 text-sm text-red-500">
+                          {errors.part_no}
                         </p>
                       )}
                     </div>
@@ -607,6 +663,18 @@ export default function CreateRFQPage() {
                     <Plus className="w-5 h-5 mr-2" />
                     Add SKU
                   </button>
+                  <div className="bg-[#f8f8fd] p-6 rounded-lg shadow-md mt-6">
+                    <h3 className="text-2xl font-semibold text-[#000060] mb-6">Bulk Upload SKUs</h3>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleBulkUpload}
+                      className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-md focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300"
+                    />
+                    <p className="text-[#4b4b80] text-sm italic mt-2">
+                      Upload an Excel file with columns: Name, Quantity, Description, DrawingNo, Size
+                    </p>
+                  </div>
                 </div>
               </>
             )}
@@ -626,11 +694,10 @@ export default function CreateRFQPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${
-                  isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${isSubmitting
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:shadow-lg transform hover:-translate-y-1"
+                  }`}
               >
                 {isSubmitting ? "Processing..." : "Next"}
               </button>

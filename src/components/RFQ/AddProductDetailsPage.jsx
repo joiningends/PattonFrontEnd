@@ -426,7 +426,7 @@ export default function AddProductDetailsPage() {
                     <tr className="bg-[#000060] text-white rounded-t-lg">
                       <th className="p-3 text-left">SKU Name</th>
                       <th className="p-3 text-left">Description</th>
-                      <th className="p-3 text-left">Quantity</th>
+                      <th className="p-3 text-left">Annual Usage</th>
                       {/* <th className="p-3 text-center">Products</th> */}
                       {/* <th className="p-3 text-center">Action</th> */}
                     </tr>
@@ -441,7 +441,7 @@ export default function AddProductDetailsPage() {
                           {sku.description}
                         </td>
                         <td className="p-3 border-b border-[#e1e1f5]">
-                          {sku.quantity}
+                          {sku.annual_usage}
                         </td>
                         {/* <td className="p-3 border-b border-[#e1e1f5] text-center">
                           {sku.products && sku.products.length > 0 ? (

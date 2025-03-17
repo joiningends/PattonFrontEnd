@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "./components/Sidebar/Sidebar";
 import PattonLoginPage from "./components/Login/Login";
 import UserPage from "./components/Users/UserPage";
@@ -27,21 +27,55 @@ import EditRawMaterialPage from "./components/RAWMaterial/EditRawMaterialPage";
 import ForgotPassword from "./components/Login/ForgotPassword";
 import ResetPassword from "./components/Login/ResetPassword";
 import FirstTimeLogin from "./components/Login/FirstTimeLogin";
+import useAppStore from "./zustandStore";
+import axios from "axios";
+import Cookies from "js-cookie";
 
-const AppLayout = () =>{
+const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
-  
+
+  const { setUser, setRole, setIsLoggedIn, fetchPermissions } = useAppStore();
+
   // List of paths where sidebar should not be shown
-  const noSidebarPaths = ['/', '/forgot/password', '/reset/password', '/first-time/login'];
-  
+  const noSidebarPaths = ['/login', '/forgot/password', '/reset/password', '/first-time/login'];
+
   // Check if current path is in the noSidebarPaths list
   const showSidebar = !noSidebarPaths.includes(location.pathname);
-  
+
   // Toggle sidebar function
   const toggleSidebar = (forceState = null) => {
     setIsSidebarOpen(forceState !== null ? forceState : !isSidebarOpen);
   };
+
+
+  // Restore the user state on app initialization
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      axios.get("http://localhost:3000/api/auth/validate-token", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((response) => {
+          if (response.data.success) {
+            // Restore user state
+            setUser(response.data.user);
+            setRole({ role_id: response.data.user.roleid, role_name: response.data.user.role_name });
+            setIsLoggedIn(true);
+            fetchPermissions();
+          } else {
+
+            Cookies.remove("token");
+            localStorage.removeItem("appState");
+          }
+        })
+        .catch((error) => {
+          console.error("Error validating token:", error);
+          Cookies.remove("token");
+          localStorage.removeItem("appState");
+        });
+    }
+  }, [setUser, setRole, setIsLoggedIn, fetchPermissions]);
 
   return (
     <div className={showSidebar ? "h-screen flex" : "h-screen"}>
@@ -53,7 +87,8 @@ const AppLayout = () =>{
       {/* Main Content */}
       <main className="bg-[#e1e1f5] flex-1 overflow-auto w-full">
         <Routes>
-          <Route path="/" element={<PattonLoginPage />} />
+          <Route path="/" element={<RFQListingPage />} />
+          <Route path="/login" element={<PattonLoginPage />} />
           <Route path="/forgot/password" element={<ForgotPassword />} />
           <Route path="/reset/password" element={<ResetPassword />} />
           <Route path="/first-time/login" element={<FirstTimeLogin />} />
@@ -81,7 +116,7 @@ const AppLayout = () =>{
           <Route path="/add-client" element={<AddClientPage />} />
 
           {/* RFQ module */}
-          <Route path="/RFQ" element={<RFQListingPage />} />
+          {/* <Route path="/RFQ" element={<RFQListingPage />} /> */}
           <Route path="/create_RFQ" element={<CreateRFQPage />} />
           <Route path="/addProductDetails/:id" element={<AddProductDetailsPage />} />
           <Route path="/create_RFQ" element={<CreateRFQPage />} />

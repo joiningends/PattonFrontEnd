@@ -70,7 +70,7 @@ export default function ForgotPassword() {
         <div className="text-center text-sm text-gray-600">
           Remember your password?{" "}
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/login")}
             className="text-[#000060] hover:text-[#2D4DBF]"
           >
             Login

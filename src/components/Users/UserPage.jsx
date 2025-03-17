@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
+import useAppStore from "../../zustandStore";
 
 
 export default function UserPage() {
@@ -47,6 +48,10 @@ export default function UserPage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [filterRoles, setFilterRoles] = useState([]);
+
+  const {isLoggedIn, user} = useAppStore();
+
+  console.log("User State: ", user);
 
   useEffect(() => {
     fetchUsers();

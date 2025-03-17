@@ -3,8 +3,14 @@
 import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
+import {
+  ChevronDown,
+  Check,
+  Filter,
+} from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
+import useAppStore from "../../zustandStore";
 
 // Icons (you may need to install an icon library or use SVGs)
 const SearchIcon = () => (
@@ -172,6 +178,36 @@ export default function RFQListingPage() {
   const [successMessage, setSuccessMessage] = useState("")
   const rfqsPerPage = 10
   const [statusDescription, setStatusDescription] = useState(null)
+  const [states, setStates] = useState([]);
+  const [filterState, setFilterState] = useState("All");
+  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
+
+  const { isLoggedIn, user, role, permission } = useAppStore();
+
+  console.log("User State: ", user);
+  console.log("User Role: ", role);
+  console.log("User permission: ", permission);
+  
+
+  const fetchStates = async () => {
+    try {
+      const response = await axiosInstance.get("/rfq/states/");
+      if (response.data.success) {
+        console.log("States: ", response.data.data);
+        setStates(response.data.data);
+      } else {
+        setError("Failed to fetch states");
+      }
+    } catch (error) {
+      setError("Error fetching states: " + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleStateSelect = (state) => {
+    setFilterState(state);
+    setIsStateDropdownOpen(false);
+  };
+
 
   const rejectReasonOptions = ["Capability", "Volume", "Material", "Customer Background check", "Others"]
 
@@ -219,13 +255,28 @@ export default function RFQListingPage() {
       console.error("Error in fetchPlants:", err)
       setError("Failed to load plants. Please try again later.")
     })
+    fetchStates().catch((err) => {
+      console.error("Error in fetchState:", err)
+      setError("Failed to load states. Please try again later.")
+    })
   }, [fetchRFQs, fetchPlants])
 
-  const filteredRFQs = rfqs.filter(
-    (rfq) =>
+  // const filteredRFQs = rfqs.filter(
+  //   (rfq) =>
+  //     rfq.rfq_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     rfq.client_name.toLowerCase().includes(searchTerm.toLowerCase()),
+  // )
+
+  const filteredRFQs = rfqs.filter((rfq) => {
+    const matchesSearchTerm =
       rfq.rfq_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      rfq.client_name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      rfq.client_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesState =
+      filterState === "All" || rfq.state_description === filterState;
+
+    return matchesSearchTerm && matchesState;
+  });
 
   const indexOfLastRFQ = currentPage * rfqsPerPage
   const indexOfFirstRFQ = indexOfLastRFQ - rfqsPerPage
@@ -374,7 +425,99 @@ export default function RFQListingPage() {
               <SearchIcon className="w-5 h-5" />
             </div>
           </div>
+          <div className="flex flex-col sm:flex-row items-stretch space-y-2 sm:space-y-0 sm:space-x-4 w-full lg:w-auto mt-4 lg:mt-0">
+            <div
+              className="relative w-full sm:w-72"
+              style={{ position: "relative", zIndex: 999 }}
+            >
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
+                className="w-full h-full px-4 py-3 bg-[#f0f0f9] text-[#000060] rounded-lg text-sm hover:bg-[#e1e1f5] transition-colors shadow-md hover:shadow-lg flex items-center justify-between"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                <span>{filterState}</span>
+                <ChevronDown className="h-4 w-4" />
+              </motion.button>
+              <AnimatePresence>
+                {isStateDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute z-[999] w-full mt-2 bg-white rounded-lg shadow-lg"
+                    style={{ position: "absolute", minWidth: "200px" }}
+                  >
+                    <motion.button
+                      whileHover={{ backgroundColor: "#f0f0f9" }}
+                      onClick={() => handleStateSelect("All")}
+                      className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
+                    >
+                      <span>All</span>
+                      {"All" === filterState && <Check className="h-4 w-4 text-[#000060]" />}
+                    </motion.button>
+                    {states.map((state) => (
+                      <motion.button
+                        key={state.state_id}
+                        whileHover={{ backgroundColor: "#f0f0f9" }}
+                        onClick={() => handleStateSelect(state.state_description)}
+                        className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
+                      >
+                        <span>{state.state_description}</span>
+                        {state.state_description === filterState && <Check className="h-4 w-4 text-[#000060]" />}
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
         </motion.div>
+
+        {/* <div className="relative w-full sm:w-48"> */}
+        {/* <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
+            className="w-full h-full px-4 py-3 bg-[#f0f0f9] text-[#000060] rounded-lg text-sm hover:bg-[#e1e1f5] transition-colors shadow-md hover:shadow-lg flex items-center justify-between"
+          >
+            <Filter className="mr-2 h-4 w-4" />
+            <span>{filterState}</span>
+            <ChevronDown className="h-4 w-4" />
+          </motion.button>
+          <AnimatePresence>
+            {isStateDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute z-[999] w-full mt-2 bg-white rounded-lg shadow-lg"
+                style={{ position: "absolute", minWidth: "200px" }}
+              >
+                <motion.button
+                  whileHover={{ backgroundColor: "#f0f0f9" }}
+                  onClick={() => handleStateSelect("All")}
+                  className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
+                >
+                  <span>All</span>
+                  {"All" === filterState && <Check className="h-4 w-4 text-[#000060]" />}
+                </motion.button>
+                {states.map((state) => (
+                  <motion.button
+                    key={state.state_id}
+                    whileHover={{ backgroundColor: "#f0f0f9" }}
+                    onClick={() => handleStateSelect(state.state_description)}
+                    className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
+                  >
+                    <span>{state.state_description}</span>
+                    {state.state_description === filterState && <Check className="h-4 w-4 text-[#000060]" />}
+                  </motion.button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence> */}
+        {/* </div> */}
       </header>
 
       <AnimatePresence>
@@ -435,9 +578,8 @@ export default function RFQListingPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${
-                      index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
-                    }`}
+                    className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                      }`}
                   >
                     <td className="px-6 py-4 font-medium">
                       <div className="flex items-center">
@@ -513,9 +655,8 @@ export default function RFQListingPage() {
               <button
                 key={page}
                 onClick={() => handlePageChange(page)}
-                className={`px-3 py-2 rounded-md transition-colors ${
-                  currentPage === page ? "bg-[#000060] text-white" : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                }`}
+                className={`px-3 py-2 rounded-md transition-colors ${currentPage === page ? "bg-[#000060] text-white" : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                  }`}
               >
                 {page}
               </button>
@@ -540,7 +681,7 @@ export default function RFQListingPage() {
             <div className="mb-4 space-y-2">
               {plants.map((plant) => (
                 <label key={plant.plant_id} className="flex items-center space-x-3 cursor-pointer">
-                  <input  
+                  <input
                     type="checkbox"
                     checked={selectedPlants.includes(plant.plant_id)}
                     onChange={(e) => {
@@ -574,11 +715,10 @@ export default function RFQListingPage() {
               <button
                 onClick={handleApprove}
                 disabled={!isApproveValid}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  isApproveValid
-                    ? "bg-[#000060] text-white hover:bg-[#0000a0]"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
+                className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
+                  ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
               >
                 Approve
               </button>
@@ -632,11 +772,10 @@ export default function RFQListingPage() {
               <button
                 onClick={handleReject}
                 disabled={!isRejectValid}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  isRejectValid
-                    ? "bg-red-500 text-white hover:bg-red-600"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
+                className={`px-4 py-2 rounded-lg transition-colors ${isRejectValid
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
               >
                 Reject
               </button>

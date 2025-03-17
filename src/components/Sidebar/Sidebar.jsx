@@ -3,14 +3,11 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FolderKanban,
-  Clock,
   Users2,
   BookUserIcon,
   UserRoundPen,
   ContainerIcon,
   Settings,
-  FileIcon,
-  GanttChartSquare,
   HelpCircle,
   LogOut,
   Menu,
@@ -20,10 +17,15 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
+import useAppStore from "../../zustandStore";
 
 export default function Sidebar({ isOpen, toggleSidebar }) {
+
   const location = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false); // State to manage Settings submenu visibility
+
+  // State management store variables
+  const { isLoggedIn, logout } = useAppStore();
 
   useEffect(() => {
     const handleResize = () => {
@@ -43,12 +45,20 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
     // Clear the token from cookies
     Cookies.remove("token");
 
+    //  manage state
+    logout();
+
     // Redirect to the login page
-    navigate("/");
+    navigate("/login");
   };
 
+
+  // const handleLogin = () => {
+  //   navigate("/");
+  // }
+
   const menuItems = [
-    { icon: LayoutDashboard, label: "RFQ management", path: "/RFQ" },
+    { icon: LayoutDashboard, label: "RFQ management", path: "/" },
     { icon: Users2, label: "User management", path: "/users" },
     { icon: BookUserIcon, label: "Client management", path: "/clients" },
     { icon: UserRoundPen, label: "Role management", path: "/Roles" },
@@ -95,28 +105,25 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
               key={index}
               to={item.path}
               className={`group flex items-center justify-between px-5 py-3.5 rounded-xl relative overflow-hidden
-                ${
-                  location.pathname === item.path
-                    ? "bg-white/10 text-white shadow-lg"
-                    : "text-blue-100 hover:bg-white hover:text-[#000060]"
+                ${location.pathname === item.path
+                  ? "bg-white/10 text-white shadow-lg"
+                  : "text-blue-100 hover:bg-white hover:text-[#000060]"
                 }`}
             >
               <div className="flex items-center gap-4 z-10 relative">
                 <item.icon
-                  className={`h-5 w-5 ${
-                    location.pathname === item.path
-                      ? "text-white"
-                      : "text-blue-300 group-hover:text-[#000060]"
-                  }`}
+                  className={`h-5 w-5 ${location.pathname === item.path
+                    ? "text-white"
+                    : "text-blue-300 group-hover:text-[#000060]"
+                    }`}
                 />
                 <span className="font-medium">{item.label}</span>
               </div>
               <ChevronRight
-                className={`h-4 w-4 ${
-                  location.pathname === item.path
-                    ? "text-white"
-                    : "text-blue-300 group-hover:text-[#000060]"
-                }`}
+                className={`h-4 w-4 ${location.pathname === item.path
+                  ? "text-white"
+                  : "text-blue-300 group-hover:text-[#000060]"
+                  }`}
               />
             </Link>
           ))}
@@ -129,9 +136,8 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             >
               <div className="flex items-center gap-4 z-10 relative">
                 <Settings
-                  className={`h-5 w-5 ${
-                    isSettingsOpen ? "text-white" : "text-blue-300"
-                  }`}
+                  className={`h-5 w-5 ${isSettingsOpen ? "text-white" : "text-blue-300"
+                    }`}
                 />
                 <span className="font-medium">Settings</span>
               </div>
@@ -150,28 +156,25 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                     key={index}
                     to={item.path}
                     className={`group flex items-center justify-between px-5 py-3.5 rounded-xl relative overflow-hidden
-                      ${
-                        location.pathname === item.path
-                          ? "bg-white/10 text-white shadow-lg"
-                          : "text-blue-100 hover:bg-white hover:text-[#000060]"
+                      ${location.pathname === item.path
+                        ? "bg-white/10 text-white shadow-lg"
+                        : "text-blue-100 hover:bg-white hover:text-[#000060]"
                       }`}
                   >
                     <div className="flex items-center gap-4 z-10 relative">
                       <item.icon
-                        className={`h-5 w-5 ${
-                          location.pathname === item.path
-                            ? "text-white"
-                            : "text-blue-300 group-hover:text-[#000060]"
-                        }`}
+                        className={`h-5 w-5 ${location.pathname === item.path
+                          ? "text-white"
+                          : "text-blue-300 group-hover:text-[#000060]"
+                          }`}
                       />
                       <span className="font-medium">{item.label}</span>
                     </div>
                     <ChevronRight
-                      className={`h-4 w-4 ${
-                        location.pathname === item.path
-                          ? "text-white"
-                          : "text-blue-300 group-hover:text-[#000060]"
-                      }`}
+                      className={`h-4 w-4 ${location.pathname === item.path
+                        ? "text-white"
+                        : "text-blue-300 group-hover:text-[#000060]"
+                        }`}
                     />
                   </Link>
                 ))}
@@ -194,19 +197,35 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
             </div>
             <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-[#000060] transition-all duration-300 group-hover:translate-x-1" />
           </a>
+          {isLoggedIn ? (
+            <button
+              onClick={handleLogout}
+              className="group flex items-center justify-between px-5 py-3.5 rounded-xl w-full text-blue-100 transition-all duration-300 relative overflow-hidden"
+            >
+              <div className="flex items-center gap-4 relative z-10">
+                <LogOut className="h-5 w-5 text-blue-300 group-hover:text-red-300 transition-colors duration-300" />
+                <span className="font-medium group-hover:text-red-100 transition-colors duration-300 group-hover:translate-x-1">
+                  Logout
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-red-300 transition-all duration-300 group-hover:translate-x-1 relative z-10" />
+              <div className="absolute inset-0 bg-gradient-to-r from-red-800 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+            </button>
+          ) : (
           <button
             onClick={handleLogout}
             className="group flex items-center justify-between px-5 py-3.5 rounded-xl w-full text-blue-100 transition-all duration-300 relative overflow-hidden"
           >
             <div className="flex items-center gap-4 relative z-10">
-              <LogOut className="h-5 w-5 text-blue-300 group-hover:text-red-300 transition-colors duration-300" />
-              <span className="font-medium group-hover:text-red-100 transition-colors duration-300 group-hover:translate-x-1">
-                Logout
+              <LogOut className="h-5 w-5 text-blue-300 group-hover:text-green-300 transition-colors duration-300" />
+              <span className="font-medium group-hover:text-green-100 transition-colors duration-300 group-hover:translate-x-1">
+                Login
               </span>
             </div>
-            <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-red-300 transition-all duration-300 group-hover:translate-x-1 relative z-10" />
-            <div className="absolute inset-0 bg-gradient-to-r from-red-800 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
+            <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-green-300 transition-all duration-300 group-hover:translate-x-1 relative z-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-green-800  to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-sm"></div>
           </button>
+          )}
         </div>
       </aside>
     </>

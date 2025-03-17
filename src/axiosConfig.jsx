@@ -24,7 +24,7 @@ axiosInstance.interceptors.response.use(
       console.error("Unauthorized access. Redirecting to login...");
       // Clear the token and redirect to login
       Cookies.remove("token");
-      window.location.href = "/";
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
