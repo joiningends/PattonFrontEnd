@@ -73,16 +73,42 @@ export default function AddRolePage() {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "An error occurred while creating the role. Please try again."
+        "An error occurred while creating the role. Please try again."
       );
     }
 
     setIsSubmitting(false);
   };
 
+  // const handlePermissionChange = (pageId, permissionId) => {
+  //   setPermissions(prev => {
+  //     const updatedPermissions = { ...prev };
+  //     if (updatedPermissions[pageId].includes(permissionId)) {
+  //       updatedPermissions[pageId] = updatedPermissions[pageId].filter(
+  //         id => id !== permissionId
+  //       );
+  //     } else {
+  //       updatedPermissions[pageId] = [
+  //         ...updatedPermissions[pageId],
+  //         permissionId,
+  //       ];
+  //     }
+  //     return updatedPermissions;
+  //   });
+  // };
+
   const handlePermissionChange = (pageId, permissionId) => {
     setPermissions(prev => {
       const updatedPermissions = { ...prev };
+
+      // If Edit, Delete, or Create is checked, ensure View is also checked
+      if ([2, 3, 4].includes(permissionId)) {
+        if (!updatedPermissions[pageId].includes(1)) {
+          updatedPermissions[pageId] = [...updatedPermissions[pageId], 1];
+        }
+      }
+
+      // Toggle the selected permission
       if (updatedPermissions[pageId].includes(permissionId)) {
         updatedPermissions[pageId] = updatedPermissions[pageId].filter(
           id => id !== permissionId
@@ -93,6 +119,7 @@ export default function AddRolePage() {
           permissionId,
         ];
       }
+
       return updatedPermissions;
     });
   };
@@ -146,9 +173,8 @@ export default function AddRolePage() {
                 name="roleName"
                 value={roleName}
                 onChange={e => setRoleName(e.target.value)}
-                className={`w-full px-4 py-3 rounded-lg border-2 ${
-                  error ? "border-red-500" : "border-[#c8c8e6]"
-                } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
+                className={`w-full px-4 py-3 rounded-lg border-2 ${error ? "border-red-500" : "border-[#c8c8e6]"
+                  } focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300`}
                 placeholder="Enter role name"
               />
               {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
@@ -210,11 +236,10 @@ export default function AddRolePage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${
-                  isSubmitting
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${isSubmitting
                     ? "opacity-70 cursor-not-allowed"
                     : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                  }`}
               >
                 {isSubmitting ? (
                   <>

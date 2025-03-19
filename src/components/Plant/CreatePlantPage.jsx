@@ -15,7 +15,9 @@ export default function CreatePlantPage() {
   const [plantData, setPlantData] = useState({
     plantname: "",
     plant_head: "",
-    plant_engineer: "",
+    process_engineer: "",
+    npd_engineer: "",
+    vendor_development_engineer: "",
     address1: "",
     address2: "",
     city: "",
@@ -60,8 +62,12 @@ export default function CreatePlantPage() {
     if (!plantData.plantname.trim())
       newErrors.plantname = "Plant name is required";
     if (!plantData.plant_head) newErrors.plant_head = "Plant head is required";
-    if (!plantData.plant_engineer)
-      newErrors.plant_engineer = "Plant engineer is required";
+    if (!plantData.process_engineer)
+      newErrors.process_engineer = "Process engineer is required";
+    if (!plantData.npd_engineer)
+      newErrors.npd_engineer = "NPD engineer is required";
+    if (!plantData.vendor_development_engineer)
+      newErrors.vendor_development_engineer = "Vendor development engineer is required";
     if (!plantData.address1.trim())
       newErrors.address1 = "Address 1 is required";
     if (!plantData.city.trim()) newErrors.city = "City is required";
@@ -219,25 +225,75 @@ export default function CreatePlantPage() {
 
               <div>
                 <label
-                  htmlFor="plant_engineer"
+                  htmlFor="process_engineer"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  Plant Engineer
+                  Process Engineer
                 </label>
                 <Select
-                  id="plant_engineer"
-                  name="plant_engineer"
+                  id="process_engineer"
+                  name="process_engineer"
                   options={userOptions}
                   onChange={option =>
-                    handleSelectChange(option, { name: "plant_engineer" })
+                    handleSelectChange(option, { name: "process_engineer" })
                   }
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select Plant Engineer"
+                  placeholder="Select Process Engineer"
                 />
-                {errors.plant_engineer && (
+                {errors.process_engineer && (
                   <p className="mt-1 text-sm text-red-500">
-                    {errors.plant_engineer}
+                    {errors.process_engineer}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="npd_engineer"
+                  className="block text-sm font-medium text-[#000060] mb-2"
+                >
+                  NPD Engineer
+                </label>
+                <Select
+                  id="npd_engineer"
+                  name="npd_engineer"
+                  options={userOptions}
+                  onChange={option =>
+                    handleSelectChange(option, { name: "npd_engineer" })
+                  }
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select NPD Engineer"
+                />
+                {errors.npd_engineer && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.npd_engineer}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="vendor_development_engineer"
+                  className="block text-sm font-medium text-[#000060] mb-2"
+                >
+                  Vendor Development Engineer
+                </label>
+                <Select
+                  id="vendor_development_engineer"
+                  name="vendor_development_engineer"
+                  options={userOptions}
+                  onChange={option =>
+                    handleSelectChange(option, { name: "vendor_development_engineer" })
+                  }
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Vendor development Engineer"
+                />
+                {errors.vendor_development_engineer && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.vendor_development_engineer}
                   </p>
                 )}
               </div>

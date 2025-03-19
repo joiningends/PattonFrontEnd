@@ -67,8 +67,18 @@ export default function PlantListingPage() {
           .toString()
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
-      (plant.plant_engineer &&
-        plant.plant_engineer
+      (plant.process_engineer &&
+        plant.process_engineer
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (plant.npd_engineer &&
+        plant.npd_engineer
+          .toString()
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (plant.vendor_development_engineer &&
+        plant.vendor_development_engineer
           .toString()
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
@@ -220,7 +230,19 @@ export default function PlantListingPage() {
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <User className="mr-2" />
-                        Plant Engineer
+                        Process Engineer
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 font-extrabold text-sm">
+                      <div className="flex items-center">
+                        <User className="mr-2" />
+                        NPD Engineer
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 font-extrabold text-sm">
+                      <div className="flex items-center">
+                        <User className="mr-2" />
+                        Vendor dev Engineer
                       </div>
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">
@@ -256,7 +278,13 @@ export default function PlantListingPage() {
                         {plant.plant_head || "Not assigned"}
                       </td>
                       <td className="px-6 py-4">
-                        {plant.plant_engineer || "Not assigned"}
+                        {plant.process_engineer || "Not assigned"}
+                      </td>
+                      <td className="px-6 py-4">
+                        {plant.npd_engineer || "Not assigned"}
+                      </td>
+                      <td className="px-6 py-4">
+                        {plant.vendor_development_engineer || "Not assigned"}
                       </td>
                       <td className="px-6 py-4">{`${plant.city}, ${plant.state}`}</td>
                       <td className="px-6 py-4">

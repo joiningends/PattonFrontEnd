@@ -30,6 +30,7 @@ import FirstTimeLogin from "./components/Login/FirstTimeLogin";
 import useAppStore from "./zustandStore";
 import axios from "axios";
 import Cookies from "js-cookie";
+import ProfilePage from "./components/ProfilePage/ProfilePage";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -92,7 +93,7 @@ const AppLayout = () => {
           <Route path="/forgot/password" element={<ForgotPassword />} />
           <Route path="/reset/password" element={<ResetPassword />} />
           <Route path="/first-time/login" element={<FirstTimeLogin />} />
-
+          <Route path="/profile" element={<ProfilePage />} />
 
           <Route path="/users" element={<UserPage />} />
           <Route path="/addUser" element={<AddUser />} />

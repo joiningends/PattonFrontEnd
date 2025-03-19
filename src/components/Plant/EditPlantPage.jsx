@@ -16,8 +16,12 @@ export default function EditPlantPage() {
     plantname: "",
     plant_head: "",
     plant_head_id: null,
-    plant_engineer: "",
-    plant_engineer_id: null,
+    process_engineer: "",
+    process_engineer_id: null,
+    npd_engineer: "",
+    npd_engineer_id: null,
+    vendor_development_engineer: "",
+    vendor_development_engineer_id: null,
     address1: "",
     address2: "",
     city: "",
@@ -82,11 +86,23 @@ export default function EditPlantPage() {
         plant_head: selectedOption.label,
         plant_head_id: selectedOption.value,
       });
-    } else if (name === "plant_engineer") {
+    } else if (name === "process_engineer") {
       setPlantData({
         ...plantData,
-        plant_engineer: selectedOption.label,
-        plant_engineer_id: selectedOption.value,
+        process_engineer: selectedOption.label,
+        process_engineer_id: selectedOption.value,
+      });
+    } else if (name === "npd_engineer") {
+      setPlantData({
+        ...plantData,
+        npd_engineer: selectedOption.label,
+        npd_engineer_id: selectedOption.value,
+      });
+    } else if (name == "vendor_development_engineer") {
+      setPlantData({
+        ...plantData,
+        vendor_development_engineer: selectedOption.label,
+        vendor_development_engineer_id: selectedOption.value,
       });
     }
     setErrors({ ...errors, [name]: "" });
@@ -99,8 +115,12 @@ export default function EditPlantPage() {
     if (!plantData.plantname?.trim())
       newErrors.plantname = "Plant name is required";
     if (!plantData.plant_head) newErrors.plant_head = "Plant head is required";
-    if (!plantData.plant_engineer)
-      newErrors.plant_engineer = "Plant engineer is required";
+    if (!plantData.process_engineer)
+      newErrors.process_engineer = "Process engineer is required";
+    if (!npd_engineer)
+      newErrors.npd_engineer = "NPD engineer is required";
+    if (!vendor_development_engineer)
+      newErrors.vendor_development_engineer = "Vendor development engineer is required";
     if (!plantData.address1?.trim())
       newErrors.address1 = "Address 1 is required";
     if (!plantData.city?.trim()) newErrors.city = "City is required";
@@ -272,38 +292,72 @@ export default function EditPlantPage() {
 
               <div>
                 <label
-                  htmlFor="plant_engineer"
+                  htmlFor="process_engineer"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  Plant Engineer
+                  Process Engineer
                 </label>
-                {/* <Select
-                  id="plant_engineer"
-                  name="plant_engineer"
-                  options={userOptions}
-                  value={userOptions.find(
-                    option => option.value === plantData.plant_engineer_id
-                  )}
-                  onChange={option =>
-                    handleSelectChange(option, { name: "plant_engineer" })
-                  }
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  placeholder="Select Plant Engineer"
-                /> */}
                 <Select
-                  id="plant_engineer"
-                  name="plant_engineer"
+                  id="process_engineer"
+                  name="process_engineer"
                   options={userOptions}
-                  value={userOptions.find(option => option.value === plantData.plant_engineer_id)}
-                  onChange={option => handleSelectChange(option, { name: "plant_engineer" })}
+                  value={userOptions.find(option => option.value === plantData.process_engineer_id)}
+                  onChange={option => handleSelectChange(option, { name: "process_engineer" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select Plant Engineer"
+                  placeholder="Select Process Engineer"
                 />
-                {errors.plant_engineer && (
+                {errors.process_engineer && (
                   <p className="mt-1 text-sm text-red-500">
-                    {errors.plant_engineer}
+                    {errors.process_engineer}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="npd_engineer"
+                  className="block text-sm font-medium text-[#000060] mb-2"
+                >
+                  NPD Engineer
+                </label>
+                <Select
+                  id="npd_engineer"
+                  name="npd_engineer"
+                  options={userOptions}
+                  value={userOptions.find(option => option.value === plantData.npd_engineer_id)}
+                  onChange={option => handleSelectChange(option, { name: "npd_engineer" })}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select NPD Engineer"
+                />
+                {errors.npd_engineer && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.npd_engineer}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="vendor_development_engineer"
+                  className="block text-sm font-medium text-[#000060] mb-2"
+                >
+                  Vendor Development Engineer
+                </label>
+                <Select
+                  id="vendor_development_engineer"
+                  name="vendor_development_engineer"
+                  options={userOptions}
+                  value={userOptions.find(option => option.value === plantData.vendor_development_engineer_id)}
+                  onChange={option => handleSelectChange(option, { name: "vendor_development_engineer" })}
+                  className="react-select-container"
+                  classNamePrefix="react-select"
+                  placeholder="Select Vendor Development Engineer"
+                />
+                {errors.vendor_development_engineer && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.vendor_development_engineer}
                   </p>
                 )}
               </div>

@@ -14,6 +14,7 @@ import {
   X,
   ChevronRight,
   ChevronDown,
+  UserCircle
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
@@ -92,8 +93,8 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
       {/* Mobile Toggle Button */}
       <button
         onClick={() => toggleSidebar(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white shadow-lg rounded-full transition-all duration-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-      >
+        className={`lg:hidden fixed top-4 left-4 z-50 p-2 bg-white shadow-lg rounded-full transition-all duration-300 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400
+          ${isOpen ? "left-64" : "left-4"}`} >
         {isOpen ? (
           <X className="h-6 w-6 text-[#000060]" />
         ) : (
@@ -213,8 +214,20 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
                 Support
               </span>
             </div>
-            <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-[#000060] transition-all duration-300 group-hover:translate-x-1" />
+            {/* <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-[#000060] transition-all duration-300 group-hover:translate-x-1" /> */}
           </a>
+          <Link
+            to="/profile"
+            className="group flex items-center justify-between px-5 py-3.5 rounded-xl text-blue-100 hover:bg-white hover:text-[#000060] transition-all duration-300 relative overflow-hidden"
+          >
+            <div className="flex items-center gap-4 z-10 relative">
+              <UserCircle className="h-5 w-5 text-blue-300 group-hover:text-[#000060] transition-colors duration-300" />
+              <span className="font-medium transition-all duration-300 group-hover:translate-x-1">
+                Profile
+              </span>
+            </div>
+            {/* <ChevronRight className="h-4 w-4 text-blue-300 group-hover:text-[#000060] transition-all duration-300 group-hover:translate-x-1" /> */}
+          </Link>
           {isLoggedIn ? (
             <button
               onClick={handleLogout}

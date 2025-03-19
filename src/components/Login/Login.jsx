@@ -50,15 +50,51 @@ export default function PattonLoginPage() {
       setIsLoggedIn(true);
       setPermission(getPermission.data.roles[0].pages);
 
-      // await fetchPermissions();
+      // Determine the first accessible page
+      const firstAccessiblePage = getFirstAccessiblePage(getPermission.data.roles[0].pages);
 
-      navigate("/");
+      // Redirect to the first accessible page
+      navigate(firstAccessiblePage);
 
     } catch (err) {
       // Handle errors
       setError(err.response?.data?.message || err.message || "Login failed. Please try again.");
     }
   };
+
+  const getFirstAccessiblePage = (pages) => {
+    // Define a mapping between page names and their corresponding routes
+    const pageRouteMapping = {
+      "User management": "/users",
+      "RFQ management": "/",
+      "Client management": "/clients",
+      "Role management": "/Roles",
+      "Plant management": "/plants",
+      "Raw material": "/raw-materials",
+    };
+
+    // Check if the user has access to the RFQ page
+    const rfqPage = pages.find(
+      (page) =>
+        page.page_name === "RFQ management" &&
+        page.permissions.some((permission) => permission.permission_name === "View")
+    );
+
+    // If the user has RFQ access, redirect to the RFQ page
+    if (rfqPage) {
+      return pageRouteMapping[rfqPage.page_name];
+    }
+
+    // Otherwise, find the first page the user has permission to access
+    const accessiblePage = pages.find((page) =>
+      page.permissions.some((permission) => permission.permission_name === "View")
+    );
+
+    // Return the corresponding route or a default route
+    return accessiblePage ? pageRouteMapping[accessiblePage.page_name] : "/";
+  };
+
+
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-b from-[#000060] to-[#2D4DBF]">
