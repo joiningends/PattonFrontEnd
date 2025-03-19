@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import Cookies from "js-cookie";
 import useAppStore from "../../zustandStore";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -17,8 +18,7 @@ export default function PattonLoginPage() {
   const navigate = useNavigate(); // Hook for navigation
 
   // App state
-  const { isLoggedIn, setUser, setRole, setPermission, setIsLoggedIn, setAppError, fetchPermissions }  = useAppStore();
-
+  const { isLoggedIn, setUser, setRole, setPermission, setIsLoggedIn, setAppError, fetchPermissions } = useAppStore();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,6 +29,10 @@ export default function PattonLoginPage() {
         email: formData.identifier, // Assuming identifier can be an email
         password: formData.password,
       });
+
+      const getPermission = await axiosInstance.get(`/role/view/${response.data.user.roleid}`);
+
+      console.log(getPermission);
 
       // Save token in a cookie
       Cookies.set("token", response.data.token, {
@@ -44,11 +48,12 @@ export default function PattonLoginPage() {
       setUser(response.data.user);
       setRole(response.data.user.roleid);
       setIsLoggedIn(true);
+      setPermission(getPermission.data.roles[0].pages);
 
-      await fetchPermissions();
+      // await fetchPermissions();
 
-      // Redirect to a protected route or dashboard
-      navigate("/"); // Change this to your desired route
+      navigate("/");
+
     } catch (err) {
       // Handle errors
       setError(err.response?.data?.message || err.message || "Login failed. Please try again.");

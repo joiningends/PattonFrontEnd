@@ -49,7 +49,11 @@ export default function UserPage() {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [filterRoles, setFilterRoles] = useState([]);
 
-  const {isLoggedIn, user} = useAppStore();
+  const { isLoggedIn, user, permission } = useAppStore();
+
+  // Get the page permissions
+  const pagePermission = permission?.find((p) => p.page_id === 2);
+  console.log(pagePermission.permissions);
 
   console.log("User State: ", user);
 
@@ -391,15 +395,17 @@ export default function UserPage() {
               Manage your user base efficiently
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate("/AddUser")}
-            className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
-          >
-            <Users className="inline-block mr-2 h-5 w-5" />
-            Add New User
-          </motion.button>
+          {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/AddUser")}
+              className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
+            >
+              <Users className="inline-block mr-2 h-5 w-5" />
+              Add New User
+            </motion.button>
+          )}
         </motion.div>
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -583,14 +589,16 @@ export default function UserPage() {
                   </td>
                   <td className="px-4 py-3 lg:px-6 lg:py-4">
                     <div className="flex items-center space-x-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => openEditModal(user)}
-                        className="text-[#000060] hover:text-[#0000a0] transition-colors p-1 rounded-full hover:bg-[#e1e1f5]"
-                      >
-                        <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
-                      </motion.button>
+                      {pagePermission.permissions.find((p) => p.permission_id === 2) && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => openEditModal(user)}
+                          className="text-[#000060] hover:text-[#0000a0] transition-colors p-1 rounded-full hover:bg-[#e1e1f5]"
+                        >
+                          <Edit className="h-4 w-4 lg:h-5 lg:w-5" />
+                        </motion.button>
+                      )}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
@@ -615,14 +623,16 @@ export default function UserPage() {
                       >
                         <UserCog className="h-4 w-4 lg:h-5 lg:w-5" />
                       </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-100"
-                      >
-                        <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
-                      </motion.button>
+                      {pagePermission.permissions.find((p) => p.permission_id === 3) && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="text-red-500 hover:text-red-700 transition-colors p-1 rounded-full hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4 lg:h-5 lg:w-5" />
+                        </motion.button>
+                      )}
                     </div>
                   </td>
                 </motion.tr>

@@ -375,7 +375,7 @@ export default function AddProductDetailsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-[#e1e1f5] to-[#f0f0f9] min-h-screen p-4 lg:p-8 xl:px-0"
+      className="bg-gradient-to-br from-[#e1e1f5] to-[#f0f0f9] min-h-screen p-4 lg:p-8"
     >
       <div className="max-w-7xl mx-auto">
         <motion.div
@@ -392,12 +392,12 @@ export default function AddProductDetailsPage() {
             Back to Edit RFQ
           </button>
           <h1 className="text-3xl lg:text-4xl font-bold text-[#000060] mb-2">
-            {showDocumentUpload ? "Upload Documents" : "Add Product Details"}
+            {showDocumentUpload ? "Upload Documents" : "SKU Details"}
           </h1>
           <p className="text-[#4b4b80] text-base lg:text-lg">
             {showDocumentUpload
               ? "Upload and manage documents for your RFQ"
-              : "Add product details for each SKU"}
+              : "SKU list for the RFQ"}
           </p>
         </motion.div>
 

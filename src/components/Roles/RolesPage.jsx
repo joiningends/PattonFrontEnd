@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
+import useAppStore from "../../zustandStore";
 
 
 export default function RolesPage() {
@@ -27,6 +28,12 @@ export default function RolesPage() {
   const [errorMessage, setErrorMessage] = useState(""); // Added error message state
   const rolesPerPage = 10;
   const [showAlert, setShowAlert] = useState(false);
+
+  const { permission } = useAppStore();
+
+  // Get the page permissions
+  const pagePermission = permission?.find((p) => p.page_id === 8);
+  console.log(pagePermission.permissions);
 
   useEffect(() => {
     fetchRoles();
@@ -123,8 +130,8 @@ export default function RolesPage() {
               )}
               <span
                 className={`text-sm ${alertMessage.type === "success"
-                    ? "text-green-700"
-                    : "text-yellow-700"
+                  ? "text-green-700"
+                  : "text-yellow-700"
                   }`}
               >
                 {alertMessage.message}
@@ -177,15 +184,17 @@ export default function RolesPage() {
               <Settings className="inline-block mr-2 h-5 w-5" />
               Manage Permissions
             </motion.button> */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/AddRole")}
-              className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
-            >
-              <Plus className="inline-block mr-2 h-5 w-5" />
-              Add New Role
-            </motion.button>
+            {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/AddRole")}
+                className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
+              >
+                <Plus className="inline-block mr-2 h-5 w-5" />
+                Add New Role
+              </motion.button>
+            )}
           </div>
         </motion.div>
         <motion.div
@@ -256,14 +265,16 @@ export default function RolesPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => handleEditRole(role.role_id)}
-                        className="text-[#000060] hover:text-[#0000a0] transition-colors p-1 rounded-full hover:bg-[#e1e1f5]"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </motion.button>
+                      {pagePermission.permissions.find((p) => p.permission_id === 2) && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleEditRole(role.role_id)}
+                          className="text-[#000060] hover:text-[#0000a0] transition-colors p-1 rounded-full hover:bg-[#e1e1f5]"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </motion.button>
+                      )}
                       {/* <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}

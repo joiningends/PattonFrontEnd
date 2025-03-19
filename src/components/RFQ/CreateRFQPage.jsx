@@ -11,6 +11,8 @@ import "react-phone-input-2/lib/style.css";
 import axiosInstance from "../../axiosConfig";
 import * as XLSX from "xlsx";
 
+import sampleExcel from "../../assets/Sample_excel_Bulkupload.xlsx";
+
 const API_BASE_URL = "http://localhost:3000/api";
 
 export default function CreateRFQPage() {
@@ -672,8 +674,16 @@ export default function CreateRFQPage() {
                       className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-md focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300"
                     />
                     <p className="text-[#4b4b80] text-sm italic mt-2">
-                      Upload an Excel file with columns: Name, Quantity, Description, DrawingNo, Size
+                      Upload an Excel file with columns: SKU_Name, Annual_Usage, Part_No, Drawing_No, Size, Description
                     </p>
+                    {/* Add the download link for the sample Excel file */}
+                    <a
+                      href={sampleExcel}
+                      download="sample_skus.xlsx"
+                      className="mt-4 inline-block px-4 py-2 bg-[#000060] text-white rounded-md hover:bg-[#0000a0] transition-colors"
+                    >
+                      Download Sample Excel
+                    </a>
                   </div>
                 </div>
               </>

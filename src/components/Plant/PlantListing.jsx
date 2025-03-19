@@ -16,6 +16,7 @@ import {
   MapPin,
 } from "lucide-react";
 import axiosInstance from "../../axiosConfig";
+import useAppStore from "../../zustandStore";
 
 
 export default function PlantListingPage() {
@@ -27,6 +28,12 @@ export default function PlantListingPage() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const plantsPerPage = 10;
+
+  const { permission } = useAppStore();
+
+  // Get the page permissions
+  const pagePermission = permission?.find((p) => p.page_id === 9);
+  console.log(pagePermission.permissions);
 
   useEffect(() => {
     fetchPlants();
@@ -46,7 +53,7 @@ export default function PlantListingPage() {
     } catch (error) {
       setError(
         "Error fetching plants: " +
-          (error.response?.data?.message || error.message)
+        (error.response?.data?.message || error.message)
       );
     }
     setIsLoading(false);
@@ -100,7 +107,7 @@ export default function PlantListingPage() {
       } catch (error) {
         setError(
           "Error deleting plant: " +
-            (error.response?.data?.message || error.message)
+          (error.response?.data?.message || error.message)
         );
       }
     }
@@ -129,13 +136,15 @@ export default function PlantListingPage() {
                 Manage your plant locations
               </p>
             </div>
-            <button
-              onClick={() => navigate("/create-plant")}
-              className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg flex items-center justify-center transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
-            >
-              <Plus className="mr-2" />
-              <span>Create Plant</span>
-            </button>
+            {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+              <button
+                onClick={() => navigate("/create-plant")}
+                className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg flex items-center justify-center transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
+              >
+                <Plus className="mr-2" />
+                <span>Create Plant</span>
+              </button>
+            )}
           </motion.div>
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -232,9 +241,8 @@ export default function PlantListingPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${
-                        index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
-                      }`}
+                      className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                        }`}
                     >
                       <td className="px-6 py-4 font-medium">
                         <div className="flex items-center">
@@ -253,18 +261,22 @@ export default function PlantListingPage() {
                       <td className="px-6 py-4">{`${plant.city}, ${plant.state}`}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => handleEdit(plant.plant_id)}
-                            className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(plant.plant_id)}
-                            className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                          {pagePermission.permissions.find((p) => p.permission_id === 2) && (
+                            <button
+                              onClick={() => handleEdit(plant.plant_id)}
+                              className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
+                            >
+                              <Edit className="w-5 h-5" />
+                            </button>
+                          )}
+                          {pagePermission.permissions.find((p) => p.permission_id === 3) && (
+                            <button
+                              onClick={() => handleDelete(plant.plant_id)}
+                              className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -292,11 +304,10 @@ export default function PlantListingPage() {
                 <button
                   key={page}
                   onClick={() => handlePageChange(page)}
-                  className={`px-3 py-2 rounded-md transition-colors ${
-                    currentPage === page
-                      ? "bg-[#000060] text-white"
-                      : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                  }`}
+                  className={`px-3 py-2 rounded-md transition-colors ${currentPage === page
+                    ? "bg-[#000060] text-white"
+                    : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                    }`}
                 >
                   {page}
                 </button>

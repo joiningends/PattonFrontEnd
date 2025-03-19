@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
+import useAppStore from "../../zustandStore";
 
 
 export default function ClientsPage() {
@@ -44,6 +45,12 @@ export default function ClientsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const clientsPerPage = 10;
+
+  const { isLoggedIn, user, permission, role } = useAppStore();
+
+  // Get the page permission
+  const pagePermission = permission?.find((p) => p.page_id === 7);
+  console.log(pagePermission.permissions);
 
   useEffect(() => {
     fetchClients();
@@ -90,9 +97,8 @@ export default function ClientsPage() {
         );
         setAlertMessage({
           type: "success",
-          message: `Client ${
-            !currentStatus ? "activated" : "deactivated"
-          } successfully`,
+          message: `Client ${!currentStatus ? "activated" : "deactivated"
+            } successfully`,
         });
         setShowAlert(true);
         setTimeout(() => setShowAlert(false), 3000);
@@ -168,9 +174,8 @@ export default function ClientsPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-              alertMessage.type === "success" ? "bg-green-100" : "bg-yellow-100"
-            }`}
+            className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${alertMessage.type === "success" ? "bg-green-100" : "bg-yellow-100"
+              }`}
           >
             <div className="flex items-center space-x-2">
               {alertMessage.type === "success" ? (
@@ -179,11 +184,10 @@ export default function ClientsPage() {
                 <AlertCircle className="h-5 w-5 text-yellow-500" />
               )}
               <span
-                className={`text-sm ${
-                  alertMessage.type === "success"
-                    ? "text-green-700"
-                    : "text-yellow-700"
-                }`}
+                className={`text-sm ${alertMessage.type === "success"
+                  ? "text-green-700"
+                  : "text-yellow-700"
+                  }`}
               >
                 {alertMessage.message}
               </span>
@@ -207,15 +211,17 @@ export default function ClientsPage() {
               Manage your client database efficiently
             </p>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate("/add-client")}
-            className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
-          >
-            <Building className="inline-block mr-2 h-5 w-5" />
-            Add New Client
-          </motion.button>
+          {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/add-client")}
+              className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
+            >
+              <Building className="inline-block mr-2 h-5 w-5" />
+              Add New Client
+            </motion.button>
+          )}
         </motion.div>
 
         <motion.div
@@ -351,9 +357,8 @@ export default function ClientsPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.1 }}
-                  className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${
-                    index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
-                  }`}
+                  className={`border-b border-[#e1e1f5] hover:bg-[#f8f8fd] transition-all duration-300 ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                    }`}
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -390,25 +395,26 @@ export default function ClientsPage() {
                   </td> */}
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-center gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate(`/client/${client.client_id}`)}
-                        className="text-[#000060] hover:text-[#0000a0] transition-colors p-2 rounded-full hover:bg-[#e1e1f5]"
-                      >
-                        <Edit className="h-5 w-5" />
-                      </motion.button>
+                      {pagePermission.permissions.find((p) => p.permission_id === 2) && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => navigate(`/client/${client.client_id}`)}
+                          className="text-[#000060] hover:text-[#0000a0] transition-colors p-2 rounded-full hover:bg-[#e1e1f5]"
+                        >
+                          <Edit className="h-5 w-5" />
+                        </motion.button>
+                      )}
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() =>
                           toggleClientStatus(client.client_id, client.status)
                         }
-                        className={`transition-colors p-2 rounded-full ${
-                          client.status
-                            ? "text-green-500 hover:text-green-700 hover:bg-green-100"
-                            : "text-red-500 hover:text-red-700 hover:bg-red-100"
-                        }`}
+                        className={`transition-colors p-2 rounded-full ${client.status
+                          ? "text-green-500 hover:text-green-700 hover:bg-green-100"
+                          : "text-red-500 hover:text-red-700 hover:bg-red-100"
+                          }`}
                       >
                         {client.status ? (
                           <ToggleRight className="h-5 w-5" />
@@ -456,11 +462,10 @@ export default function ClientsPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  currentPage === page
-                    ? "bg-[#000060] text-white"
-                    : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                }`}
+                className={`px-3 py-1 rounded-md transition-colors ${currentPage === page
+                  ? "bg-[#000060] text-white"
+                  : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                  }`}
               >
                 {page}
               </motion.button>
@@ -505,7 +510,7 @@ export default function ClientsPage() {
                 </button>
               </div>
               {selectedClient.other_contacts &&
-              selectedClient.other_contacts.length > 0 ? (
+                selectedClient.other_contacts.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {selectedClient.other_contacts.map((contact, index) => (
                     <motion.div
