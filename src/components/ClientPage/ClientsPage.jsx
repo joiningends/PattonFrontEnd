@@ -49,8 +49,11 @@ export default function ClientsPage() {
   const { isLoggedIn, user, permission, role } = useAppStore();
 
   // Get the page permission
-  const pagePermission = permission?.find((p) => p.page_id === 7);
-  console.log(pagePermission.permissions);
+  let pagePermission = null;
+  if(permission) {
+    pagePermission = permission?.find((p) => p.page_id === 7);
+    console.log(pagePermission.permissions);
+  }
 
   useEffect(() => {
     fetchClients();
@@ -211,7 +214,7 @@ export default function ClientsPage() {
               Manage your client database efficiently
             </p>
           </div>
-          {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+          {pagePermission && pagePermission.permissions.find((p) => p.permission_id === 4) && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

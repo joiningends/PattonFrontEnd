@@ -65,28 +65,28 @@ const useAppStore = create((set, get) => {
         },
 
 
-        // // Fetch permissions based on role_id
-        // fetchPermissions: async () => {
-        //     const { role } = get();
-        //     if (!role) {
-        //         set({ error: "No role found. Please log in again." });
-        //         return;
-        //     }
+        // Fetch permissions based on role_id
+        fetchPermissions: async () => {
+            const { role } = get();
+            if (!role) {
+                set({ error: "No role found. Please log in again." });
+                return;
+            }
 
-        //     try {
-        //         const response = await axiosInstance.get(`/role/view/${role.role_id}`);
-        //         if (response.data.success) {
-        //             // console.log("Debug role: ", response);
-        //             const permission = response.data.roles[0].pages;
-        //             set({ permission }); // Update the state
-        //             saveStateToLocalStorage({ ...get(), permission }); // Save to local storage 
-        //         } else {
-        //             set({ error: response.data.message || "Failed to fetch permissions" });
-        //         }
-        //     } catch (error) {
-        //         set({ error: error.response?.data?.message || "Error fetching permissions" });
-        //     }
-        // },
+            try {
+                const response = await axiosInstance.get(`/role/view/${role.role_id}`);
+                if (response.data.success) {
+                    // console.log("Debug role: ", response);
+                    const permission = response.data.roles[0].pages;
+                    set({ permission }); // Update the state
+                    saveStateToLocalStorage({ ...get(), permission }); // Save to local storage 
+                } else {
+                    set({ error: response.data.message || "Failed to fetch permissions" });
+                }
+            } catch (error) {
+                set({ error: error.response?.data?.message || "Error fetching permissions" });
+            }
+        },
 
         // Clear state on logout
         logout: () => {

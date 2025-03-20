@@ -52,8 +52,11 @@ export default function UserPage() {
   const { isLoggedIn, user, permission } = useAppStore();
 
   // Get the page permissions
-  const pagePermission = permission?.find((p) => p.page_id === 2);
-  console.log(pagePermission.permissions);
+  let pagePermission = null;
+  if(permission) {
+    pagePermission = permission?.find((p) => p.page_id === 2);
+    console.log(pagePermission.permissions);
+  }
 
   console.log("User State: ", user);
 
@@ -395,7 +398,7 @@ export default function UserPage() {
               Manage your user base efficiently
             </p>
           </div>
-          {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+          {pagePermission && pagePermission.permissions.find((p) => p.permission_id === 4) && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

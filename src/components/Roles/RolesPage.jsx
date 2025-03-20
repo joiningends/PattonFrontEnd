@@ -32,8 +32,11 @@ export default function RolesPage() {
   const { permission } = useAppStore();
 
   // Get the page permissions
-  const pagePermission = permission?.find((p) => p.page_id === 8);
-  console.log(pagePermission.permissions);
+  let pagePermission = null;
+  if(permission) {
+    pagePermission = permission?.find((p) => p.page_id === 8);
+    console.log(pagePermission.permissions);
+  }
 
   useEffect(() => {
     fetchRoles();
@@ -184,7 +187,7 @@ export default function RolesPage() {
               <Settings className="inline-block mr-2 h-5 w-5" />
               Manage Permissions
             </motion.button> */}
-            {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+            {pagePermission && pagePermission.permissions.find((p) => p.permission_id === 4) && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

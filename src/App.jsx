@@ -31,6 +31,7 @@ import useAppStore from "./zustandStore";
 import axios from "axios";
 import Cookies from "js-cookie";
 import ProfilePage from "./components/ProfilePage/ProfilePage";
+import axiosInstance from "./axiosConfig";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -54,7 +55,7 @@ const AppLayout = () => {
   useEffect(() => {
     const token = Cookies.get("token");
     if (token) {
-      axios.get("http://localhost:3000/api/auth/validate-token", {
+      axiosInstance.get("/auth/validate-token", {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((response) => {

@@ -184,15 +184,12 @@ export default function RFQListingPage() {
 
   const { isLoggedIn, user, role, permission } = useAppStore();
 
-  console.log("User State: ", user);
-  console.log("User Role: ", role);
-  console.log("User permission: ", permission);
+  // console.log("User State: ", user);
+  // console.log("User Role: ", role);
+  // console.log("User permission: ", permission);
 
-  // Get the page permissions
-  const pagePermission = permission?.find((p) => p.page_id === 6);
-  console.log(pagePermission.permissions);
-
-
+  
+  
   const fetchStates = async () => {
     try {
       const response = await axiosInstance.get("/rfq/states/");
@@ -206,12 +203,18 @@ export default function RFQListingPage() {
       setError("Error fetching states: " + (error.response?.data?.message || error.message));
     }
   };
-
+  
   const handleStateSelect = (state) => {
     setFilterState(state);
     setIsStateDropdownOpen(false);
   };
-
+  
+  // Get the page permissions
+  let pagePermission = null;
+  if(permission){
+    pagePermission = permission?.find((p) => p.page_id === 6);
+    console.log(pagePermission.permissions);
+  }
 
   const rejectReasonOptions = ["Capability", "Volume", "Material", "Customer Background check", "Others"]
 
@@ -405,7 +408,7 @@ export default function RFQListingPage() {
           </div>
           
           {/* Render the create button as per permissions */}
-          {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+          {pagePermission && pagePermission.permissions.find((p) => p.permission_id === 4) && (
             <button
               onClick={() => navigate("/create_RFQ")}
               className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg flex items-center justify-center transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"

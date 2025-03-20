@@ -5,19 +5,25 @@ import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
 import { Mail, Phone, Building, User, Briefcase, Users } from "lucide-react"; // Icons for profile details
+import { useNavigate } from "react-router-dom";
 
 export default function ProfilePage() {
   const { user } = useAppStore(); // Get user from Zustand store
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const userId = user?.id;
 
   // Fetch profile data
   useEffect(() => {
     if (user) {
-      fetchProfileData(user.id);
+      fetchProfileData(userId);
+    } else {
+      navigate("/login");
     }
-  }, [user]);
+  });
 
   const fetchProfileData = async (userId) => {
     try {

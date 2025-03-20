@@ -32,8 +32,11 @@ export default function PlantListingPage() {
   const { permission } = useAppStore();
 
   // Get the page permissions
-  const pagePermission = permission?.find((p) => p.page_id === 9);
-  console.log(pagePermission.permissions);
+  let pagePermission = null;
+  if (permission) {
+    pagePermission = permission?.find((p) => p.page_id === 9);
+    console.log(pagePermission.permissions);
+  }
 
   useEffect(() => {
     fetchPlants();
@@ -146,7 +149,7 @@ export default function PlantListingPage() {
                 Manage your plant locations
               </p>
             </div>
-            {pagePermission.permissions.find((p) => p.permission_id === 4) && (
+            {pagePermission && pagePermission.permissions.find((p) => p.permission_id === 4) && (
               <button
                 onClick={() => navigate("/create-plant")}
                 className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg flex items-center justify-center transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1"
