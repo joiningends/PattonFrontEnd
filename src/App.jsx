@@ -32,6 +32,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import ProfilePage from "./components/ProfilePage/ProfilePage";
 import axiosInstance from "./axiosConfig";
+import RFQDetailsPage from "./components/RFQ/RfqDetailPage";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -123,6 +124,7 @@ const AppLayout = () => {
           <Route path="/addProductDetails/:id" element={<AddProductDetailsPage />} />
           <Route path="/create_RFQ" element={<CreateRFQPage />} />
           <Route path="/edit_RFQ/:id" element={<EditRFQPage />} />
+          <Route path="/rfq-detail/:rfqId" element={<RFQDetailsPage />} />
 
           {/* Plant module */}
           <Route path="/plants" element={<PlantListingPage />} />

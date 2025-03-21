@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Check,
   Filter,
+  Info
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -181,6 +182,11 @@ export default function RFQListingPage() {
   const [states, setStates] = useState([]);
   const [filterState, setFilterState] = useState("All");
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
+  const [npdEngineer, setNPDEngineer] = useState([]);
+  const [selectedNPDEngineer, setSelectedNPDEngineer] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+
+
 
   const { isLoggedIn, user, role, permission } = useAppStore();
 
@@ -188,8 +194,24 @@ export default function RFQListingPage() {
   // console.log("User Role: ", role);
   // console.log("User permission: ", permission);
 
-  
-  
+
+  // fetch NPD engineers
+  const fetchNPDengineers = async () => {
+    try {
+      const response = await axiosInstance.get("/npd-engineer/");
+      if (response.data.success) {
+        console.log("NPD engineer's: ", response.data.data);
+        setNPDEngineer(response.data.data);
+      } else {
+        setError("Failed to fetch NPD engineer");
+      }
+    } catch (error) {
+      setError("Error fetching NPD engineers: " + (error.response?.data?.message || error.message));
+    }
+  }
+
+
+
   const fetchStates = async () => {
     try {
       const response = await axiosInstance.get("/rfq/states/");
@@ -203,15 +225,15 @@ export default function RFQListingPage() {
       setError("Error fetching states: " + (error.response?.data?.message || error.message));
     }
   };
-  
+
   const handleStateSelect = (state) => {
     setFilterState(state);
     setIsStateDropdownOpen(false);
   };
-  
+
   // Get the page permissions
   let pagePermission = null;
-  if(permission){
+  if (permission) {
     pagePermission = permission?.find((p) => p.page_id === 6);
     console.log(pagePermission.permissions);
   }
@@ -266,7 +288,45 @@ export default function RFQListingPage() {
       console.error("Error in fetchState:", err)
       setError("Failed to load states. Please try again later.")
     })
-  }, [fetchRFQs, fetchPlants])
+    // fetchNPDengineers().catch((err) => {
+    //   console.error("Error in fetchNPDengineers:", err)
+    //   setError("Failed to load NPD engineer. Please try again later.")
+    // })
+  }, [fetchRFQs, fetchPlants]);
+
+
+  // Handle assign RFQ to engineers
+  const handleAssignRFQ = async () => {
+    if (!selectedNPDEngineer) {
+      setError("Please select an engineer to assign the RFQ.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.post("/assignRFQtoUser", {
+        p_rfq_id: rfqId,
+        p_assigned_to_id: selectedNPDEngineer.user_id,
+        p_assigned_to_roleid: 19,         // hard code the role of npd engineer
+        p_assigned_by_id: 3,
+        p_assigned_by_roleid: 8,
+        p_status: 1,
+      });
+
+      if (response.data.success) {
+        onCloseModal();               // Close the modal on success
+        alert("RFQ assigned successfully!");    // might chnage it to actuall alter
+      } else {
+        setError("Failed to assign RFQ");
+      }
+    } catch (error) {
+      setError("Error assigning RFQ");
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // const filteredRFQs = rfqs.filter(
   //   (rfq) =>
@@ -324,6 +384,10 @@ export default function RFQListingPage() {
     setSelectedRFQ(rfq)
     setIsRejectModalOpen(true)
   }
+
+  const RfqDetailedInfo = (rfq) => {
+    navigate(`/rfq-detail/${rfq.rfq_id}`);
+  };
 
   const isApproveValid = selectedPlants.length > 0 && approveComment.trim() !== ""
   const isRejectValid = rejectReasons.length > 0 && rejectComment.trim() !== ""
@@ -406,7 +470,7 @@ export default function RFQListingPage() {
             <h1 className="text-3xl lg:text-4xl font-bold text-[#000060] mb-2">RFQ Listing</h1>
             <p className="text-[#4b4b80] text-base lg:text-lg">Manage your Request for Quotations</p>
           </div>
-          
+
           {/* Render the create button as per permissions */}
           {pagePermission && pagePermission.permissions.find((p) => p.permission_id === 4) && (
             <button
@@ -417,7 +481,7 @@ export default function RFQListingPage() {
               <span className="ml-2">Create RFQ</span>
             </button>
           )}
-         
+
         </motion.div>
         <motion.div
           initial={{ y: 20, opacity: 0 }}
@@ -549,6 +613,82 @@ export default function RFQListingPage() {
         )}
       </AnimatePresence>
 
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to an NPD Engineer</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                {/* Dropdown for NPD Engineers */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={selectedEngineer?.user_id || ""}
+                    onChange={(e) => {
+                      const selected = npdEngineers.find(
+                        (engineer) => engineer.user_id === parseInt(e.target.value)
+                      );
+                      setSelectedEngineer(selected);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select an engineer
+                    </option>
+                    {npdEngineers.map((engineer) => (
+                      <option key={engineer.user_id} value={engineer.user_id}>
+                        {engineer.user_name} (Role ID: {engineer.role_id})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignRFQ}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Assigning..." : "Assign RFQ"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -638,6 +778,12 @@ export default function RFQListingPage() {
                             className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
                           >
                             <XIcon className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => RfqDetailedInfo(rfq)}
+                            className="p-2 rounded-full hover:bg-yellow-200"
+                          >
+                            <Info className="w-5 h-5" />
                           </button>
                         </div>
                       ) : (
