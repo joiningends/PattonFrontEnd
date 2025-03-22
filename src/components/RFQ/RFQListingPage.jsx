@@ -184,6 +184,7 @@ export default function RFQListingPage() {
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState(false);
   const [npdEngineer, setNPDEngineer] = useState([]);
   const [selectedNPDEngineer, setSelectedNPDEngineer] = useState(null);
+  const [approveSentToNPDComment, setApproveSentToNPDComment] = useState("");
   const [isOpen, setIsOpen] = useState(false);
 
 
@@ -194,11 +195,13 @@ export default function RFQListingPage() {
   // console.log("User Role: ", role);
   // console.log("User permission: ", permission);
 
+  // if (user.id == 8)
+
 
   // fetch NPD engineers
-  const fetchNPDengineers = async () => {
+  const fetchNPDengineers = async (rfqId) => {
     try {
-      const response = await axiosInstance.get("/npd-engineer/");
+      const response = await axiosInstance.get(`/users/get-npdengineer/${rfqId}`);
       if (response.data.success) {
         console.log("NPD engineer's: ", response.data.data);
         setNPDEngineer(response.data.data);
@@ -244,7 +247,8 @@ export default function RFQListingPage() {
     setIsLoading(true)
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/getrfq", {
-        p_user_id: 3, // This should be dynamically set based on the logged-in user
+        p_user_id: user.id, // This should be dynamically set based on the logged-in user
+        p_role_id: role.role_id,
         p_rfq_id: null,
         p_client_id: null,
       })
@@ -294,8 +298,12 @@ export default function RFQListingPage() {
     // })
   }, [fetchRFQs, fetchPlants]);
 
+  useEffect(() => {
+    console.log("isOpen state:", isOpen); // Debugging line
+  }, [isOpen]);
 
-  // Handle assign RFQ to engineers
+
+  // Handle assign RFQ to npd_engineers
   const handleAssignRFQ = async () => {
     if (!selectedNPDEngineer) {
       setError("Please select an engineer to assign the RFQ.");
@@ -385,6 +393,20 @@ export default function RFQListingPage() {
     setIsRejectModalOpen(true)
   }
 
+
+  const openApproveAssignNPDengModal = (rfq) => {
+    console.log("Opening modal for RFQ:", rfq); // Debugging line
+    setSelectedRFQ(rfq);
+    fetchNPDengineers(rfq.rfq_id);
+    setIsOpen(true);
+  }
+
+
+  const openRejectAssignNPDengModal = (rfq) => {
+    setSelectedRFQ(rfq);
+    setIsRejectModalOpen(true);
+  }
+
   const RfqDetailedInfo = (rfq) => {
     navigate(`/rfq-detail/${rfq.rfq_id}`);
   };
@@ -419,6 +441,37 @@ export default function RFQListingPage() {
       setError("Error approving RFQ: " + (error.response?.data?.message || error.message))
     }
   }
+
+
+  const handleRFQapproveSentToNPD = async () => {
+    if (selectedNPDEngineer.length > 0 && approveSentToNPDComment.trim() === "") {
+      setError("Please select the NPD engineer and add a comment.");
+      return;
+    }
+    try {
+      const response = await axiosInstance.post("/rfq/assign", {
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_assigned_to_id: selectedNPDEngineer,
+        p_assigned_to_roleid: 19,                 // hard coded to npd engineer role
+        p_assigned_by_id: user.id,
+        p_assigned_by_roleid: 15,                 // hard coded to plant head role
+        p_status: true
+      })
+      if (response.data.success) {
+        fetchRFQs();
+        setIsOpen(false);
+        setSelectedRFQ(null);
+        setApproveSentToNPDComment("");
+        setSelectedNPDEngineer([]);
+        setSuccessMessage("RFQ approved and sent to NPD engineer.");
+      } else {
+        setError("Failed to approve RFQ. Plaese try again later.");
+      }
+    } catch (error) {
+      setError("Error approving RFQ and sending to NPD engineer: " + (error.response?.data?.message || error.message));
+    }
+  }
+
 
   const handleReject = async () => {
     if (!isRejectValid) {
@@ -614,81 +667,6 @@ export default function RFQListingPage() {
       </AnimatePresence>
 
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-lg shadow-xl w-full max-w-md"
-            >
-              {/* Modal Header */}
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
-                <p className="text-sm text-[#4b4b80]">Assign this RFQ to an NPD Engineer</p>
-              </div>
-
-              {/* Modal Body */}
-              <div className="p-6 space-y-6">
-                {/* Dropdown for NPD Engineers */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
-                  <select
-                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
-                    value={selectedEngineer?.user_id || ""}
-                    onChange={(e) => {
-                      const selected = npdEngineers.find(
-                        (engineer) => engineer.user_id === parseInt(e.target.value)
-                      );
-                      setSelectedEngineer(selected);
-                    }}
-                  >
-                    <option value="" disabled>
-                      Select an engineer
-                    </option>
-                    {npdEngineers.map((engineer) => (
-                      <option key={engineer.user_id} value={engineer.user_id}>
-                        {engineer.user_name} (Role ID: {engineer.role_id})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                  <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAssignRFQ}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? "Assigning..." : "Assign RFQ"}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -787,7 +765,31 @@ export default function RFQListingPage() {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-gray-500">No actions available</span>
+                        // <span className="text-gray-500">No actions available</span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => RfqDetailedInfo(rfq)}
+                            className="p-2 rounded-full hover:bg-yellow-200"
+                          >
+                            <Info className="w-5 h-5" />
+                          </button>
+                          {(rfq.state_id === 2 && role.role_id === 15) && (
+                            <>
+                              <button
+                                onClick={() => openApproveAssignNPDengModal(rfq)}
+                                className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                              >
+                                <CheckIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => openRejectAssignNPDengModal(rfq)}
+                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                              >
+                                <XIcon className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       )}
                     </td>
                   </motion.tr>
@@ -956,6 +958,82 @@ export default function RFQListingPage() {
           </div>
         </div>
       )}
+
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to an NPD Engineer</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                {/* Dropdown for NPD Engineers */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={npdEngineer?.user_id || ""}
+                    onChange={(e) => {
+                      const selected = npdEngineer.find(
+                        (engineer) => engineer.user_id === parseInt(e.target.value)
+                      );
+                      setSelectedNPDEngineer(selected);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select an engineer
+                    </option>
+                    {npdEngineer.map((engineer) => (
+                      <option key={engineer.user_id} value={engineer.user_id}>
+                        {engineer.first_name + " " + engineer.last_name} 
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignRFQ}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Assigning..." : "Assign RFQ"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
