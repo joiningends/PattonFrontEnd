@@ -7,7 +7,8 @@ import {
   ChevronDown,
   Check,
   Filter,
-  Info
+  Info,
+  Flashlight
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -185,6 +186,7 @@ export default function RFQListingPage() {
   const [npdEngineer, setNPDEngineer] = useState([]);
   const [selectedNPDEngineer, setSelectedNPDEngineer] = useState(null);
   const [approveSentToNPDComment, setApproveSentToNPDComment] = useState("");
+  const [isRejectPlantHeadModalOpen, setIsRejectPlantHeadModalOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
 
@@ -314,18 +316,26 @@ export default function RFQListingPage() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post("/assignRFQtoUser", {
-        p_rfq_id: rfqId,
+      const response = await axiosInstance.post("/rfq/assign", {
+        p_rfq_id: selectedRFQ.rfq_id,
         p_assigned_to_id: selectedNPDEngineer.user_id,
         p_assigned_to_roleid: 19,         // hard code the role of npd engineer
-        p_assigned_by_id: 3,
+        p_assigned_by_id: user.id,
         p_assigned_by_roleid: 8,
-        p_status: 1,
+        p_status: true,
+        p_comments: approveComment,
       });
 
+      console.log(response);
+
       if (response.data.success) {
-        onCloseModal();               // Close the modal on success
-        alert("RFQ assigned successfully!");    // might chnage it to actuall alter
+        setSuccessMessage("RFQ assigned successfully!");    // might chnage it to actuall alter
+        fetchRFQs();
+        // onCloseModal();               // Close the modal on success
+        setIsOpen(false);
+        setSelectedRFQ(null);
+        setSelectedNPDEngineer([]);
+        setApproveComment("");
       } else {
         setError("Failed to assign RFQ");
       }
@@ -404,7 +414,7 @@ export default function RFQListingPage() {
 
   const openRejectAssignNPDengModal = (rfq) => {
     setSelectedRFQ(rfq);
-    setIsRejectModalOpen(true);
+    setIsRejectPlantHeadModalOpen(true);
   }
 
   const RfqDetailedInfo = (rfq) => {
@@ -422,7 +432,7 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
-        user_id: 3, // This should be dynamically set based on the logged-in user
+        user_id: user.id, // This should be dynamically set based on the logged-in user
         state_id: 2,
         plant_id: selectedPlants[0], // We're using the first selected plant for now
         comments: approveComment || null,
@@ -442,35 +452,6 @@ export default function RFQListingPage() {
     }
   }
 
-
-  const handleRFQapproveSentToNPD = async () => {
-    if (selectedNPDEngineer.length > 0 && approveSentToNPDComment.trim() === "") {
-      setError("Please select the NPD engineer and add a comment.");
-      return;
-    }
-    try {
-      const response = await axiosInstance.post("/rfq/assign", {
-        p_rfq_id: selectedRFQ.rfq_id,
-        p_assigned_to_id: selectedNPDEngineer,
-        p_assigned_to_roleid: 19,                 // hard coded to npd engineer role
-        p_assigned_by_id: user.id,
-        p_assigned_by_roleid: 15,                 // hard coded to plant head role
-        p_status: true
-      })
-      if (response.data.success) {
-        fetchRFQs();
-        setIsOpen(false);
-        setSelectedRFQ(null);
-        setApproveSentToNPDComment("");
-        setSelectedNPDEngineer([]);
-        setSuccessMessage("RFQ approved and sent to NPD engineer.");
-      } else {
-        setError("Failed to approve RFQ. Plaese try again later.");
-      }
-    } catch (error) {
-      setError("Error approving RFQ and sending to NPD engineer: " + (error.response?.data?.message || error.message));
-    }
-  }
 
 
   const handleReject = async () => {
@@ -503,6 +484,30 @@ export default function RFQListingPage() {
 
   const showStateDescription = (description) => {
     setStatusDescription(description)
+  }
+
+  const handleRejectByPlantHead = async () => {
+    if (!isRejectValid) {
+      setError("Please select at least one reason and add a comment.");
+      return;
+    }
+    try {
+      const response = await axiosInstance.post("/rfq/reject-byplanthead", {
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_user_id: user.id,
+        p_comments: rejectComment || null,
+      });
+      if (response.data.success) {
+        setSuccessMessage("RFQ rejected by plant head successfully");
+        fetchRFQs();
+        setIsRejectPlantHeadModalOpen(false);
+        setSelectedRFQ(null);
+        setRejectReasons([]);
+        setRejectComment("");
+      }
+    } catch (error) {
+      setError("Error rejecting RFQ: " + (error.response?.data?.message || error.message));
+    }
   }
 
   return (
@@ -731,7 +736,7 @@ export default function RFQListingPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      {(rfq.state_id !== 2 && rfq.state_id !== 0) ? (
+                      {(rfq.state_id === 1) ? (
                         <div className="flex items-center space-x-2">
                           {/* <button
                             onClick={() => handleEdit(rfq.rfq_id)}
@@ -789,6 +794,7 @@ export default function RFQListingPage() {
                               </button>
                             </>
                           )}
+
                         </div>
                       )}
                     </td>
@@ -944,6 +950,7 @@ export default function RFQListingPage() {
         </div>
       )}
 
+
       {statusDescription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -1000,19 +1007,23 @@ export default function RFQListingPage() {
                     </option>
                     {npdEngineer.map((engineer) => (
                       <option key={engineer.user_id} value={engineer.user_id}>
-                        {engineer.first_name + " " + engineer.last_name} 
+                        {engineer.first_name + " " + engineer.last_name}
                       </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Error Message */}
-                {error && (
-                  <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
+
               </div>
+
+              <textarea
+                value={approveComment}
+                onChange={(e) => setApproveComment(e.target.value)}
+                placeholder="Add your comment here... (required)"
+                className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                rows="3"
+                required
+              />
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
@@ -1034,6 +1045,70 @@ export default function RFQListingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {isRejectPlantHeadModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-[#000060] mb-4">Reject RFQ</h2>
+            <p className="mb-4 text-[#4b4b80]">Select reasons and add a comment to reject this RFQ.</p>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-4 space-y-2">
+              {rejectReasonOptions.map((reason) => (
+                <label key={reason} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rejectReasons.includes(reason)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setRejectReasons([...rejectReasons, reason])
+                      } else {
+                        setRejectReasons(rejectReasons.filter((r) => r !== reason))
+                      }
+                    }}
+                    className="form-checkbox h-5 w-5 text-red-500 rounded border-gray-300 focus:ring-red-500 transition duration-150 ease-in-out"
+                  />
+                  <span className="text-[#2d2d5f]">{reason}</span>
+                </label>
+              ))}
+            </div>
+            <textarea
+              value={rejectComment}
+              onChange={(e) => setRejectComment(e.target.value)}
+              placeholder="Add your comment here... (required)"
+              className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 mb-4"
+              rows="3"
+              maxLength={655}
+              required
+            />
+            <p className="text-sm text-gray-500 mb-4">{rejectComment.length}/655 characters</p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsRejectPlantHeadModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectByPlantHead}
+                disabled={!isRejectValid}
+                className={`px-4 py-2 rounded-lg transition-colors ${isRejectValid
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   )
 }

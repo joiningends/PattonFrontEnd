@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileText, User, Package2, DollarSign, AlertCircle, ChevronLeft, Check, ArrowLeft } from "lucide-react";
+import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, Download } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
@@ -11,8 +11,9 @@ export default function RFQDetailsPage() {
     const navigate = useNavigate();
     const { rfqId } = useParams();
     const [rfq, setRFQ] = useState(null);
+    const [documents, setDocuments] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState(null); 
+    const [error, setError] = useState(null);
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState({ type: "", message: "" });
 
@@ -29,17 +30,32 @@ export default function RFQDetailsPage() {
     useEffect(() => {
         const fetchRFQDetails = async () => {
             setIsLoading(true);
+
+            console.log("USERID: ", user.id);
+            console.log("RFQID: ", rfqId);
+
+
             try {
                 const response = await axiosInstance.post(`/rfq/getrfq`, {
-                    p_user_id: 3,
-                    p_rfq_id: rfqId || 42,               // Need to be dynamic
+                    p_user_id: role.role_id!==8 ? user.id : null,
+                    p_rfq_id: rfqId,               // Need to be dynamic
                     p_client_id: null,
                 });
+
                 console.log(response.data.data);
+
                 if (response.data.success) {
                     setRFQ(response.data.data[0]);
                 } else {
                     setError("Failed to fetch RFQ details");
+                }
+
+                // Fetch documents
+                const documentsResponse = await axiosInstance.get(`/rfq/${rfqId}/documents/`);
+                if (documentsResponse.data.success) {
+                    setDocuments(documentsResponse.data.data);
+                } else {
+                    setError("Failed to fetch documents");
                 }
             } catch (error) {
                 setError("Error fetching RFQ details");
@@ -49,6 +65,47 @@ export default function RFQDetailsPage() {
 
         fetchRFQDetails();
     }, [rfqId]);
+
+    // Handle document download
+    const handleDownload = async (documentId) => {
+        try {
+            const response = await axiosInstance.get(`/rfq/${documentId}/download/`, {
+                responseType: "blob"
+            });
+
+            // Determine MIME type based on filename extension
+            const contentDisposition = response.headers["content-disposition"];
+            const fileName = contentDisposition
+                ? contentDisposition.split("filename=")[1].replace(/['"]/g, "")
+                : `document_${documentId}.pdf`; // Default to PDF extension
+
+            // Get file extension
+            const fileExt = fileName.split('.').pop().toLowerCase();
+
+            // Map extension to MIME type
+            const mimeTypes = {
+                'pdf': 'application/pdf',
+                'doc': 'application/msword',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                // Add other MIME types as needed
+            };
+            const mimeType = mimeTypes[fileExt] || 'application/octet-stream';
+
+            // Create blob with correct MIME type
+            const blob = new Blob([response.data], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            setError("Error downloading document");
+        }
+    };
 
     if (isLoading) {
         return (
@@ -154,18 +211,18 @@ export default function RFQDetailsPage() {
                     <InfoCard icon={FileText} title="RFQ Name" value={rfq.rfq_name} />
                     <InfoCard icon={User} title="Client Name" value={rfq.client_name} />
                     <InfoCard icon={Package2} title="Total SKUs" value={rfq.skus?.length} />
-                    <InfoCard icon={DollarSign} title="Total Cost" value={rfq.total_cost_to_customer || 'N/A'} />
+                    <InfoCard icon={IndianRupee} title="Total Cost" value={rfq.total_cost_to_customer || 'N/A'} />
                 </div>
 
                 {/* Cost Breakdown */}
-                <div className="bg-[#f8f8fd] rounded-lg p-6">
+                {/* <div className="bg-[#f8f8fd] rounded-lg p-6">
                     <h2 className="text-xl font-semibold text-[#000060] mb-4">Cost Breakdown</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <CostItem title="Ex Factory Cost" value={rfq.ex_factory_cost} />
                         <CostItem title="Freight Cost" value={rfq.freight_cost} />
                         <CostItem title="Insurance Cost" value={rfq.insurance_cost} />
                     </div>
-                </div>
+                </div> */}
 
                 {/* SKU List */}
                 {rfq.skus && (
@@ -174,6 +231,35 @@ export default function RFQDetailsPage() {
                         <SKUTable skus={rfq.skus} />
                     </div>
                 )}
+
+                {/* Documents Section */}
+                <div className="bg-[#f8f8fd] rounded-lg p-6">
+                    <h2 className="text-xl font-semibold text-[#000060] mb-4">Documents</h2>
+                    {documents.length > 0 ? (
+                        <div className="space-y-4">
+                            {documents.map((doc) => (
+                                <div
+                                    key={doc.id}
+                                    className="flex items-center justify-between p-4 bg-white rounded-lg shadow-sm"
+                                >
+                                    <div className="flex items-center space-x-3">
+                                        <FileText className="w-5 h-5 text-[#000060]" />
+                                        <span className="text-[#4b4b80]">{doc.original_name}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDownload(doc.id)}
+                                        className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
+                                    >
+                                        <Download className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-[#4b4b80]">No documents available.</p>
+                    )}
+                </div>
+
             </motion.div>
         </motion.div>
     );
