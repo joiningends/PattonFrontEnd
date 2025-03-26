@@ -207,11 +207,11 @@ export default function RFQDetailsPage() {
                 className="bg-white rounded-xl shadow-xl p-6 space-y-8"
             >
                 {/* RFQ Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <InfoCard icon={FileText} title="RFQ Name" value={rfq.rfq_name} />
                     <InfoCard icon={User} title="Client Name" value={rfq.client_name} />
                     <InfoCard icon={Package2} title="Total SKUs" value={rfq.skus?.length} />
-                    <InfoCard icon={IndianRupee} title="Total Cost" value={rfq.total_cost_to_customer || 'N/A'} />
+                    {/* <InfoCard icon={IndianRupee} title="Total Cost" value={rfq.total_cost_to_customer || 'N/A'} /> */}
                 </div>
 
                 {/* Cost Breakdown */}

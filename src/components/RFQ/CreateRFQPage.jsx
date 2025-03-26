@@ -295,7 +295,7 @@ export default function CreateRFQPage() {
           className="mb-8"
         >
           <button
-            onClick={() => navigate("/rfq")}
+            onClick={() => navigate("/")}
             className="text-[#000060] hover:text-[#0000a0] transition-colors flex items-center mb-4"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -696,7 +696,7 @@ export default function CreateRFQPage() {
             <div className="mt-6 flex justify-end space-x-4">
               <button
                 type="button"
-                onClick={() => navigate("/rfq")}
+                onClick={() => navigate("/")}
                 className="px-6 py-3 rounded-lg border-2 border-[#000060] text-[#000060] hover:bg-[#000060] hover:text-white transition-all duration-300"
               >
                 Cancel

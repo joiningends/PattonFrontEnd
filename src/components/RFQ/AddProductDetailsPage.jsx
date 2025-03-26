@@ -303,6 +303,9 @@ export default function AddProductDetailsPage() {
       if (response.data.success) {
         setSuccessMessage(response.data.message);
         fetchDocuments();
+        // setTimeout(()=>{
+        //   navigate("/");
+        // }, 2000);
       } else {
         setUploadError(response.data.message || "Failed to upload documents");
       }
@@ -712,7 +715,10 @@ export default function AddProductDetailsPage() {
                 onClick={() => {
                   if (documents.length > 0) {
                     setSuccessMessage("Documents uploaded successfully.");
-                    setShowPopup(true);
+                    // setShowPopup(true);
+                    setTimeout(()=>{
+                      navigate("/");
+                    }, 2000);
                   } else {
                     setUploadError(
                       "Please upload at least one document before saving the RFQ."

@@ -8,6 +8,7 @@ import {
   Check,
   Filter,
   Info,
+  PackagePlusIcon,
   Flashlight
 } from "lucide-react";
 import axios from "axios"
@@ -768,6 +769,7 @@ export default function RFQListingPage() {
                           >
                             <Info className="w-5 h-5" />
                           </button>
+
                         </div>
                       ) : (
                         // <span className="text-gray-500">No actions available</span>
@@ -777,6 +779,12 @@ export default function RFQListingPage() {
                             className="p-2 rounded-full hover:bg-yellow-200"
                           >
                             <Info className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                            className="p-2 rounded-full hover:bg-green-100"
+                          >
+                            <PackagePlusIcon className="w-5 h-5" />
                           </button>
                           {(rfq.state_id === 2 && role.role_id === 15) && (
                             <>
@@ -994,7 +1002,7 @@ export default function RFQListingPage() {
                   <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
                   <select
                     className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
-                    value={npdEngineer?.user_id || ""}
+                    value={selectedNPDEngineer?.user_id || ""}
                     onChange={(e) => {
                       const selected = npdEngineer.find(
                         (engineer) => engineer.user_id === parseInt(e.target.value)
@@ -1013,17 +1021,17 @@ export default function RFQListingPage() {
                   </select>
                 </div>
 
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
 
               </div>
-
-              <textarea
-                value={approveComment}
-                onChange={(e) => setApproveComment(e.target.value)}
-                placeholder="Add your comment here... (required)"
-                className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
-                rows="3"
-                required
-              />
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
