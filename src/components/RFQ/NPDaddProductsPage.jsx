@@ -60,11 +60,14 @@ export default function NPDaddProductPage() {
     }, [rfqId]);
 
     const [newProduct, setNewProduct] = useState({
+        product_id: "",
         product_name: "",
         quantity_per_assembly: "",
         raw_material_type: "",
+        raw_material_type_name: "",
         yield_percentage: "",
-        bom_cost_per_kg: ""
+        net_weight_of_product: ""
+        // bom_cost_per_kg: ""
     });
 
     const [validationErrors, setValidationErrors] = useState({
@@ -72,16 +75,20 @@ export default function NPDaddProductPage() {
         quantity_per_assembly: "",
         raw_material_type: "",
         yield_percentage: "",
-        bom_cost_per_kg: ""
+        net_weight_of_product: ""
+        // bom_cost_per_kg: ""
     });
 
     const resetNewProduct = () => {
         setNewProduct({
+            product_id: "",
             product_name: "",
             quantity_per_assembly: "",
             raw_material_type: "",
+            raw_material_type_name: "",
             yield_percentage: "",
-            bom_cost_per_kg: "",
+            net_weight_of_product: ""
+            // bom_cost_per_kg: "",
         });
     };
 
@@ -96,8 +103,10 @@ export default function NPDaddProductPage() {
             errors.raw_material_type = "Raw material type is required";
         if (!newProduct.yield_percentage)
             errors.yield_percentage = "Yield percentage is required";
-        if (!newProduct.bom_cost_per_kg)
-            errors.bom_cost_per_kg = "BOM cost is required";
+        if (!newProduct.net_weight_of_product)
+            errors.net_weight_of_product = "Net weight of product is required";
+        // if (!newProduct.bom_cost_per_kg)
+        //     errors.bom_cost_per_kg = "BOM cost is required";
         return errors;
     };
 
@@ -147,6 +156,7 @@ export default function NPDaddProductPage() {
             setNewProduct({
                 ...newProduct,
                 raw_material_type: selectedOption.value,
+                raw_material_type_name: selectedOption.label,
             });
         }
         setValidationErrors({ ...validationErrors, [name]: "" });
@@ -161,27 +171,27 @@ export default function NPDaddProductPage() {
             try {
                 // Initialize products array if it doesn't exist
                 const currentProducts = selectedSku.products || [];
-                
+
                 const updatedProducts = isEditMode
                     ? currentProducts.map((p, index) =>
                         index === editIndex ? newProduct : p
                     )
                     : [...currentProducts, newProduct];
-    
+
                 await saveProductsToBackend(selectedSku.sku_id, updatedProducts);
-                
+
                 // Update the main SKU list
-                setSku(prevSku => 
-                    prevSku.map(s => 
-                        s.sku_id === selectedSku.sku_id 
-                            ? { ...s, products: updatedProducts } 
+                setSku(prevSku =>
+                    prevSku.map(s =>
+                        s.sku_id === selectedSku.sku_id
+                            ? { ...s, products: updatedProducts }
                             : s
                     )
                 );
-    
+
                 // Update the selected SKU
                 setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
-    
+
                 resetNewProduct();
                 setIsEditMode(false);
                 setEditIndex(null);
@@ -201,7 +211,13 @@ export default function NPDaddProductPage() {
         if (skuToEdit && skuToEdit.products?.[productIndex]) {
             setSelectedSku(skuToEdit);
             // if (skuToEdit.products && skuToEdit.products[productIndex]) {
-            setNewProduct(skuToEdit.products[productIndex]);
+            const productToEdit = skuToEdit.products[productIndex];
+            setNewProduct({
+                ...productToEdit,
+                // Make sure the raw material is properly set in the select
+                raw_material_type: productToEdit.raw_material_type,
+                raw_material_type_name: productToEdit.raw_material_type_name
+            });
             setIsEditMode(true);
             setEditIndex(productIndex);
             // }
@@ -220,32 +236,42 @@ export default function NPDaddProductPage() {
 
     const handleRemoveProduct = async (skuId, productIndex) => {
         const skuToEdit = sku.find(s => s.sku_id === skuId);
-        if (skuToEdit && skuToEdit.products) {
-            const updatedProducts = skuToEdit.products.filter(
-                (_, index) => index !== productIndex
-            );
+        if (skuToEdit && skuToEdit.products?.[productIndex]) {
+            const productToDelete = skuToEdit.products[productIndex];
 
             try {
-                await saveProductsToBackend(skuId, updatedProducts);
-
-                // Update the main SKU list
-                setSku(prevSku =>
-                    prevSku.map(sku =>
-                        sku.sku_id === skuId
-                            ? { ...sku, products: updatedProducts }
-                            : sku
-                    )
+                // Call the delete API
+                const response = await axiosInstance.delete(
+                    `/sku/deleteproduct/${productToDelete.product_id}`
                 );
 
-                // Update the selected SKU if it's the current one
-                if (selectedSku?.sku_id === skuId) {
-                    setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
-                }
+                if (response.data.success) {
+                    // Update the local state to remove the product
+                    const updatedProducts = skuToEdit.products.filter(
+                        (_, index) => index !== productIndex
+                    );
 
-                setSuccessMessage("Product removed successfully!");
-                setTimeout(() => setSuccessMessage(""), 3000);
+                    // Update the main SKU list
+                    setSku(prevSku =>
+                        prevSku.map(sku =>
+                            sku.sku_id === skuId
+                                ? { ...sku, products: updatedProducts }
+                                : sku
+                        )
+                    );
+
+                    // Update the selected SKU if it's the current one
+                    if (selectedSku?.sku_id === skuId) {
+                        setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
+                    }
+
+                    setSuccessMessage("Product deleted successfully!");
+                    setTimeout(() => setSuccessMessage(""), 3000);
+                } else {
+                    setError("Failed to delete product");
+                }
             } catch (error) {
-                setError("Failed to remove product: " + error);
+                setError("Failed to delete product: " + error);
             }
         }
     };
@@ -300,7 +326,7 @@ export default function NPDaddProductPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.5 }}
-                className="bg-gradient-to-br from-[#e1e1f5] to-[#f0f0f9] min-h-screen p-4 lg:p-8 space-y-8"
+                className="bg-gradient-to-br from-[#e1e1f5] to-[#f0f0f9] min-h-screen p-4 lg:p-8"
             >
 
                 <AnimatePresence>
@@ -386,7 +412,7 @@ export default function NPDaddProductPage() {
 
                 </motion.div>
 
-                <AnimatePresence>
+                <AnimatePresence className="top-0">
                     {isModalOpen && (
                         <motion.div
                             initial={{ opacity: 0 }}
@@ -480,6 +506,7 @@ export default function NPDaddProductPage() {
                                             id="raw_material_type"
                                             name="raw_material_type"
                                             options={rawMaterialOptions}
+                                            value={rawMaterialOptions.find(option => option.value === newProduct?.raw_material_type)}
                                             onChange={option =>
                                                 handleSelectChange(option, { name: "raw_material_type" })
                                             }
@@ -517,6 +544,28 @@ export default function NPDaddProductPage() {
                                     </div>
                                     <div>
                                         <label
+                                            htmlFor="net_weight_of_product"
+                                            className="block text-sm font-medium text-[#000060] mb-1"
+                                        >
+                                            Net weight of product
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="net_weight_of_product"
+                                            name="net_weight_of_product"
+                                            value={newProduct.net_weight_of_product}
+                                            onChange={handleInputChange}
+                                            className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
+                                            placeholder="Enter net weight of product"
+                                        />
+                                        {validationErrors.net_weight_of_product && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {validationErrors.net_weight_of_product}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {/* <div>
+                                        <label
                                             htmlFor="bom_cost_per_kg"
                                             className="block text-sm font-medium text-[#000060] mb-1"
                                         >
@@ -547,7 +596,7 @@ export default function NPDaddProductPage() {
                                                 {validationErrors.bom_cost_per_kg}
                                             </p>
                                         )}
-                                    </div>
+                                    </div> */}
                                 </form>
 
                                 <div className="mt-6 flex justify-end space-x-4 mb-6">
@@ -577,7 +626,8 @@ export default function NPDaddProductPage() {
                                                     <th className="p-2 text-left">Quantity</th>
                                                     <th className="p-2 text-left">Raw Material</th>
                                                     <th className="p-2 text-left">Yield %</th>
-                                                    <th className="p-2 text-left">BOM Cost</th>
+                                                    <th className="p-2 text-left">Net weight</th>
+                                                    {/* <th className="p-2 text-left">BOM Cost</th> */}
                                                     <th className="p-2 text-center">Actions</th>
                                                 </tr>
                                             </thead>
@@ -591,14 +641,18 @@ export default function NPDaddProductPage() {
                                                             {product.quantity_per_assembly}
                                                         </td>
                                                         <td className="p-2 border-b border-[#e1e1f5]">
-                                                            {product.raw_material_type}
+                                                            {product.raw_material_type_name ||
+                                                                rawMaterial.find(rm => rm.id === product.raw_material_type)?.raw_material_name}
                                                         </td>
                                                         <td className="p-2 border-b border-[#e1e1f5]">
                                                             {product.yield_percentage}%
                                                         </td>
                                                         <td className="p-2 border-b border-[#e1e1f5]">
-                                                            {currency} {product.bom_cost_per_kg}
+                                                            {product.net_weight_of_product}
                                                         </td>
+                                                        {/* <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {currency} {product.bom_cost_per_kg}
+                                                        </td> */}
                                                         <td className="p-2 text-center">
                                                             <button
                                                                 onClick={() =>
