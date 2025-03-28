@@ -34,15 +34,19 @@ export default function RFQDetailsPage() {
             console.log("USERID: ", user.id);
             console.log("RFQID: ", rfqId);
 
+            if(role && (role.role_id===19 || role.role_id===8) ){
+                userId = null;
+            }
+
 
             try {
                 const response = await axiosInstance.post(`/rfq/getrfq`, {
-                    p_user_id: role.role_id!==8 ? user.id : null,
+                    p_user_id: userId,
                     p_rfq_id: rfqId,               // Need to be dynamic
                     p_client_id: null,
                 });
 
-                console.log(response.data.data);
+                console.log("response data: ", response.data.data);
 
                 if (response.data.success) {
                     setRFQ(response.data.data[0]);

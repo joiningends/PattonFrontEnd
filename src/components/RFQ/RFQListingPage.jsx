@@ -189,8 +189,10 @@ export default function RFQListingPage() {
   const [approveSentToNPDComment, setApproveSentToNPDComment] = useState("");
   const [isRejectPlantHeadModalOpen, setIsRejectPlantHeadModalOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-
-
+  const [vendorEngineers, setVendorEngineers] = useState([]);
+  const [selectedVendorEngineer, setSelectedVendorEngineer] = useState(null);
+  const [vendorModalIsOpen, setVendorModalIsOpen] = useState(false);
+  const [isRejectVendorModalOpen, setIsRejectVendorModalOpen] = useState(false);
 
   const { isLoggedIn, user, role, permission } = useAppStore();
 
@@ -216,6 +218,21 @@ export default function RFQListingPage() {
     }
   }
 
+
+  // fetch Vendor engineers
+  const fetchVendorEngineer = async (rfqId) => {
+    try {
+      const response = await axiosInstance.get(`/users/get-vendoreng/${rfqId}`);
+      if (response.data.success) {
+        console.log("Vendor engineer's: ", response.data.data);
+        setVendorEngineers(response.data.data);
+      } else {
+        setError("Failed to fetch NPD engineer");
+      }
+    } catch (error) {
+      setError("Error fetching NPD engineers: " + (error.response?.data?.message || error.message));
+    }
+  }
 
 
   const fetchStates = async () => {
@@ -267,6 +284,26 @@ export default function RFQListingPage() {
     setIsLoading(false)
   }, [])
 
+
+  // fetch the RFQs for NPD eng.
+  const fetchRFQsForNPD = useCallback(async () => {
+    setIsLoading(true)
+    console.log("RoleID: ", user.id);
+    try {
+      const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbynpd/${user.id}`)
+
+      if (response.data.success) {
+        setRFQs(response.data.data);
+        console.log("RFQ: ", response.data.data);
+      } else {
+        setError("Failed to fetch RFQs")
+      }
+    } catch (error) {
+      setError("Error fetching RFQs: " + (error.response?.data?.message || error.message))
+    }
+    setIsLoading(false)
+  }, [])
+
   const fetchPlants = useCallback(async () => {
     try {
       const response = await axiosInstance.get("http://localhost:3000/api/plant")
@@ -283,10 +320,18 @@ export default function RFQListingPage() {
   }, [])
 
   useEffect(() => {
-    fetchRFQs().catch((err) => {
-      console.error("Error in fetchRFQs:", err)
-      setError("Failed to load RFQs. Please try again later.")
-    })
+    // Fetch the RFQ for NPD eng. role ; role=19
+    if (role.role_id === 19) {
+      fetchRFQsForNPD().catch((err) => {
+        console.error("Error in fetchRFQsForNPD:", err)
+        setError("Failed to load RFQs. Please try again later.")
+      })
+    } else {
+      fetchRFQs().catch((err) => {
+        console.error("Error in fetchRFQs:", err)
+        setError("Failed to load RFQs. Please try again later.")
+      })
+    }
     fetchPlants().catch((err) => {
       console.error("Error in fetchPlants:", err)
       setError("Failed to load plants. Please try again later.")
@@ -322,7 +367,7 @@ export default function RFQListingPage() {
         p_assigned_to_id: selectedNPDEngineer.user_id,
         p_assigned_to_roleid: 19,         // hard code the role of npd engineer
         p_assigned_by_id: user.id,
-        p_assigned_by_roleid: 8,
+        p_assigned_by_roleid: 15,         // hard code the role of plant head
         p_status: true,
         p_comments: approveComment,
       });
@@ -340,6 +385,46 @@ export default function RFQListingPage() {
       } else {
         setError("Failed to assign RFQ");
       }
+    } catch (error) {
+      setError("Error assigning RFQ");
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+
+  const handleAssignRFQByNPDeng = async () => {
+    if (!selectedVendorEngineer) {
+      setError("Please select an engineer to assign the RFQ.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.post("/rfq/assign", {
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_assigned_to_id: selectedVendorEngineer.user_id,
+        p_assigned_to_roleid: 21,         // hard code the role of vendor development engineer
+        p_assigned_by_id: user.id,
+        p_assigned_by_roleid: 19,         // hard code the role of npd engineer
+        p_status: true,
+        p_comments: approveComment,
+      });
+
+      console.log("Assing rfq response: ", response);
+
+      if (response.data.success) {
+        setSuccessMessage("RFQ assigned successfully!");
+        fetchRFQsForNPD();
+        setVendorModalIsOpen(false);
+        setSelectedVendorEngineer([]);
+        setApproveComment("");
+      } else {
+        setError("Failed to assign RFQ");
+      }
+
     } catch (error) {
       setError("Error assigning RFQ");
     } finally {
@@ -418,6 +503,17 @@ export default function RFQListingPage() {
     setIsRejectPlantHeadModalOpen(true);
   }
 
+  const openApproveAssignVendorengModal = (rfq) => {
+    setSelectedRFQ(rfq);
+    fetchVendorEngineer(rfq.rfq_id);
+    setVendorModalIsOpen(true);
+  }
+
+  const openRejectAssignVendorengModal = (rfq) => {
+    setSelectedRFQ(rfq);
+    setIsRejectVendorModalOpen(true);
+  }
+
   const RfqDetailedInfo = (rfq) => {
     navigate(`/rfq-detail/${rfq.rfq_id}`);
   };
@@ -493,15 +589,41 @@ export default function RFQListingPage() {
       return;
     }
     try {
-      const response = await axiosInstance.post("/rfq/reject-byplanthead", {
+      const response = await axiosInstance.post("/rfq/reject/", {
         p_rfq_id: selectedRFQ.rfq_id,
         p_user_id: user.id,
         p_comments: rejectComment || null,
+        p_state_id: 10
       });
       if (response.data.success) {
         setSuccessMessage("RFQ rejected by plant head successfully");
         fetchRFQs();
         setIsRejectPlantHeadModalOpen(false);
+        setSelectedRFQ(null);
+        setRejectReasons([]);
+        setRejectComment("");
+      }
+    } catch (error) {
+      setError("Error rejecting RFQ: " + (error.response?.data?.message || error.message));
+    }
+  }
+
+  const handleRejectByNPDEngineer = async () => {
+    if (!isRejectValid) {
+      setError("Please select at least one reason and add a comment.");
+      return;
+    }
+    try {
+      const response = await axiosInstance.post("/rfq/reject/", {
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_user_id: user.id,
+        p_comments: rejectComment || null,
+        p_state_id: 12
+      });
+      if (response.data.success) {
+        setSuccessMessage("RFQ rejected by NPD engineer successfully");
+        fetchRFQsForNPD();
+        isRejectVendorModalOpen(false);
         setSelectedRFQ(null);
         setRejectReasons([]);
         setRejectComment("");
@@ -780,12 +902,12 @@ export default function RFQListingPage() {
                           >
                             <Info className="w-5 h-5" />
                           </button>
-                          <button
+                          {/* <button
                             onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
                             className="p-2 rounded-full hover:bg-green-100"
                           >
                             <PackagePlusIcon className="w-5 h-5" />
-                          </button>
+                          </button> */}
                           {(rfq.state_id === 2 && role.role_id === 15) && (
                             <>
                               <button
@@ -802,6 +924,31 @@ export default function RFQListingPage() {
                               </button>
                             </>
                           )}
+
+                          {(rfq.state_id === 9 && role.role_id === 19) && (
+                            <>
+                              <button
+                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                                className="p-2 rounded-full hover:bg-green-100"
+                              >
+                                <PackagePlusIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => openApproveAssignVendorengModal(rfq)}
+                                className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                              >
+                                <CheckIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => openRejectAssignVendorengModal(rfq)}
+                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                              >
+                                <XIcon className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+
+
 
                         </div>
                       )}
@@ -1105,6 +1252,150 @@ export default function RFQListingPage() {
               </button>
               <button
                 onClick={handleRejectByPlantHead}
+                disabled={!isRejectValid}
+                className={`px-4 py-2 rounded-lg transition-colors ${isRejectValid
+                  ? "bg-red-500 text-white hover:bg-red-600"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      <AnimatePresence>
+        {vendorModalIsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to an Vendor development Engineer</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                {/* Dropdown for NPD Engineers */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={selectedVendorEngineer?.user_id || ""}
+                    onChange={(e) => {
+                      const selected = vendorEngineers.find(
+                        (engineer) => engineer.user_id === parseInt(e.target.value)
+                      );
+                      setSelectedVendorEngineer(selected);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select an engineer
+                    </option>
+                    {vendorEngineers.map((engineer) => (
+                      <option key={engineer.user_id} value={engineer.user_id}>
+                        {engineer.first_name + " " + engineer.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setVendorModalIsOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignRFQByNPDeng}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Assigning..." : "Assign RFQ"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {isRejectVendorModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-[#000060] mb-4">Reject RFQ</h2>
+            <p className="mb-4 text-[#4b4b80]">Select reasons and add a comment to reject this RFQ.</p>
+
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="mb-4 space-y-2">
+              {rejectReasonOptions.map((reason) => (
+                <label key={reason} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rejectReasons.includes(reason)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setRejectReasons([...rejectReasons, reason])
+                      } else {
+                        setRejectReasons(rejectReasons.filter((r) => r !== reason))
+                      }
+                    }}
+                    className="form-checkbox h-5 w-5 text-red-500 rounded border-gray-300 focus:ring-red-500 transition duration-150 ease-in-out"
+                  />
+                  <span className="text-[#2d2d5f]">{reason}</span>
+                </label>
+              ))}
+            </div>
+            <textarea
+              value={rejectComment}
+              onChange={(e) => setRejectComment(e.target.value)}
+              placeholder="Add your comment here... (required)"
+              className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 mb-4"
+              rows="3"
+              maxLength={655}
+              required
+            />
+            <p className="text-sm text-gray-500 mb-4">{rejectComment.length}/655 characters</p>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsRejectVendorModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectByNPDEngineer}
                 disabled={!isRejectValid}
                 className={`px-4 py-2 rounded-lg transition-colors ${isRejectValid
                   ? "bg-red-500 text-white hover:bg-red-600"

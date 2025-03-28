@@ -238,19 +238,19 @@ export default function NPDaddProductPage() {
         const skuToEdit = sku.find(s => s.sku_id === skuId);
         if (skuToEdit && skuToEdit.products?.[productIndex]) {
             const productToDelete = skuToEdit.products[productIndex];
-
+    
             try {
                 // Call the delete API
                 const response = await axiosInstance.delete(
                     `/sku/deleteproduct/${productToDelete.product_id}`
                 );
-
+    
                 if (response.data.success) {
                     // Update the local state to remove the product
                     const updatedProducts = skuToEdit.products.filter(
                         (_, index) => index !== productIndex
                     );
-
+    
                     // Update the main SKU list
                     setSku(prevSku =>
                         prevSku.map(sku =>
@@ -259,19 +259,20 @@ export default function NPDaddProductPage() {
                                 : sku
                         )
                     );
-
+    
                     // Update the selected SKU if it's the current one
                     if (selectedSku?.sku_id === skuId) {
                         setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
                     }
-
+    
                     setSuccessMessage("Product deleted successfully!");
                     setTimeout(() => setSuccessMessage(""), 3000);
                 } else {
-                    setError("Failed to delete product");
+                    setError("Failed to delete product: " + (response.data.message || "Unknown error"));
                 }
             } catch (error) {
-                setError("Failed to delete product: " + error);
+                setError("Failed to delete product: " + 
+                    (error.response?.data?.message || error.message));
             }
         }
     };
