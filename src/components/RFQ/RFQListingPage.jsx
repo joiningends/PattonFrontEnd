@@ -286,11 +286,14 @@ export default function RFQListingPage() {
 
 
   // fetch the RFQs for NPD eng.
-  const fetchRFQsForNPD = useCallback(async () => {
+  const fetchRFQsforUserRole = useCallback(async () => {
     setIsLoading(true)
-    console.log("RoleID: ", user.id);
+    console.log("RoleID: ", role.role_id);
+    let assigned_by = null;
+    if (role.role_id === 19) assigned_by = 15;
+    else if (role.role_id === 21) assigned_by = 19;
     try {
-      const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbynpd/${user.id}`)
+      const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbyuserrole/${user.id}?p_assigned_to_roleId=${role.role_id}&p_assigned_by_roleId=${assigned_by}`)
 
       if (response.data.success) {
         setRFQs(response.data.data);
@@ -303,6 +306,7 @@ export default function RFQListingPage() {
     }
     setIsLoading(false)
   }, [])
+
 
   const fetchPlants = useCallback(async () => {
     try {
@@ -321,9 +325,9 @@ export default function RFQListingPage() {
 
   useEffect(() => {
     // Fetch the RFQ for NPD eng. role ; role=19
-    if (role.role_id === 19) {
-      fetchRFQsForNPD().catch((err) => {
-        console.error("Error in fetchRFQsForNPD:", err)
+    if (role.role_id === 19 || role.role_id === 21) {
+      fetchRFQsforUserRole().catch((err) => {
+        console.error("Error in fetchRFQsforUserRole:", err)
         setError("Failed to load RFQs. Please try again later.")
       })
     } else {
@@ -417,7 +421,7 @@ export default function RFQListingPage() {
 
       if (response.data.success) {
         setSuccessMessage("RFQ assigned successfully!");
-        fetchRFQsForNPD();
+        fetchRFQsforUserRole();
         setVendorModalIsOpen(false);
         setSelectedVendorEngineer([]);
         setApproveComment("");
@@ -622,7 +626,7 @@ export default function RFQListingPage() {
       });
       if (response.data.success) {
         setSuccessMessage("RFQ rejected by NPD engineer successfully");
-        fetchRFQsForNPD();
+        fetchRFQsforUserRole();
         isRejectVendorModalOpen(false);
         setSelectedRFQ(null);
         setRejectReasons([]);
@@ -926,6 +930,30 @@ export default function RFQListingPage() {
                           )}
 
                           {(rfq.state_id === 9 && role.role_id === 19) && (
+                            <>
+                              <button
+                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                                className="p-2 rounded-full hover:bg-green-100"
+                              >
+                                <PackagePlusIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => openApproveAssignVendorengModal(rfq)}
+                                className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                              >
+                                <CheckIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => openRejectAssignVendorengModal(rfq)}
+                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                              >
+                                <XIcon className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+
+                          {/* For vendor development engineer login */}
+                          {(rfq.state_id === 11 && role.role_id === 21) && (
                             <>
                               <button
                                 onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}

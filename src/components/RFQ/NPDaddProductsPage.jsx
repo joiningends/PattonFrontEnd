@@ -11,9 +11,11 @@ import {
     Edit,
     Trash2,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Flashlight
 } from "lucide-react";
 import Select from 'react-select';
+import useAppStore from "../../zustandStore";
 
 export default function NPDaddProductPage() {
 
@@ -33,6 +35,9 @@ export default function NPDaddProductPage() {
     const [productsPerPage] = useState(5);
     const [currency, setCurrency] = useState("INR");
     const [rawMaterial, setRawMaterial] = useState([]);
+    const [isBOMmodalOpen, setIsBOMmodalOpen] = useState(false);
+
+    const { role } = useAppStore();
 
     useEffect(() => {
         const fetchSkus = async () => {
@@ -66,8 +71,10 @@ export default function NPDaddProductPage() {
         raw_material_type: "",
         raw_material_type_name: "",
         yield_percentage: "",
-        net_weight_of_product: ""
-        // bom_cost_per_kg: ""
+        net_weight_of_product: "",
+        bom_cost_per_kg: "",
+        final_bom_cost: '',
+        isFinalBOM: false,
     });
 
     const [validationErrors, setValidationErrors] = useState({
@@ -87,8 +94,10 @@ export default function NPDaddProductPage() {
             raw_material_type: "",
             raw_material_type_name: "",
             yield_percentage: "",
-            net_weight_of_product: ""
-            // bom_cost_per_kg: "",
+            net_weight_of_product: "",
+            bom_cost_per_kg: "",
+            final_bom_cost: "",
+            isFinalBOM: false,
         });
     };
 
@@ -142,6 +151,13 @@ export default function NPDaddProductPage() {
         resetNewProduct();
     };
 
+    const handleCloseBOMmodal = () => {
+        setIsBOMmodalOpen(false);
+        setSelectedSku(null);
+        setIsEditMode(false);
+        resetNewProduct();
+    }
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setNewProduct(prev => ({
@@ -178,7 +194,9 @@ export default function NPDaddProductPage() {
                     )
                     : [...currentProducts, newProduct];
 
+
                 await saveProductsToBackend(selectedSku.sku_id, updatedProducts);
+
 
                 // Update the main SKU list
                 setSku(prevSku =>
@@ -206,6 +224,81 @@ export default function NPDaddProductPage() {
         }
     };
 
+    const handleSaveBOMProducts = async () => {
+        const errors = validateBOMProduct();
+        console.log("Error: ", errors);
+
+        console.log(Object.keys(errors).length);
+        if (Object.keys(errors).length === 0) {
+            try {
+
+                // const currentProducts = selectedSku.products || [];
+
+                // Get current products (only those with is_bom=true)
+                const currentBOMProducts = (selectedSku.products || []).filter(p => p.is_bom === true);
+
+                const updatedProducts = isEditMode
+                    ? currentBOMProducts.map((p, index) =>
+                        index === editIndex ? { ...newProduct, is_bom: true } : p
+                    )
+                    : [...currentBOMProducts, { ...newProduct, is_bom: true }];
+
+                console.log("Updated Products: ", updatedProducts);
+
+                const success = await saveBOMProductsToBackend(selectedSku.sku_id, updatedProducts);
+
+                if (success) {
+                    // Update the main SKU list
+                    setSku(prevSku =>
+                        prevSku.map(s =>
+                            s.sku_id === selectedSku.sku_id
+                                ? { ...s, products: updatedProducts }
+                                : s
+                        )
+                    );
+
+                    // Update the selected SKU
+                    setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
+
+                    resetNewProduct();
+                    setIsEditMode(false);
+                    setEditIndex(null);
+                    setValidationErrors({});
+                    setSuccessMessage("BOM Product saved successfully!");
+                    setCurrentProductPage(1);
+                    setTimeout(() => setSuccessMessage(""), 3000);
+                }
+            } catch (error) {
+                setError("Failed to save BOM product: " + error);
+            }
+        } else {
+            setValidationErrors(errors);
+        }
+    };
+
+    const validateBOMProduct = () => {
+        const errors = {};
+
+        if (!newProduct.product_name.trim()) {
+            errors.product_name = "Product name is required";
+        }
+
+        if (!newProduct.isFinalBOM) {
+            if (!newProduct.quantity_per_assembly) {
+                errors.quantity_per_assembly = "Quantity is required";
+            }
+            if (!newProduct.net_weight_of_product) {
+                errors.net_weight_of_product = "Net weight of product is required";
+            }
+        } else {
+            if (!newProduct.final_bom_cost) {
+                errors.final_bom_cost = "Final BOM cost is required";
+            }
+        }
+
+        return errors;
+    };
+
     const handleEditProduct = (skuId, productIndex) => {
         const skuToEdit = sku.find(s => s.sku_id === skuId);
         if (skuToEdit && skuToEdit.products?.[productIndex]) {
@@ -216,7 +309,8 @@ export default function NPDaddProductPage() {
                 ...productToEdit,
                 // Make sure the raw material is properly set in the select
                 raw_material_type: productToEdit.raw_material_type,
-                raw_material_type_name: productToEdit.raw_material_type_name
+                raw_material_type_name: productToEdit.raw_material_type_name,
+                isFinalBOM: !!productToEdit.final_bom_cost
             });
             setIsEditMode(true);
             setEditIndex(productIndex);
@@ -234,23 +328,38 @@ export default function NPDaddProductPage() {
         setCurrentProductPage(1);
     };
 
+    const handleAddBOMProductDetails = (sku) => {
+        setSelectedSku(sku);
+        setIsBOMmodalOpen(true);
+        setIsEditMode(false);
+        setEditIndex(null);
+        resetNewProduct();
+        setCurrentProductPage(1);
+    };
+
     const handleRemoveProduct = async (skuId, productIndex) => {
+
+        console.log("skuId: ", skuId);
+        console.log("productId: ", productIndex);
         const skuToEdit = sku.find(s => s.sku_id === skuId);
         if (skuToEdit && skuToEdit.products?.[productIndex]) {
-            const productToDelete = skuToEdit.products[productIndex];
-    
+            // const productToDelete = skuToEdit.products[productIndex];
+
+            const allProducts = skuToEdit.products;
+            const productToDelete = allProducts[productIndex];
+
             try {
                 // Call the delete API
                 const response = await axiosInstance.delete(
                     `/sku/deleteproduct/${productToDelete.product_id}`
                 );
-    
+
                 if (response.data.success) {
                     // Update the local state to remove the product
                     const updatedProducts = skuToEdit.products.filter(
                         (_, index) => index !== productIndex
                     );
-    
+
                     // Update the main SKU list
                     setSku(prevSku =>
                         prevSku.map(sku =>
@@ -259,19 +368,19 @@ export default function NPDaddProductPage() {
                                 : sku
                         )
                     );
-    
+
                     // Update the selected SKU if it's the current one
                     if (selectedSku?.sku_id === skuId) {
                         setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
                     }
-    
+
                     setSuccessMessage("Product deleted successfully!");
                     setTimeout(() => setSuccessMessage(""), 3000);
                 } else {
                     setError("Failed to delete product: " + (response.data.message || "Unknown error"));
                 }
             } catch (error) {
-                setError("Failed to delete product: " + 
+                setError("Failed to delete product: " +
                     (error.response?.data?.message || error.message));
             }
         }
@@ -309,9 +418,57 @@ export default function NPDaddProductPage() {
         }
     };
 
+    const saveBOMProductsToBackend = async (skuId, products) => {
+        try {
+            const response = await axiosInstance.post(`/sku/save-bomproducts/`, {
+                p_sku_id: skuId,
+                p_bom_products: products.map(product => ({
+                    product_name: product.product_name,
+                    quantity_per_assembly: product.quantity_per_assembly || null,
+                    raw_material_type: product.raw_material_type || null,
+                    yield_percentage: product.yield_percentage || null,
+                    net_weight_of_product: product.net_weight_of_product || null,
+                    bom_cost_per_kg: product.bom_cost_per_kg || null,
+                    final_bom_cost: product.final_bom_cost || null,
+                    isFinalBOM: product.isFinalBOM || null,
+                    is_bom: true
+                }))
+            });
+            console.log(response.data.data);
+            if (response.data.success) {
+                setSku(prevSkuData =>
+                    prevSkuData.map(sku =>
+                        sku.sku_id === skuId ? { ...sku, products: products } : sku
+                    )
+                );
+                setSuccessMessage(
+                    response.data.message || "Products updated successfully"
+                );
+                setTimeout(() => setSuccessMessage(""), 3000);
+                return true;
+            } else {
+                setError("Failed to save products");
+                return false;
+            }
+        } catch (error) {
+            setError(
+                "Error saving products: " +
+                (error.response?.data?.message || error.message)
+            );
+            return false;
+        }
+    };
+
     // Calculate pagination variables
     const totalProductPages = selectedSku?.products
         ? Math.ceil(selectedSku.products.length / productsPerPage)
+        : 0;
+
+    const totalBomProductPages = selectedSku?.products
+        ? Math.ceil(
+            selectedSku.products.filter(p => p.is_bom === true).length /
+            productsPerPage
+        )
         : 0;
 
     const currentProducts = selectedSku?.products
@@ -319,6 +476,16 @@ export default function NPDaddProductPage() {
             (currentProductPage - 1) * productsPerPage,
             currentProductPage * productsPerPage
         )
+        : [];
+
+
+    const currentBomProductsList = selectedSku?.products
+        ? selectedSku.products
+            .filter(p => p.is_bom === true)
+            .slice(
+                (currentProductPage - 1) * productsPerPage,
+                currentProductPage * productsPerPage
+            )
         : [];
 
     return (
@@ -406,7 +573,7 @@ export default function NPDaddProductPage() {
                             <h2 className="text-xl font-semibold text-[#000060] mb-4">SKU List</h2>
                             <SKUTable
                                 skus={sku}
-                                onAddProduct={handleAddProductDetails}
+                                onAddProduct={role.role_id === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
                             />
                         </div>
                     )}
@@ -720,6 +887,366 @@ export default function NPDaddProductPage() {
                                     <p className="text-[#4b4b80] italic">
                                         No products added yet. Use the form above to add a new
                                         product.
+                                    </p>
+                                )}
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <AnimatePresence className="top-0">
+                    {isBOMmodalOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                            >
+                                {successMessage && (
+                                    <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">
+                                        {successMessage}
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold text-[#000060]">
+                                        BOM Products for {selectedSku?.sku_name}
+                                    </h2>
+                                    <button
+                                        onClick={handleCloseBOMmodal}
+                                        className="text-[#000060] hover:text-[#0000a0]"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+
+                                <h3 className="text-xl font-semibold text-[#000060] mb-4">
+                                    {isEditMode ? "Edit BOM Product" : "Add New BOM Product"}
+                                </h3>
+                                <form
+                                    onSubmit={e => e.preventDefault()}
+                                    className="space-y-4 mb-6"
+                                >
+                                    <div className="flex items-center mb-4">
+                                        <input
+                                            type="checkbox"
+                                            id="isFinalBOM"
+                                            name="isFinalBOM"
+                                            checked={newProduct.isFinalBOM || false}
+                                            onChange={(e) => {
+                                                handleInputChange(e);
+                                                // Clear the disabled fields when unchecked
+                                                const updatedProduct = {
+                                                    ...newProduct,
+                                                    isFinalBOM: e.target.checked,
+                                                    // Clear dependent fields when unchecked
+                                                    ...(!e.target.checked && {
+                                                        final_bom_cost: '',
+                                                        quantity_per_assembly: '',
+                                                        net_weight_of_product: '',
+                                                        bom_cost_per_kg: ''
+                                                    })
+                                                };
+                                                const isChecked = e.target.checked;
+                                                setNewProduct(prev => ({
+                                                    ...prev,
+                                                    isFinalBOM: isChecked,
+                                                    // Reset dependent fields when changing the checkbox
+                                                    ...(isChecked ? {
+                                                        quantity_per_assembly: '',
+                                                        net_weight_of_product: '',
+                                                        bom_cost_per_kg: ''
+                                                    } : {
+                                                        final_bom_cost: ''
+                                                    })
+                                                }));
+                                                setValidationErrors(prev => ({
+                                                    ...prev,
+                                                    quantity_per_assembly: '',
+                                                    net_weight_of_product: '',
+                                                    final_bom_cost: ''
+                                                }));
+                                                // Update the state with the new object
+                                                // setNewProduct(updatedProduct);
+                                            }}
+                                            className="h-4 w-4 text-[#000060] focus:ring-[#000060] border-gray-300 rounded"
+                                        />
+                                        <label
+                                            htmlFor="isFinalBOM"
+                                            className="ml-2 block text-sm font-medium text-[#000060]"
+                                        >
+                                            Final BOM Cost
+                                        </label>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="product_name"
+                                            className="block text-sm font-medium text-[#000060] mb-1"
+                                        >
+                                            BOM Product Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="product_name"
+                                            name="product_name"
+                                            value={newProduct.product_name}
+                                            onChange={handleInputChange}
+                                            className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
+                                            placeholder="Enter product name"
+                                        />
+                                        {validationErrors.product_name && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {validationErrors.product_name}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {newProduct.isFinalBOM ? (
+                                        <div>
+                                            <label
+                                                htmlFor="final_bom_cost"
+                                                className="block text-sm font-medium text-[#000060] mb-1"
+                                            >
+                                                Final BOM Cost
+                                            </label>
+                                            <div className="flex">
+                                                <select
+                                                    value={currency}
+                                                    onChange={e => setCurrency(e.target.value)}
+                                                    className="p-2 border rounded-l focus:ring-2 focus:ring-[#000060] focus:border-transparent"
+                                                >
+                                                    <option value="INR">₹</option>
+                                                    <option value="USD">$</option>
+                                                    <option value="EUR">€</option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    id="final_bom_cost"
+                                                    name="final_bom_cost"
+                                                    value={newProduct.final_bom_cost || ''}
+                                                    onChange={handleInputChange}
+                                                    className="flex-grow p-2 border-t border-b border-r rounded-r focus:ring-2 focus:ring-[#000060] focus:border-transparent"
+                                                    placeholder="Enter final BOM cost"
+                                                />
+                                            </div>
+                                            {validationErrors.final_bom_cost && (
+                                                <p className="text-red-500 text-sm mt-1">
+                                                    {validationErrors.final_bom_cost}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <label
+                                                    htmlFor="quantity_per_assembly"
+                                                    className="block text-sm font-medium text-[#000060] mb-1"
+                                                >
+                                                    Quantity per Assembly
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    id="quantity_per_assembly"
+                                                    name="quantity_per_assembly"
+                                                    value={newProduct.quantity_per_assembly}
+                                                    onChange={handleInputChange}
+                                                    disabled={newProduct.isFinalBOM}
+                                                    className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent ${newProduct.isFinalBOM ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                                    placeholder="Enter quantity"
+                                                />
+                                                {validationErrors.quantity_per_assembly && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {validationErrors.quantity_per_assembly}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            <div>
+                                                <label
+                                                    htmlFor="net_weight_of_product"
+                                                    className="block text-sm font-medium text-[#000060] mb-1"
+                                                >
+                                                    Net weight of product
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    id="net_weight_of_product"
+                                                    name="net_weight_of_product"
+                                                    value={newProduct.net_weight_of_product}
+                                                    onChange={handleInputChange}
+                                                    disabled={newProduct.isFinalBOM}
+                                                    className={`w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent ${newProduct.isFinalBOM ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                                    placeholder="Enter net weight of product"
+                                                />
+                                                {validationErrors.net_weight_of_product && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {validationErrors.net_weight_of_product}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label
+                                                    htmlFor="bom_cost_per_kg"
+                                                    className="block text-sm font-medium text-[#000060] mb-1"
+                                                >
+                                                    BOM Cost per KG
+                                                </label>
+                                                <div className="flex">
+                                                    <select
+                                                        value={currency}
+                                                        onChange={e => setCurrency(e.target.value)}
+                                                        disabled={newProduct.isFinalBOM}
+                                                        className={`p-2 border rounded-l focus:ring-2 focus:ring-[#000060] focus:border-transparent ${newProduct.isFinalBOM ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <option value="INR">₹</option>
+                                                        <option value="USD">$</option>
+                                                        <option value="EUR">€</option>
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        id="bom_cost_per_kg"
+                                                        name="bom_cost_per_kg"
+                                                        value={newProduct.bom_cost_per_kg}
+                                                        onChange={handleInputChange}
+                                                        disabled={newProduct.isFinalBOM}
+                                                        className={`flex-grow p-2 border-t border-b border-r rounded-r focus:ring-2 focus:ring-[#000060] focus:border-transparent ${newProduct.isFinalBOM ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                                        placeholder="Enter BOM cost per KG"
+                                                    />
+                                                </div>
+                                                {validationErrors.bom_cost_per_kg && (
+                                                    <p className="text-red-500 text-sm mt-1">
+                                                        {validationErrors.bom_cost_per_kg}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </form>
+
+                                {/* Rest of your existing code (buttons, table, etc.) */}
+                                <div className="mt-6 flex justify-end space-x-4 mb-6">
+                                    <button
+                                        onClick={handleCloseBOMmodal}
+                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveBOMProducts}
+                                        className="px-4 py-2 bg-[#000060] text-white rounded-md hover:bg-[#0000a0] transition-colors"
+                                    >
+                                        {isEditMode ? "Save Changes" : "Add Product"}
+                                    </button>
+                                </div>
+
+                                {/* Existing products table remains the same */}
+                                {selectedSku?.products && selectedSku.products.length > 0 ? (
+                                    <div className="max-h-[500px] overflow-y-auto">
+                                        <h3 className="text-xl font-semibold text-[#000060] mb-2">
+                                            Existing Products
+                                        </h3>
+                                        <table className="w-full border-collapse rounded-lg">
+                                            <thead>
+                                                <tr className="bg-[#f0f0f9]">
+                                                    <th className="p-2 text-left">Name</th>
+                                                    {/* <th className="p-2 text-left">Type</th> */}
+                                                    <th className="p-2 text-left">Quantity</th>
+                                                    <th className="p-2 text-left">Net weight</th>
+                                                    <th className="p-2 text-left">BOM Cost</th>
+                                                    <th className="p-2 text-left">Final BOM Cost</th>
+                                                    <th className="p-2 text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="overflow-auto">
+                                                {currentBomProductsList.map((product, index) => (
+                                                    <tr key={index} className="border-b">
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.product_name}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.isFinalBOM ? "-" : product.quantity_per_assembly}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.isFinalBOM ? "-" : product.net_weight_of_product}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.final_bom_cost ? "" : currency + " " + product.bom_cost_per_kg}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.final_bom_cost ? currency + " " + product.final_bom_cost : ""}
+                                                        </td>
+                                                        <td className="p-2 text-center">
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleEditProduct(selectedSku.sku_id, index)
+                                                                }
+                                                                className="text-[#000060] hover:text-[#0000a0] mr-2 p-1 rounded-full hover:bg-gray-100"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleRemoveProduct(selectedSku.sku_id, index)
+                                                                }
+                                                                className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
+                                                                title="Remove"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        {/* Pagination remains the same */}
+                                        <div className="mt-4 flex justify-center">
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() =>
+                                                        handleProductPageChange(currentProductPage - 1)
+                                                    }
+                                                    disabled={currentProductPage === 1}
+                                                    className="px-3 py-2 bg-[#f0f0f9] text-[#000060] rounded-md hover:bg-[#e1e1f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronLeft size={16} />
+                                                </button>
+                                                {Array.from(
+                                                    { length: totalBomProductPages },
+                                                    (_, i) => i + 1
+                                                ).map(page => (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => handleProductPageChange(page)}
+                                                        className={`px-3 py-1 rounded-md transition-colors ${currentProductPage === page
+                                                            ? "bg-[#000060] text-white"
+                                                            : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    onClick={() =>
+                                                        handleProductPageChange(currentProductPage + 1)
+                                                    }
+                                                    disabled={currentProductPage === totalBomProductPages}
+                                                    className="px-3 py-2 bg-[#f0f0f9] text-[#000060] rounded-md hover:bg-[#e1e1f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronRight size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-[#4b4b80] italic">
+                                        No products added yet. Use the form above to add a new product.
                                     </p>
                                 )}
                             </motion.div>
