@@ -34,7 +34,7 @@ export default function RFQDetailsPage() {
             console.log("USERID: ", user.id);
             console.log("RFQID: ", rfqId);
 
-            if(role && (role.role_id===19 || role.role_id===8) ){
+            if(role && (role.role_id===19 || role.role_id===8 || role.role_id===21 ) ){
                 userId = null;
             }
 

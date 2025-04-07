@@ -12,12 +12,14 @@ import {
     Trash2,
     ChevronLeft,
     ChevronRight,
-    Flashlight
+    Flashlight,
+    EyeIcon
 } from "lucide-react";
 import Select from 'react-select';
 import useAppStore from "../../zustandStore";
+import { Tooltip } from 'react-tooltip'
 
-export default function NPDaddProductPage() {
+export default function AddProductPage() {
 
     const navigate = useNavigate();
     const { rfqId } = useParams();
@@ -36,6 +38,7 @@ export default function NPDaddProductPage() {
     const [currency, setCurrency] = useState("INR");
     const [rawMaterial, setRawMaterial] = useState([]);
     const [isBOMmodalOpen, setIsBOMmodalOpen] = useState(false);
+    const [isNonBOMmodalOpen, setIsNonBOMmodalOpen] = useState(false);
 
     const { role } = useAppStore();
 
@@ -153,6 +156,13 @@ export default function NPDaddProductPage() {
 
     const handleCloseBOMmodal = () => {
         setIsBOMmodalOpen(false);
+        setSelectedSku(null);
+        setIsEditMode(false);
+        resetNewProduct();
+    }
+
+    const handleCloseNonBOMmodal = () => {
+        setIsNonBOMmodalOpen(false);
         setSelectedSku(null);
         setIsEditMode(false);
         resetNewProduct();
@@ -328,6 +338,16 @@ export default function NPDaddProductPage() {
         setCurrentProductPage(1);
     };
 
+    const handleProductDetails = (sku) => {
+        console.log(sku);
+        setSelectedSku(sku);
+        setIsNonBOMmodalOpen(true);
+        setIsEditMode(false);
+        setEditIndex(null);
+        resetNewProduct();
+        setCurrentProductPage(1);
+    };
+
     const handleAddBOMProductDetails = (sku) => {
         setSelectedSku(sku);
         setIsBOMmodalOpen(true);
@@ -471,6 +491,13 @@ export default function NPDaddProductPage() {
         )
         : 0;
 
+    const totalNonBomProductPages = selectedSku?.products
+        ? Math.ceil(
+            selectedSku.products.filter(p => p.is_bom === false).length /
+            productsPerPage
+        )
+        : 0;
+
     const currentProducts = selectedSku?.products
         ? selectedSku.products.slice(
             (currentProductPage - 1) * productsPerPage,
@@ -482,6 +509,15 @@ export default function NPDaddProductPage() {
     const currentBomProductsList = selectedSku?.products
         ? selectedSku.products
             .filter(p => p.is_bom === true)
+            .slice(
+                (currentProductPage - 1) * productsPerPage,
+                currentProductPage * productsPerPage
+            )
+        : [];
+
+    const currentNonBomProductsList = selectedSku?.products
+        ? selectedSku.products
+            .filter(p => p.is_bom === false)
             .slice(
                 (currentProductPage - 1) * productsPerPage,
                 currentProductPage * productsPerPage
@@ -574,6 +610,7 @@ export default function NPDaddProductPage() {
                             <SKUTable
                                 skus={sku}
                                 onAddProduct={role.role_id === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
+                                onViewProduct={handleProductDetails}
                             />
                         </div>
                     )}
@@ -1254,6 +1291,131 @@ export default function NPDaddProductPage() {
                     )}
                 </AnimatePresence>
 
+
+                <AnimatePresence className="top-0">
+                    {isNonBOMmodalOpen && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                            >
+                                {successMessage && (
+                                    <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">
+                                        {successMessage}
+                                    </div>
+                                )}
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-2xl font-bold text-[#000060]">
+                                        Products for {selectedSku?.sku_name}
+                                    </h2>
+                                    <button
+                                        onClick={handleCloseNonBOMmodal}
+                                        className="text-[#000060] hover:text-[#0000a0]"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+
+                                {/* <h3 className="text-xl font-semibold text-[#000060] mb-4">
+                                    {isEditMode ? "Edit BOM Product" : "Add New BOM Product"}
+                                </h3> */}
+
+                                {/* Existing products table remains the same */}
+                                {selectedSku?.products && selectedSku.products.length > 0 ? (
+                                    <div>
+                                        <h3 className="text-xl font-semibold text-[#000060] mb-2">
+                                            Existing Products
+                                        </h3>
+                                        <table className="w-full border-collapse rounded-lg overflow-hidden">
+                                            <thead>
+                                                <tr className="bg-[#f0f0f9]">
+                                                    <th className="p-2 text-left">Name</th>
+                                                    <th className="p-2 text-left">Quantity</th>
+                                                    <th className="p-2 text-left">Raw Material</th>
+                                                    <th className="p-2 text-left">Yield %</th>
+                                                    <th className="p-2 text-left">Net weight</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {currentNonBomProductsList.map((product, index) => (
+                                                    <tr key={index} className="border-b">
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.product_name}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.quantity_per_assembly}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.raw_material_type_name ||
+                                                                rawMaterial.find(rm => rm.id === product.raw_material_type)?.raw_material_name}
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.yield_percentage}%
+                                                        </td>
+                                                        <td className="p-2 border-b border-[#e1e1f5]">
+                                                            {product.net_weight_of_product}
+                                                        </td>
+
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        <div className="mt-4 flex justify-center">
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() =>
+                                                        handleProductPageChange(currentNonBomProductsList - 1)
+                                                    }
+                                                    disabled={currentNonBomProductsList === 1}
+                                                    className="px-3 py-2 bg-[#f0f0f9] text-[#000060] rounded-md hover:bg-[#e1e1f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronLeft size={16} />
+                                                </button>
+                                                {Array.from(
+                                                    { length: totalNonBomProductPages },
+                                                    (_, i) => i + 1
+                                                ).map(page => (
+                                                    <button
+                                                        key={page}
+                                                        onClick={() => handleProductPageChange(page)}
+                                                        className={`px-3 py-1 rounded-md transition-colors ${currentNonBomProductsList === page
+                                                            ? "bg-[#000060] text-white"
+                                                            : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
+                                                            }`}
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                ))}
+                                                <button
+                                                    onClick={() =>
+                                                        handleProductPageChange(currentNonBomProductsList + 1)
+                                                    }
+                                                    disabled={currentNonBomProductsList === totalNonBomProductPages}
+                                                    className="px-3 py-2 bg-[#f0f0f9] text-[#000060] rounded-md hover:bg-[#e1e1f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronRight size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-[#4b4b80] italic">
+                                        No products added yet. Use the form above to add a new
+                                        product.
+                                    </p>
+                                )}
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
             </motion.div>
 
 
@@ -1263,7 +1425,7 @@ export default function NPDaddProductPage() {
 
 
 
-function SKUTable({ skus, onAddProduct }) {
+function SKUTable({ skus, onAddProduct, onViewProduct }) {
     return (
 
         <div className="overflow-x-auto">
@@ -1291,15 +1453,25 @@ function SKUTable({ skus, onAddProduct }) {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${sku.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                    {sku.sku_status ? 'Active' : 'Inactive'}
+                                    {sku.status ? 'Active' : 'Inactive'}
                                 </span>
                             </td>
-                            <td className="text-center">
+                            <td className="text-center justify-end space-x-2">
+                                <button
+                                    onClick={() => onViewProduct(sku)}
+                                    className="p-2 rounded-full hover:bg-green-100"
+                                    id="my-tooltip"
+                                >
+                                    <EyeIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#my-tooltip">View Products</Tooltip>
                                 <button
                                     onClick={() => onAddProduct(sku)}
                                     className="p-2 rounded-full hover:bg-green-100"
+                                    id="add-bom"
                                 >
                                     <CirclePlusIcon className="w-5 h-5" />
+                                    <Tooltip anchorSelect="#add-bom">Add BOM</Tooltip>
                                 </button>
                             </td>
                         </tr>

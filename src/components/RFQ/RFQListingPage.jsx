@@ -9,11 +9,13 @@ import {
   Filter,
   Info,
   PackagePlusIcon,
-  Flashlight
+  Flashlight,
+  UserRoundPlusIcon
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
 import useAppStore from "../../zustandStore";
+import { Tooltip } from "react-tooltip";
 
 // Icons (you may need to install an icon library or use SVGs)
 const SearchIcon = () => (
@@ -193,6 +195,9 @@ export default function RFQListingPage() {
   const [selectedVendorEngineer, setSelectedVendorEngineer] = useState(null);
   const [vendorModalIsOpen, setVendorModalIsOpen] = useState(false);
   const [isRejectVendorModalOpen, setIsRejectVendorModalOpen] = useState(false);
+  const [processEngineers, setProcessEngineers] = useState([]);
+  const [processModalIsOpen, setProcessModalIsOpen] = useState(false);
+  const [selectedProcessEngineer, setSelectedProcessEngineer] = useState(null);
 
   const { isLoggedIn, user, role, permission } = useAppStore();
 
@@ -231,6 +236,21 @@ export default function RFQListingPage() {
       }
     } catch (error) {
       setError("Error fetching NPD engineers: " + (error.response?.data?.message || error.message));
+    }
+  }
+
+
+  const fetchProcessEngineer = async (rfqId) => {
+    try {
+      const response = await axiosInstance.get(`/users/get-processeng/${rfqId}`);
+      if (response.data.success) {
+        console.log("Process engineer: ", response.data.data);
+        setProcessEngineers(response.data.data);
+      } else {
+        setError("Failed to fetch Process engineer.");
+      }
+    } catch (error) {
+      setError("Error fetching Process engineer: " + (error.response?.data?.message || error.message))
     }
   }
 
@@ -434,7 +454,47 @@ export default function RFQListingPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  };
+
+
+  const handleAssignRFQByVendorEng = async () => {
+    if (!selectedProcessEngineer) {
+      setError("Please select process engineer to assign the RFQ.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.post("/rfq/assign", {
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_assigned_to_id: selectedProcessEngineer.user_id,
+        p_assigned_to_roleid: 20,             // hard code the role of process engineer
+        p_assigned_by_id: user.id,
+        p_assigned_by_roleid: 21,             // hard code the role of vendor development engineer
+        p_status: true,
+        p_comments: approveComment,
+      });
+
+      console.log("Assign rfq response: ", response);
+
+      if (response.data.success) {
+        setSuccessMessage("RFQ assigned successfully!");
+        fetchRFQsforUserRole();
+        setProcessModalIsOpen(false);
+        setSelectedProcessEngineer([]);
+        setApproveComment("");
+      } else {
+        setError("Failed to assign RFQ");
+      }
+
+    } catch (error) {
+      setError("Error assigning RFQ");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // const filteredRFQs = rfqs.filter(
   //   (rfq) =>
@@ -516,6 +576,12 @@ export default function RFQListingPage() {
   const openRejectAssignVendorengModal = (rfq) => {
     setSelectedRFQ(rfq);
     setIsRejectVendorModalOpen(true);
+  }
+
+  const openApproveAssignProcessengModal = (rfq) => {
+    setSelectedRFQ(rfq);
+    fetchProcessEngineer(rfq.rfq_id);
+    setProcessModalIsOpen(true);
   }
 
   const RfqDetailedInfo = (rfq) => {
@@ -903,9 +969,12 @@ export default function RFQListingPage() {
                           <button
                             onClick={() => RfqDetailedInfo(rfq)}
                             className="p-2 rounded-full hover:bg-yellow-200"
+                            id="rfq-details"
                           >
                             <Info className="w-5 h-5" />
                           </button>
+                          <Tooltip anchorSelect="#rfq-details">RFQ Details</Tooltip>
+                          
                           {/* <button
                             onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
                             className="p-2 rounded-full hover:bg-green-100"
@@ -929,6 +998,7 @@ export default function RFQListingPage() {
                             </>
                           )}
 
+                          {/* For NPD engineer login */}
                           {(rfq.state_id === 9 && role.role_id === 19) && (
                             <>
                               <button
@@ -958,21 +1028,27 @@ export default function RFQListingPage() {
                               <button
                                 onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
                                 className="p-2 rounded-full hover:bg-green-100"
+                                id="add-products"
                               >
                                 <PackagePlusIcon className="w-5 h-5" />
                               </button>
+                              
+                              <Tooltip anchorSelect="#add-products">Add Products</Tooltip>
                               <button
-                                onClick={() => openApproveAssignVendorengModal(rfq)}
-                                className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                onClick={() => openApproveAssignProcessengModal(rfq)}
+                                className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                id="assign-processeng"
                               >
-                                <CheckIcon className="w-5 h-5" />
+                                <UserRoundPlusIcon className="w-5 h-5" />
                               </button>
-                              <button
+                              <Tooltip anchorSelect="#assign-processeng">Assign Process Engineer</Tooltip>
+
+                              {/* <button
                                 onClick={() => openRejectAssignVendorengModal(rfq)}
                                 className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
                               >
                                 <XIcon className="w-5 h-5" />
-                              </button>
+                              </button> */}
                             </>
                           )}
 
@@ -1436,6 +1512,87 @@ export default function RFQListingPage() {
           </div>
         </div>
       )}
+
+
+      <AnimatePresence>
+        {processModalIsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to Process Engineer</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                {/* Dropdown for NPD Engineers */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={selectedProcessEngineer?.user_id || ""}
+                    onChange={(e) => {
+                      const selected = processEngineers.find(
+                        (engineer) => engineer.user_id === parseInt(e.target.value)
+                      );
+                      setSelectedProcessEngineer(selected);
+                    }}
+                  >
+                    <option value="" disabled>
+                      Select an engineer
+                    </option>
+                    {processEngineers.map((engineer) => (
+                      <option key={engineer.user_id} value={engineer.user_id}>
+                        {engineer.first_name + " " + engineer.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setProcessModalIsOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignRFQByVendorEng}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Assigning..." : "Assign RFQ"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   )
 }
