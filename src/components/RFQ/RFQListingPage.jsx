@@ -479,8 +479,12 @@ export default function RFQListingPage() {
 
       console.log("Assign rfq response: ", response);
 
-      if (response.data.success) {
-        setSuccessMessage("RFQ assigned successfully!");
+      const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+        p_rfq_id: selectedRFQ.rfq_id
+      });
+
+      if (response.data.success && autoCalResponse.data.success) {
+        setSuccessMessage("Auto calculation done and RFQ assigned successfully!");
         fetchRFQsforUserRole();
         setProcessModalIsOpen(false);
         setSelectedProcessEngineer([]);

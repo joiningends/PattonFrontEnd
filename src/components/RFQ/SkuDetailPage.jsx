@@ -180,7 +180,7 @@ export default function SkuDetailPage() {
                                             <span className="text-sm font-semibold text-gray-800">{sku.drawing_no || 'N/A'}</span>
                                         </td>
                                     </tr>
-                                    
+
                                     {/* Part Name Row */}
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-yellow-200 border border-gray-200">PART NAME</th>
@@ -238,7 +238,14 @@ export default function SkuDetailPage() {
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">Yield %</td>
                                         {sku.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {product.yield_percentage || "-"}
+                                                <div className="flex items-center justify-center space-x-2">
+                                                    <span>{product.yield_percentage || "-"}</span>
+                                                    <PencilIcon
+                                                        className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                        id={`edit-value-${index}`}
+                                                    />
+                                                    <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                </div>
                                             </td>
                                         ))}
                                     </tr>
@@ -248,20 +255,27 @@ export default function SkuDetailPage() {
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">BOM Cost/kg</td>
                                         {sku.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {product.bom_cost_per_kg || "-"}
+                                                <div className="flex items-center justify-center space-x-2">
+                                                    <span>{product.bom_cost_per_kg || "-"}</span>
+                                                    <PencilIcon
+                                                        className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                        id={`edit-value-${index}`}
+                                                    />
+                                                    <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                </div>
                                             </td>
                                         ))}
                                     </tr>
 
                                     {/* Final BOM Cost Row */}
-                                    <tr className="">
+                                    {/* <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">Final BOM Cost</td>
                                         {sku.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.final_bom_cost || "-"}
                                             </td>
                                         ))}
-                                    </tr>
+                                    </tr> */}
 
                                     {/* Particular Row */}
                                     <tr>
@@ -286,14 +300,72 @@ export default function SkuDetailPage() {
                                             </td>
                                         ))}
                                     </tr>
+
+                                    {/* Assembly cost */}
+                                    <tr className="bg-green-400">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Assembly</td>
+                                        <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                            {sku.assembly_cost || "-"}
+                                        </td>
+                                    </tr>
+
+                                    {/* Gross weight in kg */}
+                                    <tr className="">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Gross weight (kg)</td>
+                                        {sku.products?.map((product, index) => (
+                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {product.gross_weight_kg || "-"}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+
+                                    {/* RM wastage in kg */}
+                                    <tr className="">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 ">R.M. Wastage (kg)</td>
+                                        {sku.products?.map((product, index) => (
+                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {product.rm_wastage_kg || "-"}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Cost of RM */}
+                                    <tr className="">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 ">Cost of R.M.</td>
+                                        {sku.products?.map((product, index) => (
+                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {product.cost_of_rm || "-"}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Less cost of scrap */}
+                                    <tr className="">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 ">Less cost of scrap</td>
+                                        {sku.products?.map((product, index) => (
+                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {product.less_cost_of_scrap || "-"}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+                                    {/* Net RM cost in RS */}
+                                    <tr className="">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-red-300">NET R.M. COST IN Rs.</td>
+                                        {sku.products?.map((product, index) => (
+                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {product.net_rm_cost || "-"}
+                                            </td>
+                                        ))}
+                                    </tr>
+
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </motion.div>
-
-
         </motion.div>
     );
 }

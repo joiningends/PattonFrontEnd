@@ -196,13 +196,22 @@ export default function AddProductPage() {
         if (Object.keys(errors).length === 0) {
             try {
                 // Initialize products array if it doesn't exist
-                const currentProducts = selectedSku.products || [];
+                const currentProducts = (selectedSku.products || []).filter(p => p.is_bom !== true);
+
+                // Convert string numbers to actual numbers
+                const productToSave = {
+                    ...newProduct,
+                    is_bom: false,
+                    quantity_per_assembly: Number(newProduct.quantity_per_assembly),
+                    yield_percentage: Number(newProduct.yield_percentage),
+                    net_weight_of_product: Number(newProduct.net_weight_of_product)
+                };
 
                 const updatedProducts = isEditMode
                     ? currentProducts.map((p, index) =>
-                        index === editIndex ? newProduct : p
+                        index === editIndex ? productToSave : p
                     )
-                    : [...currentProducts, newProduct];
+                    : [...currentProducts, productToSave];
 
 
                 await saveProductsToBackend(selectedSku.sku_id, updatedProducts);
@@ -411,12 +420,26 @@ export default function AddProductPage() {
     };
 
     const saveProductsToBackend = async (skuId, products) => {
+        console.log("products: ", products);
         try {
-            const response = await axiosInstance.post(`/sku/saveproducts/`, {
+            const payload = {
                 p_sku_id: skuId,
-                p_products: products,
+                p_products: products.map(product => ({
+                    product_name: product.product_name,
+                    quantity_per_assembly: Number(product.quantity_per_assembly),
+                    raw_material_type: Number(product.raw_material_type),
+                    yield_percentage: Number(product.yield_percentage),
+                    net_weight_of_product: Number(product.net_weight_of_product)
+                }))
+            };
+
+            console.log("Sending payload:", payload);
+
+            const response = await axiosInstance.post(`/sku/saveproducts/`, payload, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-            console.log(response.data.data);
             if (response.data.success) {
                 setSku(prevSkuData =>
                     prevSkuData.map(sku =>
@@ -611,12 +634,14 @@ export default function AddProductPage() {
                                 skus={sku}
                                 onAddProduct={role.role_id === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
                                 onViewProduct={handleProductDetails}
+                                role_id={role.role_id}
                             />
                         </div>
                     )}
 
                 </motion.div>
 
+                {/* Modal for Adding non-BOM products  */}
                 <AnimatePresence className="top-0">
                     {isModalOpen && (
                         <motion.div
@@ -931,6 +956,7 @@ export default function AddProductPage() {
                     )}
                 </AnimatePresence>
 
+                {/* Modal for adding BOM products  */}
                 <AnimatePresence className="top-0">
                     {isBOMmodalOpen && (
                         <motion.div
@@ -1291,7 +1317,7 @@ export default function AddProductPage() {
                     )}
                 </AnimatePresence>
 
-
+                {/* Modal for Viewing non-BOM products  */}
                 <AnimatePresence className="top-0">
                     {isNonBOMmodalOpen && (
                         <motion.div
@@ -1425,7 +1451,7 @@ export default function AddProductPage() {
 
 
 
-function SKUTable({ skus, onAddProduct, onViewProduct }) {
+function SKUTable({ skus, onAddProduct, onViewProduct, role_id }) {
     return (
 
         <div className="overflow-x-auto">
@@ -1457,21 +1483,30 @@ function SKUTable({ skus, onAddProduct, onViewProduct }) {
                                 </span>
                             </td>
                             <td className="text-center justify-end space-x-2">
-                                <button
-                                    onClick={() => onViewProduct(sku)}
-                                    className="p-2 rounded-full hover:bg-green-100"
-                                    id="my-tooltip"
-                                >
-                                    <EyeIcon className="w-5 h-5" />
-                                </button>
-                                <Tooltip anchorSelect="#my-tooltip">View Products</Tooltip>
+                                {role_id === 21 && (
+                                    <>
+                                        <button
+                                            onClick={() => onViewProduct(sku)}
+                                            className="p-2 rounded-full hover:bg-green-100"
+                                            id="my-tooltip"
+                                        >
+                                            <EyeIcon className="w-5 h-5" />
+                                        </button>
+                                        <Tooltip anchorSelect="#my-tooltip">View Products</Tooltip>
+                                    </>
+                                )}
                                 <button
                                     onClick={() => onAddProduct(sku)}
                                     className="p-2 rounded-full hover:bg-green-100"
                                     id="add-bom"
                                 >
                                     <CirclePlusIcon className="w-5 h-5" />
-                                    <Tooltip anchorSelect="#add-bom">Add BOM</Tooltip>
+
+                                    {role_id === 19 ? (
+                                        <Tooltip anchorSelect="#add-bom">Add Products</Tooltip>
+                                    ) : (
+                                        <Tooltip anchorSelect="#add-bom">Add BOM</Tooltip>
+                                    )}
                                 </button>
                             </td>
                         </tr>
