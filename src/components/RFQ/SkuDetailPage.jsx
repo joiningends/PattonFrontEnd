@@ -27,6 +27,45 @@ export default function SkuDetailPage() {
         userId = user.id;
     }
 
+
+    const [editModal, setEditModal] = useState({
+        open: false,
+        productId: null,
+        currentValue: null,
+        newValue: "",
+        fieldName: ""
+    });
+
+    // Open edit modal
+    const handleEditClick = (productId, currentValue, fieldName) => {
+        setEditModal({
+            open: true,
+            productId,
+            currentValue,
+            newValue: currentValue || "",
+            fieldName
+        });
+    };
+
+    // Close modal
+    const closeModal = () => {
+        setEditModal({
+            open: false,
+            productId: null,
+            currentValue: null,
+            newValue: "",
+            fieldName: ""
+        });
+    };
+
+    // Handle input change
+    const handleInputChange = (e) => {
+        setEditModal(prev => ({
+            ...prev,
+            newValue: e.target.value
+        }));
+    };
+
     // Fetch RFQ details
     useEffect(() => {
 
@@ -65,6 +104,150 @@ export default function SkuDetailPage() {
         fetchSkuDetails();
 
     }, [rfqId, skuId]);
+
+
+    // Save the edited yield value
+    const saveEditedValue = async () => {
+        try {
+            if (editModal.fieldName === "yield_percentage") {
+
+                console.log("yield_percentage edit: ", editModal);
+                const response = await axiosInstance.post("/sku/edit-yield", {
+                    product_id: editModal.productId,
+                    yield_percentage: parseFloat(editModal.newValue)
+                });
+
+                const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+                    p_rfq_id: rfqId
+                });
+
+                if (response.data.success && autoCalResponse.data.success) {
+                    setAlertMessage({
+                        type: "success",
+                        message: "Yield percentage updated successfully"
+                    });
+                    setShowAlert(true);
+
+                    // Refresh the SKU data
+                    const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                    if (skuResponse.data.success) {
+                        // setSku(skuResponse.data.data[0]);
+                        // Sort the products: GP COIL first, then BOM
+                        const sortedSku = { ...skuResponse.data.data[0] };
+                        if (sortedSku.products && sortedSku.products.length > 0) {
+                            sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                                // Sort by is_bom flag (false values first - GP COIL)
+                                if (a.is_bom === b.is_bom) return 0;
+                                return a.is_bom ? 1 : -1;
+                            });
+                        }
+                        setSku(sortedSku);
+                    }
+                } else {
+                    setAlertMessage({
+                        type: "error",
+                        message: response.data.message || "Failed to update yield percentage"
+                    });
+                    setShowAlert(true);
+                }
+            }
+
+            if (editModal.fieldName === "bom_cost_per_kg") {
+                console.log("bom_cost_per_kg edit :", editModal);
+
+                const response = await axiosInstance.post("/sku/edit-bom-cost", {
+                    product_id: editModal.productId,
+                    bom_cost_per_kg: parseFloat(editModal.newValue)
+                });
+
+                const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+                    p_rfq_id: rfqId
+                });
+
+                if (response.data.success && autoCalResponse.data.success) {
+                    setAlertMessage({
+                        type: "success",
+                        message: "Bom cost per kg updated successfully"
+                    });
+                    setShowAlert(true);
+
+                    // Refresh the SKU data
+                    const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                    if (skuResponse.data.success) {
+                        // setSku(skuResponse.data.data[0]);
+                        // Sort the products: GP COIL first, then BOM
+                        const sortedSku = { ...skuResponse.data.data[0] };
+                        if (sortedSku.products && sortedSku.products.length > 0) {
+                            sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                                // Sort by is_bom flag (false values first - GP COIL)
+                                if (a.is_bom === b.is_bom) return 0;
+                                return a.is_bom ? 1 : -1;
+                            });
+                        }
+                        setSku(sortedSku);
+                    }
+                } else {
+                    setAlertMessage({
+                        type: "error",
+                        message: response.data.message || "Failed to update yield percentage"
+                    });
+                    setShowAlert(true);
+                }
+            }
+
+            if (editModal.fieldName === "net_weight_of_product") {
+                console.log("net_weight_of_product edit :", editModal);
+
+                const response = await axiosInstance.post("/sku/edit-net-weight", {
+                    product_id: editModal.productId,
+                    net_weight_of_product: parseFloat(editModal.newValue)
+                });
+
+                const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+                    p_rfq_id: rfqId
+                });
+
+                if (response.data.success && autoCalResponse.data.success) {
+                    setAlertMessage({
+                        type: "success",
+                        message: "Net weight of product updated successfully"
+                    });
+                    setShowAlert(true);
+
+                    // Refresh the SKU data
+                    const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                    if (skuResponse.data.success) {
+                        // setSku(skuResponse.data.data[0]);
+                        // Sort the products: GP COIL first, then BOM
+                        const sortedSku = { ...skuResponse.data.data[0] };
+                        if (sortedSku.products && sortedSku.products.length > 0) {
+                            sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                                // Sort by is_bom flag (false values first - GP COIL)
+                                if (a.is_bom === b.is_bom) return 0;
+                                return a.is_bom ? 1 : -1;
+                            });
+                        }
+                        setSku(sortedSku);
+                    }
+                } else {
+                    setAlertMessage({
+                        type: "error",
+                        message: response.data.message || "Failed to update yield percentage"
+                    });
+                    setShowAlert(true);
+                }
+            }
+
+            closeModal();
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message || "Error updating value"
+            });
+            setShowAlert(true);
+            closeModal();
+        }
+    };
 
 
     if (isLoading) {
@@ -115,6 +298,74 @@ export default function SkuDetailPage() {
                                 {alertMessage.message}
                             </span>
                         </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {editModal.open && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-white rounded-lg p-6 w-full max-w-md"
+                        >
+                            <h3 className="text-lg font-semibold mb-4">
+                                Edit {editModal.fieldName.replace('_', ' ')}
+                            </h3>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Current Value:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editModal.currentValue || "N/A"}
+                                    readOnly
+                                    className="w-full p-2 border rounded bg-gray-100"
+                                />
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    New Value:
+                                </label>
+                                <input
+                                    type="number"
+                                    value={editModal.newValue}
+                                    onChange={handleInputChange}
+                                    className="w-full p-2 border rounded"
+                                    min={editModal.fieldName === "yield_percentage" ? 0 : undefined}
+                                    max={editModal.fieldName === "yield_percentage" ? 100 : undefined}
+                                    step="0.01"
+                                />
+                            </div>
+
+                            <div className="flex justify-end space-x-3">
+                                <button
+                                    onClick={closeModal}
+                                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveEditedValue}
+                                    disabled={!editModal.newValue ||
+                                        (editModal.fieldName === "yield_percentage" &&
+                                            (editModal.newValue < 0 || editModal.newValue > 100))}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition disabled:bg-blue-300"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -242,6 +493,11 @@ export default function SkuDetailPage() {
                                                     <span>{product.yield_percentage || "-"}</span>
                                                     <PencilIcon
                                                         className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                        onClick={() => handleEditClick(
+                                                            product.product_id,
+                                                            product.yield_percentage,
+                                                            "yield_percentage"
+                                                        )}
                                                         id={`edit-value-${index}`}
                                                     />
                                                     <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
@@ -259,6 +515,11 @@ export default function SkuDetailPage() {
                                                     <span>{product.bom_cost_per_kg || "-"}</span>
                                                     <PencilIcon
                                                         className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                        onClick={() => handleEditClick(
+                                                            product.product_id,
+                                                            product.bom_cost_per_kg,
+                                                            "bom_cost_per_kg"
+                                                        )}
                                                         id={`edit-value-${index}`}
                                                     />
                                                     <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
@@ -293,6 +554,11 @@ export default function SkuDetailPage() {
                                                     <span>{product.net_weight_of_product || "-"}</span>
                                                     <PencilIcon
                                                         className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                        onClick={() => handleEditClick(
+                                                            product.product_id,
+                                                            product.net_weight_of_product,
+                                                            "net_weight_of_product"
+                                                        )}
                                                         id={`edit-value-${index}`}
                                                     />
                                                     <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
