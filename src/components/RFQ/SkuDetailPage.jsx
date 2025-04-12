@@ -1,5 +1,5 @@
 "use client";
-
+import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, PencilIcon } from "lucide-react";
@@ -17,6 +17,20 @@ export default function SkuDetailPage() {
     const [error, setError] = useState(null);
     const [showAlert, setShowAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState({ type: "", message: "" });
+    const [jobTypesData, setJobTypeData] = useState(null);
+    const [jobCosts, setJobCosts] = useState([]);
+
+    const [showJobCostModal, setShowJobCostModal] = useState(false);
+    const [jobCostData, setJobCostData] = useState({
+        job_id: null,
+        job_cost: '',
+        // job_cost_per_kg: '',
+        isskulevel: true, // Default to SKU level
+        sku_id: skuId,
+        rfq_id: rfqId,
+        status: true,
+        job_costs: [] // For product level
+    });
 
     const { isLoggedIn, user, permission, role } = useAppStore();
 
@@ -101,9 +115,45 @@ export default function SkuDetailPage() {
             setIsLoading(false);
         };
 
+        const fetchJobTypeDetails = async () => {
+            setIsLoading(true);
+
+            console.log("skuId: ", skuId);
+            console.log("RFQID: ", rfqId);
+
+            try {
+                const response = await axiosInstance.get(`/job-type/`);
+
+                console.log("response data: ", response.data.data);
+
+                if (response.data.success) {
+                    setJobTypeData(response.data.data);
+                } else {
+                    setError("Failed to fetch RFQ details");
+                }
+
+            } catch (error) {
+                setError("Error fetching RFQ details");
+            }
+            setIsLoading(false);
+        };
+
         fetchSkuDetails();
+        fetchJobCosts();
+        fetchJobTypeDetails();
 
     }, [rfqId, skuId]);
+
+    const fetchJobCosts = async () => {
+        try {
+            const response = await axiosInstance.get(`/sku/fetch/job-cost/${rfqId}/${skuId}`);
+            if (response.data.success) {
+                setJobCosts(response.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching job costs:", error);
+        }
+    };
 
 
     // Save the edited yield value
@@ -246,6 +296,93 @@ export default function SkuDetailPage() {
             });
             setShowAlert(true);
             closeModal();
+        }
+    };
+
+    const handleSaveJobCost = async () => {
+        try {
+            // Basic validation
+            if (!jobCostData.job_id) {
+                setAlertMessage({
+                    type: "error",
+                    message: "Please select a job type"
+                });
+                setShowAlert(true);
+                return;
+            }
+
+            // Prepare data for API call
+            const requestData = {
+                job_id: jobCostData.job_id,
+                isskulevel: jobCostData.isskulevel,
+                sku_id: jobCostData.sku_id,
+                rfq_id: jobCostData.rfq_id,
+                status: jobCostData.status
+            };
+
+            if (jobCostData.isskulevel) {
+                // SKU level - single cost
+                if (!jobCostData.job_cost) {
+                    setAlertMessage({
+                        type: "error",
+                        message: "Please enter both job cost values"
+                    });
+                    setShowAlert(true);
+                    return;
+                }
+                requestData.job_costs = [{
+                    job_cost: jobCostData.job_cost
+                    // job_cost_per_kg: jobCostData.job_cost_per_kg
+                }];
+            } else {
+                // Product level - array of costs
+                if (jobCostData.job_costs.length === 0 ||
+                    jobCostData.job_costs.some(cost => !cost?.job_cost)) {
+                    setAlertMessage({
+                        type: "error",
+                        message: "Please enter job costs for all products"
+                    });
+                    setShowAlert(true);
+                    return;
+                }
+                requestData.job_costs = jobCostData.job_costs;
+            }
+
+            const response = await axiosInstance.post("/sku/job-cost", requestData);
+
+            if (response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: response.data.message || "Job costs saved successfully"
+                });
+                setShowAlert(true);
+                setShowJobCostModal(false);
+
+                // Reset form
+                setJobCostData({
+                    job_id: null,
+                    job_cost: '',
+                    // job_cost_per_kg: '',
+                    isskulevel: true,
+                    sku_id: skuId,
+                    rfq_id: rfqId,
+                    status: true,
+                    job_costs: []
+                });
+                fetchJobCosts(); // Refresh job costs after saving
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message || "Failed to save job costs"
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message || "Error saving job costs"
+            });
+            setShowAlert(true);
         }
     };
 
@@ -407,7 +544,7 @@ export default function SkuDetailPage() {
                             <table className="min-w-full border border-gray-200">
                                 <thead className="bg-gray-100">
                                     {/* SKU Header Row */}
-                                    <tr className="bg-green-100">
+                                    <tr className="bg-blue-100">
                                         <th colSpan={sku.products?.length + 1} className="px-6 py-4 text-center border border-gray-200">
                                             <h2 className="text-2xl font-semibold text-gray-800">{sku.sku_name}</h2>
                                         </th>
@@ -434,9 +571,9 @@ export default function SkuDetailPage() {
 
                                     {/* Part Name Row */}
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-yellow-200 border border-gray-200">PART NAME</th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-blue-200 border border-gray-200">PART NAME</th>
                                         {sku.products?.map((product, index) => (
-                                            <th key={index} className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider bg-yellow-900 border border-gray-200">
+                                            <th key={index} className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider bg-blue-900 border border-gray-200">
                                                 {product.product_name}
                                             </th>
                                         ))}
@@ -546,7 +683,7 @@ export default function SkuDetailPage() {
                                     </tr>
 
                                     {/* Net Weight Row */}
-                                    <tr className="bg-green-400">
+                                    <tr className="bg-blue-400">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Net weight of product (kg)</td>
                                         {sku.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -568,10 +705,10 @@ export default function SkuDetailPage() {
                                     </tr>
 
                                     {/* Assembly cost */}
-                                    <tr className="bg-green-400">
+                                    <tr className="bg-blue-400">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Assembly</td>
                                         <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                            {sku.assembly_cost || "-"}
+                                            {sku.assembly_weight || "-"}
                                         </td>
                                     </tr>
 
@@ -618,7 +755,7 @@ export default function SkuDetailPage() {
 
                                     {/* Net RM cost in RS */}
                                     <tr className="">
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-red-300">NET R.M. COST IN Rs.</td>
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">NET R.M. COST IN Rs.</td>
                                         {sku.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.net_rm_cost || "-"}
@@ -626,12 +763,278 @@ export default function SkuDetailPage() {
                                         ))}
                                     </tr>
 
+                                    {/* LABOUR Row */}
+                                    <tr>
+                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200">
+                                            B LABOUR COST
+                                        </td>
+                                    </tr>
+
+                                    {/* BOM */}
+                                    <tr className="bg-blue-50">
+                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">BOM</td>
+                                        {sku.products?.map((product, index) => (
+                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {product.final_bom_cost || "-"}
+                                            </td>
+                                        ))}
+                                    </tr>
+
+
+                                    {/* Display each job type's costs */}
+                                    {jobCosts.map((jobCostGroup) => (
+                                        <React.Fragment key={jobCostGroup.job_id}>
+                                            {jobCostGroup.costs.some(c => c.is_skulevel) ? (
+                                                // SKU-level costs (full width)
+                                                <tr className="bg-blue-50">
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
+                                                        {jobCostGroup.job_name}
+                                                    </td>
+                                                    <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                        {jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || "-"}
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                // Product-level costs (per product column)
+                                                <tr className="bg-blue-50">
+                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
+                                                        {jobCostGroup.job_name}
+                                                    </td>
+                                                    {sku.products?.map((product, index) => {
+                                                        const cost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
+                                                        return (
+                                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                                {cost?.job_cost || "-"}
+                                                            </td>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
+
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </motion.div>
+            <div className="mt-4">
+                <button
+                    onClick={() => setShowJobCostModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                >
+                    Add Job Cost
+                </button>
+            </div>
+
+
+            {/* Job Cost Modal */}
+            <AnimatePresence>
+                {showJobCostModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 "
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {jobCostData.isskulevel ? "Add SKU Level Job Costs" : "Add Product Level Job Costs"}
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowJobCostModal(false)}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+                                    {/* Job Type Selection */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Job Type <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                            value={jobCostData.job_id}
+                                            onChange={(e) => setJobCostData({ ...jobCostData, job_id: e.target.value })}
+                                        >
+                                            <option value="">Select Job Type</option>
+                                            {jobTypesData?.map((job) => (
+                                                <option key={job.id} value={job.id}>{job.job_name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Level Toggle */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Cost Level
+                                        </label>
+                                        <div className="flex space-x-4">
+                                            <button
+                                                type="button"
+                                                className={`px-4 py-2 rounded-lg flex-1 transition-all ${jobCostData.isskulevel ? 'bg-blue-100 text-blue-700 border border-blue-300 font-medium' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                                onClick={() => setJobCostData({ ...jobCostData, isskulevel: true })}
+                                            >
+                                                SKU Level
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`px-4 py-2 rounded-lg flex-1 transition-all ${!jobCostData.isskulevel ? 'bg-blue-100 text-blue-700 border border-blue-300 font-medium' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                                onClick={() => setJobCostData({ ...jobCostData, isskulevel: false })}
+                                            >
+                                                Product Level
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Cost Input Section */}
+                                    {jobCostData.isskulevel ? (
+                                        // SKU Level Form
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    Job Cost (Total) <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                        value={jobCostData.job_cost}
+                                                        onChange={(e) => setJobCostData({ ...jobCostData, job_cost: e.target.value })}
+                                                        step="0.01"
+                                                        min="0"
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
+                                            </div>
+                                            {/* <div className="space-y-2">
+                                                <label className="block text-sm font-medium text-gray-700">
+                                                    Job Cost per kg <span className="text-red-500">*</span>
+                                                </label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                        value={jobCostData.job_cost_per_kg}
+                                                        onChange={(e) => setJobCostData({ ...jobCostData, job_cost_per_kg: e.target.value })}
+                                                        step="0.01"
+                                                        min="0"
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
+                                            </div> */}
+                                        </div>
+                                    ) : (
+                                        // Product Level Form
+                                        <div className="space-y-4">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Job Costs (Non-BOM Products)
+                                            </label>
+                                            <div className="overflow-x-auto pb-3">
+                                                <div className="flex space-x-4 pb-2" style={{ minWidth: `${Math.max(1, sku?.products?.filter(p => p.is_bom !== true)?.length) * 280}px` }}>
+                                                    {sku?.products?.filter(p => p.is_bom !== true).map((product, index) => (
+                                                        <div key={index} className="border border-gray-200 rounded-xl p-4 flex-shrink-0 w-64 bg-white shadow-sm hover:shadow-md transition-shadow">
+                                                            <div className="flex items-center justify-between mb-3">
+                                                                <h4 className="font-medium text-gray-800 truncate">{product.product_name}</h4>
+                                                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">GP COIL</span>
+                                                            </div>
+                                                            <div className="space-y-3">
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Job Cost (₹)</label>
+                                                                    <div className="relative">
+                                                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                            value={jobCostData.job_costs[index]?.job_cost || ''}
+                                                                            onChange={(e) => {
+                                                                                const newCosts = [...jobCostData.job_costs];
+                                                                                newCosts[index] = {
+                                                                                    ...newCosts[index],
+                                                                                    product_id: product.product_id,
+                                                                                    job_cost: e.target.value
+                                                                                };
+                                                                                setJobCostData({ ...jobCostData, job_costs: newCosts });
+                                                                            }}
+                                                                            step="0.01"
+                                                                            min="0"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                {/* <div>
+                                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Cost per kg (₹)</label>
+                                                                    <div className="relative">
+                                                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                                                            value={jobCostData.job_costs[index]?.job_cost_per_kg || ''}
+                                                                            onChange={(e) => {
+                                                                                const newCosts = [...jobCostData.job_costs];
+                                                                                newCosts[index] = {
+                                                                                    ...newCosts[index],
+                                                                                    product_id: product.product_id,
+                                                                                    job_cost_per_kg: e.target.value
+                                                                                };
+                                                                                setJobCostData({ ...jobCostData, job_costs: newCosts });
+                                                                            }}
+                                                                            step="0.01"
+                                                                            min="0"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    </div>
+                                                                </div> */}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setShowJobCostModal(false)}
+                                    className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveJobCost}
+                                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={!jobCostData.job_id || (jobCostData.isskulevel && (!jobCostData.job_cost))}
+                                >
+                                    Save Job Costs
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
         </motion.div>
     );
 }
