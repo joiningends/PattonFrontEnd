@@ -2,11 +2,12 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, PencilIcon } from "lucide-react";
+import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, PencilIcon, TreesIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
 import { Tooltip } from "react-tooltip";
+import { CirclePlusIcon } from "lucide-react";
 
 export default function SkuDetailPage() {
     const navigate = useNavigate();
@@ -21,6 +22,19 @@ export default function SkuDetailPage() {
     const [jobCosts, setJobCosts] = useState([]);
 
     const [showJobCostModal, setShowJobCostModal] = useState(false);
+    const [showOtherCostModal, setShowOtherCostModal] = useState(false);
+
+    const [skuOtherCosts, setSkuOtherCosts] = useState([]);
+    const [otherCostData, setOtherCostData] = useState(null);
+    const [otherCosts, setOtherCosts] = useState({
+        other_cost_id: null,
+        other_cost_per_kg: '',
+        sku_id: skuId,
+        rfq_id: rfqId,
+        other_cost: null,
+        status: true
+    });
+
     const [jobCostData, setJobCostData] = useState({
         job_id: null,
         job_cost: '',
@@ -129,11 +143,30 @@ export default function SkuDetailPage() {
                 if (response.data.success) {
                     setJobTypeData(response.data.data);
                 } else {
-                    setError("Failed to fetch RFQ details");
+                    setError("Failed to fetch Job type details");
                 }
 
             } catch (error) {
-                setError("Error fetching RFQ details");
+                setError("Error fetching Job type details");
+            }
+            setIsLoading(false);
+        };
+
+        const fetchOtherCost = async () => {
+            setIsLoading(true);
+
+            try {
+                const response = await axiosInstance.get("/other-cost/");
+
+                console.log("Other cost: ", response.data.data);
+
+                if (response.data.success) {
+                    setOtherCostData(response.data.data);
+                } else {
+                    setError("Failed to fetch Other cost details");
+                }
+            } catch (error) {
+                setError("Error fetching Other cost details");
             }
             setIsLoading(false);
         };
@@ -141,8 +174,11 @@ export default function SkuDetailPage() {
         fetchSkuDetails();
         fetchJobCosts();
         fetchJobTypeDetails();
+        fetchOtherCost();
+        fetchOtherCostsForSku();
 
     }, [rfqId, skuId]);
+
 
     const fetchJobCosts = async () => {
         try {
@@ -154,6 +190,21 @@ export default function SkuDetailPage() {
             console.error("Error fetching job costs:", error);
         }
     };
+
+
+    const fetchOtherCostsForSku = async () => {
+        try {
+            const response = await axiosInstance.get(`other-cost/get-byskurfq/${rfqId}/${skuId}`);
+            if (response.data.success) {
+                setSkuOtherCosts(response.data.data);
+                console.log(response.data.data);
+            }
+        } catch (error) {
+            console.error("Error fetching other costs for SKU:", error);
+        }
+    };
+
+    // Call this in your useEffect along with other fetch functions
 
 
     // Save the edited yield value
@@ -381,6 +432,69 @@ export default function SkuDetailPage() {
             setAlertMessage({
                 type: "error",
                 message: error.response?.data?.message || "Error saving job costs"
+            });
+            setShowAlert(true);
+        }
+    };
+
+
+    const handleSaveOtherCost = async () => {
+        try {
+            // Basic validation
+            if (!otherCosts.other_cost_id || !otherCosts.other_cost_per_kg) {
+                setAlertMessage({
+                    type: "error",
+                    message: "Please fill all required fields"
+                });
+                setShowAlert(true);
+                return;
+            }
+
+            // Calculate total cost
+            const totalCost = parseFloat(otherCosts.other_cost_per_kg) * parseFloat(sku.assembly_weight);
+
+            // Prepare data for API call
+            const requestData = {
+                other_cost_id: otherCosts.other_cost_id,
+                sku_id: skuId,
+                rfq_id: rfqId,
+                other_cost_per_kg: otherCosts.other_cost_per_kg,
+                other_cost: totalCost,
+                status: true
+            };
+
+            const response = await axiosInstance.post("/other-cost/by-skuid", requestData);
+
+            if (response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: response.data.message || "Other cost saved successfully"
+                });
+                setShowAlert(true);
+                setShowOtherCostModal(false);
+
+                // Reset form
+                setOtherCosts({
+                    other_cost_id: null,
+                    other_cost_per_kg: '',
+                    sku_id: skuId,
+                    rfq_id: rfqId,
+                    other_cost: null,
+                    status: true
+                });
+
+                fetchOtherCostsForSku();
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message || "Failed to save other cost"
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message || "Error saving other cost"
             });
             setShowAlert(true);
         }
@@ -765,13 +879,22 @@ export default function SkuDetailPage() {
 
                                     {/* LABOUR Row */}
                                     <tr>
-                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200">
-                                            B LABOUR COST
+                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
+                                            <div className="flex justify-between items-center">
+                                                <h2 className="text-lg text-gray-800">B LABOUR COST</h2>
+                                                <button
+                                                    onClick={() => setShowJobCostModal(true)}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
+                                                >
+                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                    Add Job Cost
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
 
                                     {/* BOM */}
-                                    <tr className="bg-blue-50">
+                                    <tr className="bg-blue-50 hover:bg-gray-50">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">BOM</td>
                                         {sku.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -786,7 +909,7 @@ export default function SkuDetailPage() {
                                         <React.Fragment key={jobCostGroup.job_id}>
                                             {jobCostGroup.costs.some(c => c.is_skulevel) ? (
                                                 // SKU-level costs (full width)
-                                                <tr className="bg-blue-50">
+                                                <tr className="bg-blue-50 hover:bg-gray-50">
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
                                                         {jobCostGroup.job_name}
                                                     </td>
@@ -796,7 +919,7 @@ export default function SkuDetailPage() {
                                                 </tr>
                                             ) : (
                                                 // Product-level costs (per product column)
-                                                <tr className="bg-blue-50">
+                                                <tr className="bg-blue-50 hover:bg-gray-50">
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
                                                         {jobCostGroup.job_name}
                                                     </td>
@@ -813,20 +936,114 @@ export default function SkuDetailPage() {
                                         </React.Fragment>
                                     ))}
 
+                                    {/* LABOUR Row */}
+                                    <tr>
+                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
+                                            <div className="flex justify-between items-center">
+                                                <h2 className="text-lg text-gray-800">OTHER COST</h2>
+                                                <button
+                                                    onClick={() => setShowOtherCostModal(true)}
+                                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                                                >
+                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                    Add Other Cost
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {skuOtherCosts.length > 0 ? (
+                                        skuOtherCosts.map((cost, index) => (
+                                            <tr key={index} className="bg-blue-50 hover:bg-gray-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
+                                                    {cost.other_cost_name}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
+                                                    {parseFloat(cost.other_cost_per_kg).toFixed(2)}
+                                                </td>
+                                                <td colSpan={sku.products?.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200 text-center">
+                                                    {parseFloat(cost.other_cost).toFixed(2)}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-6 py-6 text-center text-gray-500 border border-gray-200">
+                                                No other costs added yet
+                                            </td>
+                                        </tr>
+                                    )}
+
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </motion.div>
-            <div className="mt-4">
-                <button
-                    onClick={() => setShowJobCostModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                >
-                    Add Job Cost
-                </button>
-            </div>
+
+            {/* <motion.div
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="mt-8"
+            >
+                <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full border border-gray-200">
+                            <thead className="bg-gray-100">
+                                <tr className="bg-blue-100">
+                                    <th colSpan={3} className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border border-gray-200">
+                                        <div className="flex justify-between items-center">
+                                            <h2 className="text-lg font-semibold text-gray-800">Other Costs</h2>
+                                            <button
+                                                onClick={() => setShowOtherCostModal(true)}
+                                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                            >
+                                                <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                Add Other Cost
+                                            </button>
+                                        </div>
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
+                                        Cost Name
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
+                                        Cost per kg (₹)
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
+                                        Total Cost (₹)
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {skuOtherCosts.length > 0 ? (
+                                    skuOtherCosts.map((cost, index) => (
+                                        <tr key={index} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
+                                                {cost.other_cost_name}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
+                                                {parseFloat(cost.other_cost_per_kg).toFixed(2)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
+                                                {parseFloat(cost.other_cost).toFixed(2)}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={3} className="px-6 py-6 text-center text-gray-500 border border-gray-200">
+                                            No other costs added yet
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </motion.div> */}
 
 
             {/* Job Cost Modal */}
@@ -1028,6 +1245,130 @@ export default function SkuDetailPage() {
                                     disabled={!jobCostData.job_id || (jobCostData.isskulevel && (!jobCostData.job_cost))}
                                 >
                                     Save Job Costs
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+
+            {/* Other Cost Modal */}
+            <AnimatePresence>
+                {showOtherCostModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 "
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-xl font-semibold text-white">
+                                        Add Other Cost
+                                    </h3>
+                                    <button
+                                        onClick={() => setShowOtherCostModal(false)}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+
+                                    {/* Assembly weight */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Assembly weight
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled"
+                                            value={sku.assembly_weight}
+                                            disabled
+                                        />
+                                    </div>
+
+                                    {/* Job Type Selection */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Other cost <span className="text-red-500">*</span>
+                                        </label>
+                                        <select
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                            value={otherCostData.other_cost_id}
+                                            onChange={(e) => setOtherCosts({ ...otherCosts, other_cost_id: e.target.value })}
+                                        >
+                                            <option value="">Select other cost</option>
+                                            {otherCostData?.map((other) => (
+                                                <option key={other.id} value={other.id}>{other.cost_name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Cost / kg <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={otherCosts.other_cost_per_kg}
+                                                    onChange={(e) => setOtherCosts({ ...otherCosts, other_cost_per_kg: e.target.value })}
+                                                    step="0.01"
+                                                    min="0"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Total cost (auto)
+                                            </label>
+                                            <div className="relative">
+                                                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={otherCosts.other_cost_per_kg * sku.assembly_weight}
+                                                    disabled
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => setShowOtherCostModal(false)}
+                                    className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveOtherCost}
+                                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={!otherCosts.other_cost_id || !otherCosts.other_cost_per_kg}
+                                >
+                                    Save Other Cost
                                 </button>
                             </div>
                         </motion.div>
