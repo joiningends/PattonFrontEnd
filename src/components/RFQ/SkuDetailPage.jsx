@@ -2,12 +2,11 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, PencilIcon, TreesIcon } from "lucide-react";
+import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, PencilIcon, TreesIcon, CirclePlusIcon, Trash2Icon, Axis3DIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
 import { Tooltip } from "react-tooltip";
-import { CirclePlusIcon } from "lucide-react";
 
 export default function SkuDetailPage() {
     const navigate = useNavigate();
@@ -26,6 +25,9 @@ export default function SkuDetailPage() {
 
     const [skuOtherCosts, setSkuOtherCosts] = useState([]);
     const [otherCostData, setOtherCostData] = useState(null);
+
+    const [editingOtherCost, setEditingOtherCost] = useState(null);
+
     const [otherCosts, setOtherCosts] = useState({
         other_cost_id: null,
         other_cost_per_kg: '',
@@ -185,6 +187,7 @@ export default function SkuDetailPage() {
             const response = await axiosInstance.get(`/sku/fetch/job-cost/${rfqId}/${skuId}`);
             if (response.data.success) {
                 setJobCosts(response.data.data);
+                console.log("JOb COst: ", response.data.data);
             }
         } catch (error) {
             console.error("Error fetching job costs:", error);
@@ -204,7 +207,97 @@ export default function SkuDetailPage() {
         }
     };
 
-    // Call this in your useEffect along with other fetch functions
+
+    const handleJobCostDelete = async (jobId) => {
+        try {
+            const response = await axiosInstance.delete(`/sku/delete/job-cost/${jobId}/${skuId}`);
+
+            // re-calculate the sub_total_cost
+            const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+            if (response.data.success && calculateSubTotal_response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: "Job cost deleted successfully"
+                });
+                setShowAlert(true);
+
+
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
+
+                // fetchSkuDetails();
+                fetchJobCosts();
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message || "Failed to delete job cost"
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            console.error("Error deleting job cost: ", error);
+        }
+    };
+
+
+    const handleOtherCostDelete = async (id) => {
+        try {
+            const response = await axiosInstance.delete(`/other-cost/delete/othercost-sku/${id}`);
+
+            // re-calculate the sub_total_cost
+            const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+            if (response.data.success && calculateSubTotal_response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: "Other cost deleted successfully"
+                });
+                setShowAlert(true);
+
+
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
+
+                // fetchSkuDetails();
+                fetchOtherCostsForSku();
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message || "Failed to delete other cost"
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            console.error("Error deleting other cost: ", error);
+        }
+    };
 
 
     // Save the edited yield value
@@ -401,7 +494,10 @@ export default function SkuDetailPage() {
 
             const response = await axiosInstance.post("/sku/job-cost", requestData);
 
-            if (response.data.success) {
+            // re-calculate the sub_total_cost
+            const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+            if (response.data.success && calculateSubTotal_response.data.success) {
                 setAlertMessage({
                     type: "success",
                     message: response.data.message || "Job costs saved successfully"
@@ -421,6 +517,21 @@ export default function SkuDetailPage() {
                     job_costs: []
                 });
                 fetchJobCosts(); // Refresh job costs after saving
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
             } else {
                 setAlertMessage({
                     type: "error",
@@ -436,6 +547,73 @@ export default function SkuDetailPage() {
             setShowAlert(true);
         }
     };
+
+
+    // const handleSaveOtherCost = async () => {
+    //     try {
+    //         // Basic validation
+    //         if (!otherCosts.other_cost_id || !otherCosts.other_cost_per_kg) {
+    //             setAlertMessage({
+    //                 type: "error",
+    //                 message: "Please fill all required fields"
+    //             });
+    //             setShowAlert(true);
+    //             return;
+    //         }
+
+    //         // Calculate total cost
+    //         const totalCost = parseFloat(otherCosts.other_cost_per_kg) * parseFloat(sku.assembly_weight);
+
+    //         // Prepare data for API call
+    //         const requestData = {
+    //             other_cost_id: otherCosts.other_cost_id,
+    //             sku_id: skuId,
+    //             rfq_id: rfqId,
+    //             other_cost_per_kg: otherCosts.other_cost_per_kg,
+    //             other_cost: totalCost,
+    //             status: true
+    //         };
+
+    //         const response = await axiosInstance.post("/other-cost/by-skuid", requestData);
+
+    //         const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+    //         if (response.data.success && calculateSubTotal_response.data.success) {
+    //             setAlertMessage({
+    //                 type: "success",
+    //                 message: response.data.message || "Other cost saved successfully"
+    //             });
+    //             setShowAlert(true);
+    //             setShowOtherCostModal(false);
+
+    //             // Reset form
+    //             setOtherCosts({
+    //                 other_cost_id: null,
+    //                 other_cost_per_kg: '',
+    //                 sku_id: skuId,
+    //                 rfq_id: rfqId,
+    //                 other_cost: null,
+    //                 status: true
+    //             });
+
+    //             fetchOtherCostsForSku();
+    //             fetchSkuDetails();
+    //         } else {
+    //             setAlertMessage({
+    //                 type: "error",
+    //                 message: response.data.message || "Failed to save other cost"
+    //             });
+    //             setShowAlert(true);
+    //         }
+    //     } catch (error) {
+    //         setAlertMessage({
+    //             type: "error",
+    //             message: error.response?.data?.message || "Error saving other cost"
+    //         });
+    //         setShowAlert(true);
+    //     }
+    // };
+
 
 
     const handleSaveOtherCost = async () => {
@@ -463,15 +641,33 @@ export default function SkuDetailPage() {
                 status: true
             };
 
-            const response = await axiosInstance.post("/other-cost/by-skuid", requestData);
+            console.log("Edited other cost: ", editingOtherCost);
 
-            if (response.data.success) {
+            let response;
+            if (editingOtherCost) {
+                // Update existing cost
+                response = await axiosInstance.post("other-cost/edit/othercost/sku/", {
+                    p_id: editingOtherCost.id,
+                    other_cost_id: otherCosts.other_cost_id,
+                    other_cost_per_kg: otherCosts.other_cost_per_kg,
+                    other_cost: totalCost
+                });
+            } else {
+                // Create new cost
+                response = await axiosInstance.post("/other-cost/by-skuid", requestData);
+            }
+
+            const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+            if (response.data.success && calculateSubTotal_response.data.success) {
                 setAlertMessage({
                     type: "success",
-                    message: response.data.message || "Other cost saved successfully"
+                    message: response.data.message ||
+                        (editingOtherCost ? "Other cost updated successfully" : "Other cost saved successfully")
                 });
                 setShowAlert(true);
                 setShowOtherCostModal(false);
+                setEditingOtherCost(null);
 
                 // Reset form
                 setOtherCosts({
@@ -484,21 +680,39 @@ export default function SkuDetailPage() {
                 });
 
                 fetchOtherCostsForSku();
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
             } else {
                 setAlertMessage({
                     type: "error",
-                    message: response.data.message || "Failed to save other cost"
+                    message: response.data.message ||
+                        (editingOtherCost ? "Failed to update other cost" : "Failed to save other cost")
                 });
                 setShowAlert(true);
             }
         } catch (error) {
             setAlertMessage({
                 type: "error",
-                message: error.response?.data?.message || "Error saving other cost"
+                message: error.response?.data?.message ||
+                    (editingOtherCost ? "Error updating other cost" : "Error saving other cost")
             });
             setShowAlert(true);
         }
     };
+
 
 
     if (isLoading) {
@@ -653,9 +867,16 @@ export default function SkuDetailPage() {
                 className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0 mb-6"
             >
                 <div>
-                    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div className=" rounded-xl shadow-md overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full border border-gray-200">
+                            {/* Sub total cost */}
+                            <div className="flex justify-end">
+                                <div className="flex bg-none space-x-4 p-4 bg-blue-400 ">
+                                    <div>Sub total cost: </div>
+                                    <div>{sku.sub_total_cost > 0 ? sku.sub_total_cost : 0.00}</div>
+                                </div>
+                            </div>
+                            <table className="min-w-full border border-gray-200 bg-white">
                                 <thead className="bg-gray-100">
                                     {/* SKU Header Row */}
                                     <tr className="bg-blue-100">
@@ -779,16 +1000,6 @@ export default function SkuDetailPage() {
                                         ))}
                                     </tr>
 
-                                    {/* Final BOM Cost Row */}
-                                    {/* <tr className="">
-                                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">Final BOM Cost</td>
-                                        {sku.products?.map((product, index) => (
-                                            <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {product.final_bom_cost || "-"}
-                                            </td>
-                                        ))}
-                                    </tr> */}
-
                                     {/* Particular Row */}
                                     <tr>
                                         <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200">
@@ -905,13 +1116,35 @@ export default function SkuDetailPage() {
 
 
                                     {/* Display each job type's costs */}
-                                    {jobCosts.map((jobCostGroup) => (
+                                    {jobCosts.map((jobCostGroup, index) => (
                                         <React.Fragment key={jobCostGroup.job_id}>
                                             {jobCostGroup.costs.some(c => c.is_skulevel) ? (
                                                 // SKU-level costs (full width)
                                                 <tr className="bg-blue-50 hover:bg-gray-50">
-                                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
-                                                        {jobCostGroup.job_name}
+                                                    <td key={index} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
+                                                        <div className="flex justify-between items-center">
+                                                            <span>{jobCostGroup.job_name}</span>
+                                                            <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
+                                                                <PencilIcon
+                                                                    className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                    // onClick={() => handleEditClick(
+                                                                    //     product.product_id,
+                                                                    //     product.yield_percentage,
+                                                                    //     "yield_percentage"
+                                                                    // )}
+                                                                    id={`edit-val-${index}`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
+
+                                                                <Trash2Icon
+                                                                    className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
+                                                                    onClick={() => handleJobCostDelete(jobCostGroup.job_id)}
+                                                                    id={`del-val-${index}`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
+
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                         {jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || "-"}
@@ -921,7 +1154,33 @@ export default function SkuDetailPage() {
                                                 // Product-level costs (per product column)
                                                 <tr className="bg-blue-50 hover:bg-gray-50">
                                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
-                                                        {jobCostGroup.job_name}
+                                                        {/* {jobCostGroup.job_name} */}
+                                                        <div className="flex justify-between items-center">
+                                                            <span>{jobCostGroup.job_name}</span>
+                                                            <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
+                                                                <PencilIcon
+                                                                    className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                    // onClick={() => handleEditClick(
+                                                                    //     product.product_id,
+                                                                    //     product.yield_percentage,
+                                                                    //     "yield_percentage"
+                                                                    // )}
+                                                                    id={`edit-val-${index}`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
+
+                                                                <Trash2Icon
+                                                                    className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
+                                                                    // onClick={() => handleEditClick(
+                                                                    //     product.product_id,
+                                                                    //     product.yield_percentage,
+                                                                    //     "yield_percentage"
+                                                                    // )}
+                                                                    id={`del-val-${index}`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     {sku.products?.map((product, index) => {
                                                         const cost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
@@ -936,7 +1195,7 @@ export default function SkuDetailPage() {
                                         </React.Fragment>
                                     ))}
 
-                                    {/* LABOUR Row */}
+                                    {/* Other cost Row */}
                                     <tr>
                                         <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
@@ -955,8 +1214,37 @@ export default function SkuDetailPage() {
                                     {skuOtherCosts.length > 0 ? (
                                         skuOtherCosts.map((cost, index) => (
                                             <tr key={index} className="bg-blue-50 hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
-                                                    {cost.other_cost_name}
+                                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
+                                                    <div className="flex justify-between items-center">
+                                                        <span>{cost.other_cost_name}</span>
+                                                        <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
+                                                            <PencilIcon
+                                                                className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                onClick={() => {
+                                                                    setEditingOtherCost(cost);
+                                                                    setOtherCosts({
+                                                                        other_cost_id: cost.other_cost_id,
+                                                                        other_cost_per_kg: cost.other_cost_per_kg,
+                                                                        sku_id: skuId,
+                                                                        rfq_id: rfqId,
+                                                                        other_cost: cost.other_cost,
+                                                                        status: true
+                                                                    });
+                                                                    setShowOtherCostModal(true);
+                                                                }}
+                                                                id={`edit-val-${index}`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
+
+                                                            <Trash2Icon
+                                                                className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
+                                                                onClick={() => handleOtherCostDelete(cost.id)}
+                                                                id={`del-val-${index}`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
+
+                                                        </div>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
                                                     {parseFloat(cost.other_cost_per_kg).toFixed(2)}
@@ -974,76 +1262,22 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
+                                    {/* Sub total cost */}
+                                    {skuOtherCosts.length > 0 && (
+                                        < tr className="bg-blue-400">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Sub total cost</td>
+                                            <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku.sub_total_cost || "-"}
+                                            </td>
+                                        </tr>
+                                    )}
+
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </motion.div>
-
-            {/* <motion.div
-                initial={{ y: -20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="mt-8"
-            >
-                <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full border border-gray-200">
-                            <thead className="bg-gray-100">
-                                <tr className="bg-blue-100">
-                                    <th colSpan={3} className="px-6 py-4 text-left text-sm font-semibold text-gray-900 border border-gray-200">
-                                        <div className="flex justify-between items-center">
-                                            <h2 className="text-lg font-semibold text-gray-800">Other Costs</h2>
-                                            <button
-                                                onClick={() => setShowOtherCostModal(true)}
-                                                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                                            >
-                                                <CirclePlusIcon className="w-4 h-4 mr-2" />
-                                                Add Other Cost
-                                            </button>
-                                        </div>
-                                    </th>
-                                </tr>
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
-                                        Cost Name
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
-                                        Cost per kg (₹)
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
-                                        Total Cost (₹)
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {skuOtherCosts.length > 0 ? (
-                                    skuOtherCosts.map((cost, index) => (
-                                        <tr key={index} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
-                                                {cost.other_cost_name}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
-                                                {parseFloat(cost.other_cost_per_kg).toFixed(2)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
-                                                {parseFloat(cost.other_cost).toFixed(2)}
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={3} className="px-6 py-6 text-center text-gray-500 border border-gray-200">
-                                            No other costs added yet
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </motion.div> */}
 
 
             {/* Job Cost Modal */}
@@ -1142,23 +1376,7 @@ export default function SkuDetailPage() {
                                                     />
                                                 </div>
                                             </div>
-                                            {/* <div className="space-y-2">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Job Cost per kg <span className="text-red-500">*</span>
-                                                </label>
-                                                <div className="relative">
-                                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                        value={jobCostData.job_cost_per_kg}
-                                                        onChange={(e) => setJobCostData({ ...jobCostData, job_cost_per_kg: e.target.value })}
-                                                        step="0.01"
-                                                        min="0"
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </div> */}
+
                                         </div>
                                     ) : (
                                         // Product Level Form
@@ -1198,29 +1416,7 @@ export default function SkuDetailPage() {
                                                                         />
                                                                     </div>
                                                                 </div>
-                                                                {/* <div>
-                                                                    <label className="block text-xs font-medium text-gray-500 mb-1">Cost per kg (₹)</label>
-                                                                    <div className="relative">
-                                                                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span>
-                                                                        <input
-                                                                            type="number"
-                                                                            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                                                            value={jobCostData.job_costs[index]?.job_cost_per_kg || ''}
-                                                                            onChange={(e) => {
-                                                                                const newCosts = [...jobCostData.job_costs];
-                                                                                newCosts[index] = {
-                                                                                    ...newCosts[index],
-                                                                                    product_id: product.product_id,
-                                                                                    job_cost_per_kg: e.target.value
-                                                                                };
-                                                                                setJobCostData({ ...jobCostData, job_costs: newCosts });
-                                                                            }}
-                                                                            step="0.01"
-                                                                            min="0"
-                                                                            placeholder="0.00"
-                                                                        />
-                                                                    </div>
-                                                                </div> */}
+
                                                             </div>
                                                         </div>
                                                     ))}
@@ -1271,11 +1467,34 @@ export default function SkuDetailPage() {
                             {/* Modal Header */}
                             <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-xl font-semibold text-white">
+                                    {/* <h3 className="text-xl font-semibold text-white">
                                         Add Other Cost
+                                    </h3> */}
+
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {editingOtherCost ? "Edit Other Cost" : "Add Other Cost"}
                                     </h3>
-                                    <button
+                                    {/* <button
                                         onClick={() => setShowOtherCostModal(false)}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button> */}
+                                    <button
+                                        onClick={() => {
+                                            setShowOtherCostModal(false);
+                                            setEditingOtherCost(null);
+                                            setOtherCosts({
+                                                other_cost_id: null,
+                                                other_cost_per_kg: '',
+                                                sku_id: skuId,
+                                                rfq_id: rfqId,
+                                                other_cost: null,
+                                                status: true
+                                            });
+                                        }}
                                         className="text-white/80 hover:text-white transition-colors"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1376,7 +1595,7 @@ export default function SkuDetailPage() {
                 )}
             </AnimatePresence>
 
-        </motion.div>
+        </motion.div >
     );
 }
 
