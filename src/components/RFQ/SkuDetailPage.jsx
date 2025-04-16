@@ -27,6 +27,7 @@ export default function SkuDetailPage() {
     const [otherCostData, setOtherCostData] = useState(null);
 
     const [editingOtherCost, setEditingOtherCost] = useState(null);
+    const [editingJobCost, setEditingJobCost] = useState(null);
 
     const [otherCosts, setOtherCosts] = useState({
         other_cost_id: null,
@@ -40,12 +41,11 @@ export default function SkuDetailPage() {
     const [jobCostData, setJobCostData] = useState({
         job_id: null,
         job_cost: '',
-        // job_cost_per_kg: '',
-        isskulevel: true, // Default to SKU level
+        isskulevel: true,
         sku_id: skuId,
         rfq_id: rfqId,
         status: true,
-        job_costs: [] // For product level
+        job_costs: []
     });
 
     const { isLoggedIn, user, permission, role } = useAppStore();
@@ -187,7 +187,7 @@ export default function SkuDetailPage() {
             const response = await axiosInstance.get(`/sku/fetch/job-cost/${rfqId}/${skuId}`);
             if (response.data.success) {
                 setJobCosts(response.data.data);
-                console.log("JOb COst: ", response.data.data);
+                console.log("Job Cost: ", response.data.data);
             }
         } catch (error) {
             console.error("Error fetching job costs:", error);
@@ -443,6 +443,112 @@ export default function SkuDetailPage() {
         }
     };
 
+    // const handleSaveJobCost = async () => {
+    //     try {
+    //         // Basic validation
+    //         if (!jobCostData.job_id) {
+    //             setAlertMessage({
+    //                 type: "error",
+    //                 message: "Please select a job type"
+    //             });
+    //             setShowAlert(true);
+    //             return;
+    //         }
+
+    //         // Prepare data for API call
+    //         const requestData = {
+    //             job_id: jobCostData.job_id,
+    //             isskulevel: jobCostData.isskulevel,
+    //             sku_id: jobCostData.sku_id,
+    //             rfq_id: jobCostData.rfq_id,
+    //             status: jobCostData.status
+    //         };
+
+    //         if (jobCostData.isskulevel) {
+    //             // SKU level - single cost
+    //             if (!jobCostData.job_cost) {
+    //                 setAlertMessage({
+    //                     type: "error",
+    //                     message: "Please enter both job cost values"
+    //                 });
+    //                 setShowAlert(true);
+    //                 return;
+    //             }
+    //             requestData.job_costs = [{
+    //                 job_cost: jobCostData.job_cost
+    //                 // job_cost_per_kg: jobCostData.job_cost_per_kg
+    //             }];
+    //         } else {
+    //             // Product level - array of costs
+    //             if (jobCostData.job_costs.length === 0 ||
+    //                 jobCostData.job_costs.some(cost => !cost?.job_cost)) {
+    //                 setAlertMessage({
+    //                     type: "error",
+    //                     message: "Please enter job costs for all products"
+    //                 });
+    //                 setShowAlert(true);
+    //                 return;
+    //             }
+    //             requestData.job_costs = jobCostData.job_costs;
+    //         }
+
+    //         const response = await axiosInstance.post("/sku/job-cost", requestData);
+
+    //         // re-calculate the sub_total_cost
+    //         const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+    //         if (response.data.success && calculateSubTotal_response.data.success) {
+    //             setAlertMessage({
+    //                 type: "success",
+    //                 message: response.data.message || "Job costs saved successfully"
+    //             });
+    //             setShowAlert(true);
+    //             setShowJobCostModal(false);
+
+    //             // Reset form
+    //             setJobCostData({
+    //                 job_id: null,
+    //                 job_cost: '',
+    //                 // job_cost_per_kg: '',
+    //                 isskulevel: true,
+    //                 sku_id: skuId,
+    //                 rfq_id: rfqId,
+    //                 status: true,
+    //                 job_costs: []
+    //             });
+    //             fetchJobCosts(); // Refresh job costs after saving
+    //             // Refresh the SKU data
+    //             const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+    //             if (skuResponse.data.success) {
+    //                 // setSku(skuResponse.data.data[0]);
+    //                 // Sort the products: GP COIL first, then BOM
+    //                 const sortedSku = { ...skuResponse.data.data[0] };
+    //                 if (sortedSku.products && sortedSku.products.length > 0) {
+    //                     sortedSku.products = [...sortedSku.products].sort((a, b) => {
+    //                         // Sort by is_bom flag (false values first - GP COIL)
+    //                         if (a.is_bom === b.is_bom) return 0;
+    //                         return a.is_bom ? 1 : -1;
+    //                     });
+    //                 }
+    //                 setSku(sortedSku);
+    //             }
+    //         } else {
+    //             setAlertMessage({
+    //                 type: "error",
+    //                 message: response.data.message || "Failed to save job costs"
+    //             });
+    //             setShowAlert(true);
+    //         }
+    //     } catch (error) {
+    //         setAlertMessage({
+    //             type: "error",
+    //             message: error.response?.data?.message || "Error saving job costs"
+    //         });
+    //         setShowAlert(true);
+    //     }
+    // };
+
+
     const handleSaveJobCost = async () => {
         try {
             // Basic validation
@@ -461,7 +567,8 @@ export default function SkuDetailPage() {
                 isskulevel: jobCostData.isskulevel,
                 sku_id: jobCostData.sku_id,
                 rfq_id: jobCostData.rfq_id,
-                status: jobCostData.status
+                status: jobCostData.status,
+                isEdit: !!editingJobCost // Add this flag to indicate edit mode
             };
 
             if (jobCostData.isskulevel) {
@@ -476,7 +583,6 @@ export default function SkuDetailPage() {
                 }
                 requestData.job_costs = [{
                     job_cost: jobCostData.job_cost
-                    // job_cost_per_kg: jobCostData.job_cost_per_kg
                 }];
             } else {
                 // Product level - array of costs
@@ -492,6 +598,7 @@ export default function SkuDetailPage() {
                 requestData.job_costs = jobCostData.job_costs;
             }
 
+            // Call the API - same endpoint but with isEdit flag
             const response = await axiosInstance.post("/sku/job-cost", requestData);
 
             // re-calculate the sub_total_cost
@@ -500,33 +607,31 @@ export default function SkuDetailPage() {
             if (response.data.success && calculateSubTotal_response.data.success) {
                 setAlertMessage({
                     type: "success",
-                    message: response.data.message || "Job costs saved successfully"
+                    message: response.data.message ||
+                        (editingJobCost ? "Job costs updated successfully" : "Job costs saved successfully")
                 });
                 setShowAlert(true);
                 setShowJobCostModal(false);
 
-                // Reset form
+                // Reset form and editing state
                 setJobCostData({
                     job_id: null,
                     job_cost: '',
-                    // job_cost_per_kg: '',
                     isskulevel: true,
                     sku_id: skuId,
                     rfq_id: rfqId,
                     status: true,
                     job_costs: []
                 });
+                setEditingJobCost(null);
+
                 fetchJobCosts(); // Refresh job costs after saving
                 // Refresh the SKU data
                 const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
                 if (skuResponse.data.success) {
-                    // setSku(skuResponse.data.data[0]);
-                    // Sort the products: GP COIL first, then BOM
                     const sortedSku = { ...skuResponse.data.data[0] };
                     if (sortedSku.products && sortedSku.products.length > 0) {
                         sortedSku.products = [...sortedSku.products].sort((a, b) => {
-                            // Sort by is_bom flag (false values first - GP COIL)
-                            if (a.is_bom === b.is_bom) return 0;
                             return a.is_bom ? 1 : -1;
                         });
                     }
@@ -535,85 +640,20 @@ export default function SkuDetailPage() {
             } else {
                 setAlertMessage({
                     type: "error",
-                    message: response.data.message || "Failed to save job costs"
+                    message: response.data.message ||
+                        (editingJobCost ? "Failed to update job costs" : "Failed to save job costs")
                 });
                 setShowAlert(true);
             }
         } catch (error) {
             setAlertMessage({
                 type: "error",
-                message: error.response?.data?.message || "Error saving job costs"
+                message: error.response?.data?.message ||
+                    (editingJobCost ? "Error updating job costs" : "Error saving job costs")
             });
             setShowAlert(true);
         }
     };
-
-
-    // const handleSaveOtherCost = async () => {
-    //     try {
-    //         // Basic validation
-    //         if (!otherCosts.other_cost_id || !otherCosts.other_cost_per_kg) {
-    //             setAlertMessage({
-    //                 type: "error",
-    //                 message: "Please fill all required fields"
-    //             });
-    //             setShowAlert(true);
-    //             return;
-    //         }
-
-    //         // Calculate total cost
-    //         const totalCost = parseFloat(otherCosts.other_cost_per_kg) * parseFloat(sku.assembly_weight);
-
-    //         // Prepare data for API call
-    //         const requestData = {
-    //             other_cost_id: otherCosts.other_cost_id,
-    //             sku_id: skuId,
-    //             rfq_id: rfqId,
-    //             other_cost_per_kg: otherCosts.other_cost_per_kg,
-    //             other_cost: totalCost,
-    //             status: true
-    //         };
-
-    //         const response = await axiosInstance.post("/other-cost/by-skuid", requestData);
-
-    //         const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
-
-    //         if (response.data.success && calculateSubTotal_response.data.success) {
-    //             setAlertMessage({
-    //                 type: "success",
-    //                 message: response.data.message || "Other cost saved successfully"
-    //             });
-    //             setShowAlert(true);
-    //             setShowOtherCostModal(false);
-
-    //             // Reset form
-    //             setOtherCosts({
-    //                 other_cost_id: null,
-    //                 other_cost_per_kg: '',
-    //                 sku_id: skuId,
-    //                 rfq_id: rfqId,
-    //                 other_cost: null,
-    //                 status: true
-    //             });
-
-    //             fetchOtherCostsForSku();
-    //             fetchSkuDetails();
-    //         } else {
-    //             setAlertMessage({
-    //                 type: "error",
-    //                 message: response.data.message || "Failed to save other cost"
-    //             });
-    //             setShowAlert(true);
-    //         }
-    //     } catch (error) {
-    //         setAlertMessage({
-    //             type: "error",
-    //             message: error.response?.data?.message || "Error saving other cost"
-    //         });
-    //         setShowAlert(true);
-    //     }
-    // };
-
 
 
     const handleSaveOtherCost = async () => {
@@ -844,7 +884,7 @@ export default function SkuDetailPage() {
                 >
                     <div>
                         <button
-                            onClick={() => navigate("/")}
+                            onClick={() => navigate(`/sku-details/${rfqId}`)}
                             className="text-[#000060] hover:text-[#0000a0] transition-colors flex items-center mb-4"
                         >
                             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -1127,11 +1167,29 @@ export default function SkuDetailPage() {
                                                             <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
-                                                                    // onClick={() => handleEditClick(
-                                                                    //     product.product_id,
-                                                                    //     product.yield_percentage,
-                                                                    //     "yield_percentage"
-                                                                    // )}
+                                                                    onClick={() => {
+                                                                        const isSkuLevel = jobCostGroup.costs.some(c => c.is_skulevel);
+                                                                        setEditingJobCost(jobCostGroup);
+                                                                        setJobCostData({
+                                                                          job_id: jobCostGroup.job_id,
+                                                                          isskulevel: isSkuLevel,
+                                                                          sku_id: skuId,
+                                                                          rfq_id: rfqId,
+                                                                          status: true,
+                                                                          job_cost: isSkuLevel ? jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || '' : '',
+                                                                          job_costs: isSkuLevel ? [] : 
+                                                                            sku.products
+                                                                              .filter(p => !p.is_bom)
+                                                                              .map(product => {
+                                                                                const existingCost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
+                                                                                return {
+                                                                                  product_id: product.product_id,
+                                                                                  job_cost: existingCost?.job_cost || ''
+                                                                                };
+                                                                              })
+                                                                        });
+                                                                        setShowJobCostModal(true);
+                                                                      }}
                                                                     id={`edit-val-${index}`}
                                                                 />
                                                                 <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
@@ -1160,22 +1218,36 @@ export default function SkuDetailPage() {
                                                             <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
-                                                                    // onClick={() => handleEditClick(
-                                                                    //     product.product_id,
-                                                                    //     product.yield_percentage,
-                                                                    //     "yield_percentage"
-                                                                    // )}
+                                                                    onClick={() => {
+                                                                        const isSkuLevel = jobCostGroup.costs.some(c => c.is_skulevel);
+                                                                        setEditingJobCost(jobCostGroup);
+                                                                        setJobCostData({
+                                                                          job_id: jobCostGroup.job_id,
+                                                                          isskulevel: isSkuLevel,
+                                                                          sku_id: skuId,
+                                                                          rfq_id: rfqId,
+                                                                          status: true,
+                                                                          job_cost: isSkuLevel ? jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || '' : '',
+                                                                          job_costs: isSkuLevel ? [] : 
+                                                                            sku.products
+                                                                              .filter(p => !p.is_bom)
+                                                                              .map(product => {
+                                                                                const existingCost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
+                                                                                return {
+                                                                                  product_id: product.product_id,
+                                                                                  job_cost: existingCost?.job_cost || ''
+                                                                                };
+                                                                              })
+                                                                        });
+                                                                        setShowJobCostModal(true);
+                                                                      }}
                                                                     id={`edit-val-${index}`}
                                                                 />
                                                                 <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
 
                                                                 <Trash2Icon
                                                                     className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
-                                                                    // onClick={() => handleEditClick(
-                                                                    //     product.product_id,
-                                                                    //     product.yield_percentage,
-                                                                    //     "yield_percentage"
-                                                                    // )}
+                                                                    onClick={() => handleJobCostDelete(jobCostGroup.job_id)}
                                                                     id={`del-val-${index}`}
                                                                 />
                                                                 <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
@@ -1298,8 +1370,11 @@ export default function SkuDetailPage() {
                             {/* Modal Header */}
                             <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-xl font-semibold text-white">
+                                    {/*  <h3 className="text-xl font-semibold text-white">
                                         {jobCostData.isskulevel ? "Add SKU Level Job Costs" : "Add Product Level Job Costs"}
+                                    </h3> */}
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {editingJobCost ? "Edit Job Costs" : jobCostData.isskulevel ? "Add SKU Level Job Costs" : "Add Product Level Job Costs"}
                                     </h3>
                                     <button
                                         onClick={() => setShowJobCostModal(false)}

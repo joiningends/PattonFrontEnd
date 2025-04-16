@@ -10,7 +10,9 @@ import {
   Info,
   PackagePlusIcon,
   Flashlight,
-  UserRoundPlusIcon
+  UserRoundPlusIcon,
+  ScrollIcon,
+  SheetIcon
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -312,6 +314,7 @@ export default function RFQListingPage() {
     let assigned_by = null;
     if (role.role_id === 19) assigned_by = 15;
     else if (role.role_id === 21) assigned_by = 19;
+    else if (role.role_id === 20) assigned_by = 21;
     try {
       const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbyuserrole/${user.id}?p_assigned_to_roleId=${role.role_id}&p_assigned_by_roleId=${assigned_by}`)
 
@@ -345,7 +348,7 @@ export default function RFQListingPage() {
 
   useEffect(() => {
     // Fetch the RFQ for NPD eng. role ; role=19
-    if (role.role_id === 19 || role.role_id === 21) {
+    if (role.role_id === 19 || role.role_id === 21 || role.role_id === 20) {
       fetchRFQsforUserRole().catch((err) => {
         console.error("Error in fetchRFQsforUserRole:", err)
         setError("Failed to load RFQs. Please try again later.")
@@ -1046,6 +1049,36 @@ export default function RFQListingPage() {
                                 <UserRoundPlusIcon className="w-5 h-5" />
                               </button>
                               <Tooltip anchorSelect="#assign-processeng">Assign Process Engineer</Tooltip>
+
+                              {/* <button
+                                onClick={() => openRejectAssignVendorengModal(rfq)}
+                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                              >
+                                <XIcon className="w-5 h-5" />
+                              </button> */}
+                            </>
+                          )}
+
+                          {/* For Process engineer login */}
+                          {(rfq.state_id === 13 && role.role_id === 20) && (
+                            <>
+                              <button
+                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                                className="p-2 rounded-full hover:bg-green-100"
+                                id="add-products"
+                              >
+                                <ScrollIcon className="w-5 h-5" />
+                              </button>
+                              
+                              <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+                              <button
+                                // onClick={() => openApproveAssignProcessengModal(rfq)}
+                                className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                id="assign-processeng"
+                              >
+                                <UserRoundPlusIcon className="w-5 h-5" />
+                              </button>
+                              <Tooltip anchorSelect="#assign-processeng">Assign to PlantHead</Tooltip>
 
                               {/* <button
                                 onClick={() => openRejectAssignVendorengModal(rfq)}

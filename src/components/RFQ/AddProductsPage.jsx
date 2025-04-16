@@ -13,7 +13,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Flashlight,
-    EyeIcon
+    EyeIcon,
+    SheetIcon
 } from "lucide-react";
 import Select from 'react-select';
 import useAppStore from "../../zustandStore";
@@ -592,7 +593,8 @@ export default function AddProductPage() {
                         transition={{ duration: 0.5, delay: 0.2 }}
                         className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0 mb-6"
                     >
-                        <div>
+                        <div className="mb-6">
+                            {/* Back button and main heading */}
                             <button
                                 onClick={() => navigate("/")}
                                 className="text-[#000060] hover:text-[#0000a0] transition-colors flex items-center mb-4"
@@ -600,11 +602,13 @@ export default function AddProductPage() {
                                 <ArrowLeft className="w-5 h-5 mr-2" />
                                 Back to RFQ List
                             </button>
+
                             <h1 className="text-3xl lg:text-4xl font-bold text-[#000060] mb-2">
                                 SKU List
                             </h1>
+
                             <p className="text-[#4b4b80] text-base lg:text-lg">
-                                List of SKU allocated to RFQ
+                                List of SKU allocated to <span className="font-bold text-2xl">{sku[0]?.rfq_name}</span>
                             </p>
                         </div>
                         {/* <motion.button
@@ -617,7 +621,7 @@ export default function AddProductPage() {
                         Back
                     </motion.button> */}
                     </motion.div>
-                </header>
+                </header >
 
 
                 <motion.div
@@ -629,12 +633,23 @@ export default function AddProductPage() {
 
                     {sku && (
                         <div className="bg-[#f8f8fd] rounded-lg p-6">
-                            <h2 className="text-xl font-semibold text-[#000060] mb-4">SKU List</h2>
+                            <div className="flex justify-between mb-2 items-center text-center">
+                                <h2 className="text-xl font-semibold text-[#000060] mb-4">SKU List</h2>
+                                <button
+                                    onClick={() => setShowJobCostModal(true)}
+                                    className="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
+                                >
+                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                    Add Factory Overhead
+                                </button>
+                            </div>
                             <SKUTable
                                 skus={sku}
                                 onAddProduct={role.role_id === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
                                 onViewProduct={handleProductDetails}
                                 role_id={role.role_id}
+                                navigate={navigate}
+                                rfq_id={rfqId}
                             />
                         </div>
                     )}
@@ -1442,7 +1457,7 @@ export default function AddProductPage() {
                     )}
                 </AnimatePresence>
 
-            </motion.div>
+            </motion.div >
 
 
         </>
@@ -1451,7 +1466,7 @@ export default function AddProductPage() {
 
 
 
-function SKUTable({ skus, onAddProduct, onViewProduct, role_id }) {
+function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id }) {
     return (
 
         <div className="overflow-x-auto">
@@ -1495,19 +1510,31 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id }) {
                                         <Tooltip anchorSelect="#my-tooltip">View Products</Tooltip>
                                     </>
                                 )}
-                                <button
-                                    onClick={() => onAddProduct(sku)}
-                                    className="p-2 rounded-full hover:bg-green-100"
-                                    id="add-bom"
-                                >
-                                    <CirclePlusIcon className="w-5 h-5" />
+                                {role_id === 21 || role_id === 19 && (
+                                    <button
+                                        onClick={() => onAddProduct(sku)}
+                                        className="p-2 rounded-full hover:bg-green-100"
+                                        id="add-bom"
+                                    >
+                                        <CirclePlusIcon className="w-5 h-5" />
 
-                                    {role_id === 19 ? (
-                                        <Tooltip anchorSelect="#add-bom">Add Products</Tooltip>
-                                    ) : (
-                                        <Tooltip anchorSelect="#add-bom">Add BOM</Tooltip>
-                                    )}
-                                </button>
+                                        {role_id === 19 ? (
+                                            <Tooltip anchorSelect="#add-bom">Add Products</Tooltip>
+                                        ) : (
+                                            <Tooltip anchorSelect="#add-bom">Add BOM</Tooltip>
+                                        )}
+                                    </button>
+                                )}
+                                {role_id === 20 && (
+                                    <button
+                                        onClick={() => navigate(`/sku-cost/${rfq_id}/${sku.sku_id}`)}
+                                        className="p-2 rounded-full hover:bg-green-100"
+                                        data-tooltip-id={`cost-tooltip-${sku.sku_id}`}
+                                    >
+                                        <SheetIcon className="w-5 h-5" />
+                                        <Tooltip id={`cost-tooltip-${sku.sku_id}`}>View Cost Sheet</Tooltip>
+                                    </button>
+                                )}
                             </td>
                         </tr>
                     ))}
