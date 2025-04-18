@@ -23,7 +23,7 @@ import { Tooltip } from 'react-tooltip'
 export default function AddProductPage() {
 
     const navigate = useNavigate();
-    const { rfqId } = useParams();
+    const { rfqId, stateId } = useParams();
     const [sku, setSku] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -41,7 +41,16 @@ export default function AddProductPage() {
     const [isBOMmodalOpen, setIsBOMmodalOpen] = useState(false);
     const [isNonBOMmodalOpen, setIsNonBOMmodalOpen] = useState(false);
 
+    console.log("State ID: ", stateId);
+
     const { role } = useAppStore();
+
+    const appState = localStorage.getItem("appState");
+  
+    // Parse the JSON string to get an object
+    const parsedState = JSON.parse(appState);
+
+    const roleId = parsedState?.user?.roleid || null;
 
     useEffect(() => {
         const fetchSkus = async () => {
@@ -635,21 +644,22 @@ export default function AddProductPage() {
                         <div className="bg-[#f8f8fd] rounded-lg p-6">
                             <div className="flex justify-between mb-2 items-center text-center">
                                 <h2 className="text-xl font-semibold text-[#000060] mb-4">SKU List</h2>
-                                <button
+                                {/* <button
                                     onClick={() => setShowJobCostModal(true)}
                                     className="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
                                 >
                                     <CirclePlusIcon className="w-4 h-4 mr-2" />
                                     Add Factory Overhead
-                                </button>
+                                </button> */}
                             </div>
                             <SKUTable
                                 skus={sku}
-                                onAddProduct={role.role_id === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
+                                onAddProduct={roleId === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
                                 onViewProduct={handleProductDetails}
-                                role_id={role.role_id}
+                                role_id={roleId}
                                 navigate={navigate}
                                 rfq_id={rfqId}
+                                stateId={stateId}
                             />
                         </div>
                     )}
@@ -1466,7 +1476,7 @@ export default function AddProductPage() {
 
 
 
-function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id }) {
+function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id, stateId }) {
     return (
 
         <div className="overflow-x-auto">
@@ -1527,7 +1537,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                 )}
                                 {role_id === 20 && (
                                     <button
-                                        onClick={() => navigate(`/sku-cost/${rfq_id}/${sku.sku_id}`)}
+                                        onClick={() => navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}`)}
                                         className="p-2 rounded-full hover:bg-green-100"
                                         data-tooltip-id={`cost-tooltip-${sku.sku_id}`}
                                     >

@@ -21,6 +21,13 @@ export default function RFQDetailsPage() {
 
     console.log("RFQ_id: ", rfqId);
 
+    const appState = localStorage.getItem("appState");
+  
+    // Parse the JSON string to get an object
+    const parsedState = JSON.parse(appState);
+
+    const roleId = parsedState?.user?.roleid || null;
+
     let userId = null;
     if (user) {
         userId = user.id;
@@ -34,7 +41,7 @@ export default function RFQDetailsPage() {
             console.log("USERID: ", user.id);
             console.log("RFQID: ", rfqId);
 
-            if(role && (role.role_id===19 || role.role_id===8 || role.role_id===21 || role.role_id===20 ) ){
+            if(role && (roleId===19 || roleId===8 || roleId===21 || roleId===20 ) ){
                 userId = null;
             }
 

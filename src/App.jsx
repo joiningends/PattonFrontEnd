@@ -128,7 +128,8 @@ const AppLayout = () => {
           <Route path="/edit_RFQ/:id" element={<EditRFQPage />} />
           <Route path="/rfq-detail/:rfqId" element={<RFQDetailsPage />} />
           <Route path="/sku-details/:rfqId" element={<AddProductPage/>} />
-          <Route path="/sku-cost/:rfqId/:skuId" element={<SkuDetailPage/>} />
+          <Route path="/sku-details/:rfqId/:stateId" element={<AddProductPage/>} />
+          <Route path="/sku-cost/:rfqId/:skuId/:stateId" element={<SkuDetailPage/>} />
 
           {/* Plant module */}
           <Route path="/plants" element={<PlantListingPage />} />

@@ -200,14 +200,33 @@ export default function RFQListingPage() {
   const [processEngineers, setProcessEngineers] = useState([]);
   const [processModalIsOpen, setProcessModalIsOpen] = useState(false);
   const [selectedProcessEngineer, setSelectedProcessEngineer] = useState(null);
+  const [openSendRfqtoPlantHeadByProcessModal, setopenSendRfqtoPlantHeadByProcessModal] = useState(false);
 
-  const { isLoggedIn, user, role, permission } = useAppStore();
+  // const { isLoggedIn, user, role, permission } = useAppStore();
+
+  const { isLoggedIn, user, role, permission, isLoading: isStoreLoading } = useAppStore();
+
+  const appState = localStorage.getItem("appState");
+
+  // Parse the JSON string to get an object
+  const parsedState = JSON.parse(appState);
+
+  const roleId = parsedState?.user?.roleid || null;
+
+  if (isStoreLoading) {
+    return <div>Loading user data...</div>;
+  }
+
+  if (!parsedState?.user?.roleid) {
+    return <div>Error: User role not found</div>;
+  }
 
   // console.log("User State: ", user);
   // console.log("User Role: ", role);
   // console.log("User permission: ", permission);
 
   // if (user.id == 8)
+
 
 
   // fetch NPD engineers
@@ -290,7 +309,7 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/getrfq", {
         p_user_id: user.id, // This should be dynamically set based on the logged-in user
-        p_role_id: role.role_id,
+        p_role_id: roleId,
         p_rfq_id: null,
         p_client_id: null,
       })
@@ -310,14 +329,24 @@ export default function RFQListingPage() {
   // fetch the RFQs for NPD eng.
   const fetchRFQsforUserRole = useCallback(async () => {
     setIsLoading(true)
-    console.log("RoleID: ", role.role_id);
-    let assigned_by = null;
-    if (role.role_id === 19) assigned_by = 15;
-    else if (role.role_id === 21) assigned_by = 19;
-    else if (role.role_id === 20) assigned_by = 21;
-    try {
-      const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbyuserrole/${user.id}?p_assigned_to_roleId=${role.role_id}&p_assigned_by_roleId=${assigned_by}`)
+    // console.log("RoleID: ", role.role_id);
 
+    console.log("RoleID: ", parsedState?.user?.roleid);
+
+
+    if (!parsedState?.user?.roleid) {
+      setError("User role not available");
+      setIsLoading(false);
+      return;
+    }
+    let assigned_by = null;
+    if (roleId === 19) assigned_by = 15;
+    else if (roleId === 21) assigned_by = 19;
+    else if (roleId === 20) assigned_by = 21;
+    try {
+      const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbyuserrole/${user.id}?p_assigned_to_roleId=${roleId}&p_assigned_by_roleId=${assigned_by}`)
+
+      console.log("RFQ - ", response);
       if (response.data.success) {
         setRFQs(response.data.data);
         console.log("RFQ: ", response.data.data);
@@ -347,8 +376,9 @@ export default function RFQListingPage() {
   }, [])
 
   useEffect(() => {
-    // Fetch the RFQ for NPD eng. role ; role=19
-    if (role.role_id === 19 || role.role_id === 21 || role.role_id === 20) {
+    if (!roleId) return;
+
+    if (roleId === 19 || roleId === 21 || roleId === 20) {
       fetchRFQsforUserRole().catch((err) => {
         console.error("Error in fetchRFQsforUserRole:", err)
         setError("Failed to load RFQs. Please try again later.")
@@ -503,6 +533,33 @@ export default function RFQListingPage() {
     }
   };
 
+  const handleAssignToPlantHeadByProcessEngineer = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.post("/rfq/update/rfq-state/", {
+        rfq_id: selectedRFQ.rfq_id,
+        rfq_state: 14
+      });
+
+      console.log("Update response", response);
+
+      if (response.data.success) {
+        setSuccessMessage("Assigned to plant head for review.");
+        setopenSendRfqtoPlantHeadByProcessModal(false);
+        setSelectedRFQ(null);
+        fetchRFQsforUserRole();
+      } else {
+        setError("Failed to assign to plant head");
+      }
+    } catch (error) {
+      setError("Error assigning to plant head.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // const filteredRFQs = rfqs.filter(
   //   (rfq) =>
   //     rfq.rfq_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -589,6 +646,11 @@ export default function RFQListingPage() {
     setSelectedRFQ(rfq);
     fetchProcessEngineer(rfq.rfq_id);
     setProcessModalIsOpen(true);
+  }
+
+  const openSendRfqtoPlantHeadByProcess = (rfq) => {
+    setSelectedRFQ(rfq);
+    setopenSendRfqtoPlantHeadByProcessModal(true);
   }
 
   const RfqDetailedInfo = (rfq) => {
@@ -981,14 +1043,14 @@ export default function RFQListingPage() {
                             <Info className="w-5 h-5" />
                           </button>
                           <Tooltip anchorSelect="#rfq-details">RFQ Details</Tooltip>
-                          
+
                           {/* <button
                             onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
                             className="p-2 rounded-full hover:bg-green-100"
                           >
                             <PackagePlusIcon className="w-5 h-5" />
                           </button> */}
-                          {(rfq.state_id === 2 && role.role_id === 15) && (
+                          {(rfq.state_id === 2 && roleId === 15) && (
                             <>
                               <button
                                 onClick={() => openApproveAssignNPDengModal(rfq)}
@@ -1006,7 +1068,7 @@ export default function RFQListingPage() {
                           )}
 
                           {/* For NPD engineer login */}
-                          {(rfq.state_id === 9 && role.role_id === 19) && (
+                          {(rfq.state_id === 9 && roleId === 19) && (
                             <>
                               <button
                                 onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
@@ -1030,7 +1092,7 @@ export default function RFQListingPage() {
                           )}
 
                           {/* For vendor development engineer login */}
-                          {(rfq.state_id === 11 && role.role_id === 21) && (
+                          {(rfq.state_id === 11 && roleId === 21) && (
                             <>
                               <button
                                 onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
@@ -1039,7 +1101,7 @@ export default function RFQListingPage() {
                               >
                                 <PackagePlusIcon className="w-5 h-5" />
                               </button>
-                              
+
                               <Tooltip anchorSelect="#add-products">Add Products</Tooltip>
                               <button
                                 onClick={() => openApproveAssignProcessengModal(rfq)}
@@ -1060,19 +1122,19 @@ export default function RFQListingPage() {
                           )}
 
                           {/* For Process engineer login */}
-                          {(rfq.state_id === 13 && role.role_id === 20) && (
+                          {(rfq.state_id === 13 && roleId === 20) && (
                             <>
                               <button
-                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
                                 className="p-2 rounded-full hover:bg-green-100"
                                 id="add-products"
                               >
                                 <ScrollIcon className="w-5 h-5" />
                               </button>
-                              
+
                               <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
                               <button
-                                // onClick={() => openApproveAssignProcessengModal(rfq)}
+                                onClick={() => openSendRfqtoPlantHeadByProcess(rfq)}
                                 className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                 id="assign-processeng"
                               >
@@ -1089,7 +1151,18 @@ export default function RFQListingPage() {
                             </>
                           )}
 
-
+                          {/* For Process engineer login */}
+                          {(rfq.state_id === 14 && roleId === 20) && (
+                            <>
+                              <button
+                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                className="p-2 rounded-full hover:bg-green-100"
+                                id="add-products"
+                              >
+                                <ScrollIcon className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
 
                         </div>
                       )}
@@ -1551,6 +1624,7 @@ export default function RFQListingPage() {
       )}
 
 
+
       <AnimatePresence>
         {processModalIsOpen && (
           <motion.div
@@ -1623,6 +1697,57 @@ export default function RFQListingPage() {
                   className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? "Assigning..." : "Assign RFQ"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {openSendRfqtoPlantHeadByProcessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to Process Engineer</p>
+              </div> */}
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                {/* Dropdown for NPD Engineers */}
+                <div className="space-y-2">
+                  <h2>Send RFQ with id: { } to plant head for review.</h2>
+                </div>
+
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setopenSendRfqtoPlantHeadByProcessModal(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignToPlantHeadByProcessEngineer}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Sending..." : "Send"}
                 </button>
               </div>
             </motion.div>

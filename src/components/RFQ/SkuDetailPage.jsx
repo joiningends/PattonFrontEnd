@@ -2,7 +2,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileText, User, Package2, DollarSign, IndianRupee, AlertCircle, ChevronLeft, Check, ArrowLeft, PencilIcon, TreesIcon, CirclePlusIcon, Trash2Icon, Axis3DIcon } from "lucide-react";
+import { AlertCircle, Check, ArrowLeft, PencilIcon, CirclePlusIcon, Trash2Icon, ChartNoAxesColumnDecreasing } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
@@ -10,7 +10,7 @@ import { Tooltip } from "react-tooltip";
 
 export default function SkuDetailPage() {
     const navigate = useNavigate();
-    const { rfqId, skuId } = useParams();
+    const { rfqId, skuId, stateId } = useParams();
     const [rfq, setRFQ] = useState(null);
     const [sku, setSku] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -28,6 +28,9 @@ export default function SkuDetailPage() {
 
     const [editingOtherCost, setEditingOtherCost] = useState(null);
     const [editingJobCost, setEditingJobCost] = useState(null);
+
+    // const state = 14;
+    console.log(stateId);
 
     const [otherCosts, setOtherCosts] = useState({
         other_cost_id: null,
@@ -913,14 +916,14 @@ export default function SkuDetailPage() {
                             <div className="flex justify-end">
                                 <div className="flex bg-none space-x-4 p-4 bg-blue-400 ">
                                     <div>Sub total cost: </div>
-                                    <div>{sku.sub_total_cost > 0 ? sku.sub_total_cost : 0.00}</div>
+                                    <div>{(sku?.sub_total_cost != null && sku.sub_total_cost > 0) ? sku.sub_total_cost : 0.00}</div>
                                 </div>
                             </div>
                             <table className="min-w-full border border-gray-200 bg-white">
                                 <thead className="bg-gray-100">
                                     {/* SKU Header Row */}
                                     <tr className="bg-blue-100">
-                                        <th colSpan={sku.products?.length + 1} className="px-6 py-4 text-center border border-gray-200">
+                                        <th colSpan={sku?.products?.length + 1} className="px-6 py-4 text-center border border-gray-200">
                                             <h2 className="text-2xl font-semibold text-gray-800">{sku.sku_name}</h2>
                                         </th>
                                     </tr>
@@ -939,7 +942,7 @@ export default function SkuDetailPage() {
                                     {/* Drawing No Row */}
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">Drawing No</th>
-                                        <td colSpan={sku.products?.length} className="px-6 py-4 text-center border border-gray-200">
+                                        <td colSpan={sku?.products?.length} className="px-6 py-4 text-center border border-gray-200">
                                             <span className="text-sm font-semibold text-gray-800">{sku.drawing_no || 'N/A'}</span>
                                         </td>
                                     </tr>
@@ -1003,16 +1006,20 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.yield_percentage || "-"}</span>
-                                                    <PencilIcon
-                                                        className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
-                                                        onClick={() => handleEditClick(
-                                                            product.product_id,
-                                                            product.yield_percentage,
-                                                            "yield_percentage"
-                                                        )}
-                                                        id={`edit-value-${index}`}
-                                                    />
-                                                    <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                    {stateId == 13 && (
+                                                        <>
+                                                            <PencilIcon
+                                                                className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                onClick={() => handleEditClick(
+                                                                    product.product_id,
+                                                                    product.yield_percentage,
+                                                                    "yield_percentage"
+                                                                )}
+                                                                id={`edit-value-${index}`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         ))}
@@ -1025,16 +1032,20 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.bom_cost_per_kg || "-"}</span>
-                                                    <PencilIcon
-                                                        className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
-                                                        onClick={() => handleEditClick(
-                                                            product.product_id,
-                                                            product.bom_cost_per_kg,
-                                                            "bom_cost_per_kg"
-                                                        )}
-                                                        id={`edit-value-${index}`}
-                                                    />
-                                                    <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                    {stateId == 13 && (
+                                                        <>
+                                                            <PencilIcon
+                                                                className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                onClick={() => handleEditClick(
+                                                                    product.product_id,
+                                                                    product.bom_cost_per_kg,
+                                                                    "bom_cost_per_kg"
+                                                                )}
+                                                                id={`edit-value-${index}`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         ))}
@@ -1054,16 +1065,20 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.net_weight_of_product || "-"}</span>
-                                                    <PencilIcon
-                                                        className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
-                                                        onClick={() => handleEditClick(
-                                                            product.product_id,
-                                                            product.net_weight_of_product,
-                                                            "net_weight_of_product"
-                                                        )}
-                                                        id={`edit-value-${index}`}
-                                                    />
-                                                    <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                    {stateId == 13 && (
+                                                        <>
+                                                            <PencilIcon
+                                                                className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                onClick={() => handleEditClick(
+                                                                    product.product_id,
+                                                                    product.net_weight_of_product,
+                                                                    "net_weight_of_product"
+                                                                )}
+                                                                id={`edit-value-${index}`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#edit-value-${index}`}>Edit Value</Tooltip>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         ))}
@@ -1133,13 +1148,15 @@ export default function SkuDetailPage() {
                                         <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
                                                 <h2 className="text-lg text-gray-800">B LABOUR COST</h2>
-                                                <button
-                                                    onClick={() => setShowJobCostModal(true)}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
-                                                >
-                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
-                                                    Add Job Cost
-                                                </button>
+                                                {stateId == 13 && (
+                                                    <button
+                                                        onClick={() => setShowJobCostModal(true)}
+                                                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
+                                                    >
+                                                        <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                        Add Job Cost
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -1164,44 +1181,46 @@ export default function SkuDetailPage() {
                                                     <td key={index} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
                                                         <div className="flex justify-between items-center">
                                                             <span>{jobCostGroup.job_name}</span>
-                                                            <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
-                                                                <PencilIcon
-                                                                    className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
-                                                                    onClick={() => {
-                                                                        const isSkuLevel = jobCostGroup.costs.some(c => c.is_skulevel);
-                                                                        setEditingJobCost(jobCostGroup);
-                                                                        setJobCostData({
-                                                                          job_id: jobCostGroup.job_id,
-                                                                          isskulevel: isSkuLevel,
-                                                                          sku_id: skuId,
-                                                                          rfq_id: rfqId,
-                                                                          status: true,
-                                                                          job_cost: isSkuLevel ? jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || '' : '',
-                                                                          job_costs: isSkuLevel ? [] : 
-                                                                            sku.products
-                                                                              .filter(p => !p.is_bom)
-                                                                              .map(product => {
-                                                                                const existingCost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
-                                                                                return {
-                                                                                  product_id: product.product_id,
-                                                                                  job_cost: existingCost?.job_cost || ''
-                                                                                };
-                                                                              })
-                                                                        });
-                                                                        setShowJobCostModal(true);
-                                                                      }}
-                                                                    id={`edit-val-${index}`}
-                                                                />
-                                                                <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
+                                                            {stateId == 13 && (
+                                                                <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
+                                                                    <PencilIcon
+                                                                        className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                        onClick={() => {
+                                                                            const isSkuLevel = jobCostGroup.costs.some(c => c.is_skulevel);
+                                                                            setEditingJobCost(jobCostGroup);
+                                                                            setJobCostData({
+                                                                                job_id: jobCostGroup.job_id,
+                                                                                isskulevel: isSkuLevel,
+                                                                                sku_id: skuId,
+                                                                                rfq_id: rfqId,
+                                                                                status: true,
+                                                                                job_cost: isSkuLevel ? jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || '' : '',
+                                                                                job_costs: isSkuLevel ? [] :
+                                                                                    sku.products
+                                                                                        .filter(p => !p.is_bom)
+                                                                                        .map(product => {
+                                                                                            const existingCost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
+                                                                                            return {
+                                                                                                product_id: product.product_id,
+                                                                                                job_cost: existingCost?.job_cost || ''
+                                                                                            };
+                                                                                        })
+                                                                            });
+                                                                            setShowJobCostModal(true);
+                                                                        }}
+                                                                        id={`edit-val-${index}`}
+                                                                    />
+                                                                    <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
 
-                                                                <Trash2Icon
-                                                                    className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
-                                                                    onClick={() => handleJobCostDelete(jobCostGroup.job_id)}
-                                                                    id={`del-val-${index}`}
-                                                                />
-                                                                <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
+                                                                    <Trash2Icon
+                                                                        className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
+                                                                        onClick={() => handleJobCostDelete(jobCostGroup.job_id)}
+                                                                        id={`del-val-${index}`}
+                                                                    />
+                                                                    <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
 
-                                                            </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1215,43 +1234,47 @@ export default function SkuDetailPage() {
                                                         {/* {jobCostGroup.job_name} */}
                                                         <div className="flex justify-between items-center">
                                                             <span>{jobCostGroup.job_name}</span>
-                                                            <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
-                                                                <PencilIcon
-                                                                    className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
-                                                                    onClick={() => {
-                                                                        const isSkuLevel = jobCostGroup.costs.some(c => c.is_skulevel);
-                                                                        setEditingJobCost(jobCostGroup);
-                                                                        setJobCostData({
-                                                                          job_id: jobCostGroup.job_id,
-                                                                          isskulevel: isSkuLevel,
-                                                                          sku_id: skuId,
-                                                                          rfq_id: rfqId,
-                                                                          status: true,
-                                                                          job_cost: isSkuLevel ? jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || '' : '',
-                                                                          job_costs: isSkuLevel ? [] : 
-                                                                            sku.products
-                                                                              .filter(p => !p.is_bom)
-                                                                              .map(product => {
-                                                                                const existingCost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
-                                                                                return {
-                                                                                  product_id: product.product_id,
-                                                                                  job_cost: existingCost?.job_cost || ''
-                                                                                };
-                                                                              })
-                                                                        });
-                                                                        setShowJobCostModal(true);
-                                                                      }}
-                                                                    id={`edit-val-${index}`}
-                                                                />
-                                                                <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
+                                                            {stateId == 13 && (
+                                                                <>
+                                                                    <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
+                                                                        <PencilIcon
+                                                                            className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                            onClick={() => {
+                                                                                const isSkuLevel = jobCostGroup.costs.some(c => c.is_skulevel);
+                                                                                setEditingJobCost(jobCostGroup);
+                                                                                setJobCostData({
+                                                                                    job_id: jobCostGroup.job_id,
+                                                                                    isskulevel: isSkuLevel,
+                                                                                    sku_id: skuId,
+                                                                                    rfq_id: rfqId,
+                                                                                    status: true,
+                                                                                    job_cost: isSkuLevel ? jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || '' : '',
+                                                                                    job_costs: isSkuLevel ? [] :
+                                                                                        sku.products
+                                                                                            .filter(p => !p.is_bom)
+                                                                                            .map(product => {
+                                                                                                const existingCost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
+                                                                                                return {
+                                                                                                    product_id: product.product_id,
+                                                                                                    job_cost: existingCost?.job_cost || ''
+                                                                                                };
+                                                                                            })
+                                                                                });
+                                                                                setShowJobCostModal(true);
+                                                                            }}
+                                                                            id={`edit-val-${index}`}
+                                                                        />
+                                                                        <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
 
-                                                                <Trash2Icon
-                                                                    className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
-                                                                    onClick={() => handleJobCostDelete(jobCostGroup.job_id)}
-                                                                    id={`del-val-${index}`}
-                                                                />
-                                                                <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
-                                                            </div>
+                                                                        <Trash2Icon
+                                                                            className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
+                                                                            onClick={() => handleJobCostDelete(jobCostGroup.job_id)}
+                                                                            id={`del-val-${index}`}
+                                                                        />
+                                                                        <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
+                                                                    </div>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     {sku.products?.map((product, index) => {
@@ -1272,13 +1295,15 @@ export default function SkuDetailPage() {
                                         <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
                                                 <h2 className="text-lg text-gray-800">OTHER COST</h2>
-                                                <button
-                                                    onClick={() => setShowOtherCostModal(true)}
-                                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
-                                                >
-                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
-                                                    Add Other Cost
-                                                </button>
+                                                {stateId == 13 && (
+                                                    <button
+                                                        onClick={() => setShowOtherCostModal(true)}
+                                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                                                    >
+                                                        <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                        Add Other Cost
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
@@ -1289,33 +1314,35 @@ export default function SkuDetailPage() {
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
                                                     <div className="flex justify-between items-center">
                                                         <span>{cost.other_cost_name}</span>
-                                                        <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
-                                                            <PencilIcon
-                                                                className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
-                                                                onClick={() => {
-                                                                    setEditingOtherCost(cost);
-                                                                    setOtherCosts({
-                                                                        other_cost_id: cost.other_cost_id,
-                                                                        other_cost_per_kg: cost.other_cost_per_kg,
-                                                                        sku_id: skuId,
-                                                                        rfq_id: rfqId,
-                                                                        other_cost: cost.other_cost,
-                                                                        status: true
-                                                                    });
-                                                                    setShowOtherCostModal(true);
-                                                                }}
-                                                                id={`edit-val-${index}`}
-                                                            />
-                                                            <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
+                                                        {stateId == 13 && (
+                                                            <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
+                                                                <PencilIcon
+                                                                    className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setEditingOtherCost(cost);
+                                                                        setOtherCosts({
+                                                                            other_cost_id: cost.other_cost_id,
+                                                                            other_cost_per_kg: cost.other_cost_per_kg,
+                                                                            sku_id: skuId,
+                                                                            rfq_id: rfqId,
+                                                                            other_cost: cost.other_cost,
+                                                                            status: true
+                                                                        });
+                                                                        setShowOtherCostModal(true);
+                                                                    }}
+                                                                    id={`edit-val-${index}`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#edit-val-${index}`}>Edit</Tooltip>
 
-                                                            <Trash2Icon
-                                                                className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
-                                                                onClick={() => handleOtherCostDelete(cost.id)}
-                                                                id={`del-val-${index}`}
-                                                            />
-                                                            <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
+                                                                <Trash2Icon
+                                                                    className="h-3 w-3 text-red-500 hover:text-red-700 text-xs cursor-pointer"
+                                                                    onClick={() => handleOtherCostDelete(cost.id)}
+                                                                    id={`del-val-${index}`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#del-val-${index}`}>Delete</Tooltip>
 
-                                                        </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
