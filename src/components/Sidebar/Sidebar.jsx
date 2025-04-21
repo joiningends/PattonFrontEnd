@@ -14,11 +14,14 @@ import {
   X,
   ChevronRight,
   ChevronDown,
-  UserCircle
+  UserCircle,
+  BriefcaseBusinessIcon,
+  CoinsIcon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
 import useAppStore from "../../zustandStore";
+import { label, path } from "framer-motion/client";
 
 export default function Sidebar({ isOpen, toggleSidebar }) {
 
@@ -74,7 +77,9 @@ export default function Sidebar({ isOpen, toggleSidebar }) {
 
   const allSettingsItems = [
     { icon: FolderKanban, label: "Factory Plants", path: "/plants", pageName: "Plant management" },
-    { icon: ContainerIcon, label: "Raw material", path: "/raw-materials", pageName: "Raw material" },
+    { icon: ContainerIcon, label: "Raw Material", path: "/raw-materials", pageName: "Raw Material" },
+    { icon: BriefcaseBusinessIcon, label: "Job Types", path: "/job-types", pageName: "Job Types" },
+    { icon: CoinsIcon, label: "Other Costs", path: "/other-costs", pageName: "Other Costs" },
   ];
 
   // Filter menu items based on permissions

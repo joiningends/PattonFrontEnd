@@ -99,40 +99,40 @@ export default function SkuDetailPage() {
         }));
     };
 
+    const fetchSkuDetails = async () => {
+        setIsLoading(true);
+
+        console.log("skuId: ", skuId);
+        console.log("RFQID: ", rfqId);
+
+        try {
+            const response = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+
+            console.log("response data: ", response.data.data);
+
+            if (response.data.success) {
+                // Sort the products: GP COIL first, then BOM
+                const sortedSku = { ...response.data.data[0] };
+                if (sortedSku.products && sortedSku.products.length > 0) {
+                    sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                        // Sort by is_bom flag (false values first - GP COIL)
+                        if (a.is_bom === b.is_bom) return 0;
+                        return a.is_bom ? 1 : -1;
+                    });
+                }
+                setSku(sortedSku);
+            } else {
+                setError("Failed to fetch RFQ details");
+            }
+
+        } catch (error) {
+            setError("Error fetching RFQ details");
+        }
+        setIsLoading(false);
+    };
+
     // Fetch RFQ details
     useEffect(() => {
-
-        const fetchSkuDetails = async () => {
-            setIsLoading(true);
-
-            console.log("skuId: ", skuId);
-            console.log("RFQID: ", rfqId);
-
-            try {
-                const response = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
-
-                console.log("response data: ", response.data.data);
-
-                if (response.data.success) {
-                    // Sort the products: GP COIL first, then BOM
-                    const sortedSku = { ...response.data.data[0] };
-                    if (sortedSku.products && sortedSku.products.length > 0) {
-                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
-                            // Sort by is_bom flag (false values first - GP COIL)
-                            if (a.is_bom === b.is_bom) return 0;
-                            return a.is_bom ? 1 : -1;
-                        });
-                    }
-                    setSku(sortedSku);
-                } else {
-                    setError("Failed to fetch RFQ details");
-                }
-
-            } catch (error) {
-                setError("Error fetching RFQ details");
-            }
-            setIsLoading(false);
-        };
 
         const fetchJobTypeDetails = async () => {
             setIsLoading(true);
@@ -183,6 +183,8 @@ export default function SkuDetailPage() {
         fetchOtherCostsForSku();
 
     }, [rfqId, skuId]);
+
+
 
 
     const fetchJobCosts = async () => {
@@ -288,7 +290,7 @@ export default function SkuDetailPage() {
                     setSku(sortedSku);
                 }
 
-                // fetchSkuDetails();
+                fetchSkuDetails();
                 fetchOtherCostsForSku();
             } else {
                 setAlertMessage({
@@ -445,111 +447,6 @@ export default function SkuDetailPage() {
             closeModal();
         }
     };
-
-    // const handleSaveJobCost = async () => {
-    //     try {
-    //         // Basic validation
-    //         if (!jobCostData.job_id) {
-    //             setAlertMessage({
-    //                 type: "error",
-    //                 message: "Please select a job type"
-    //             });
-    //             setShowAlert(true);
-    //             return;
-    //         }
-
-    //         // Prepare data for API call
-    //         const requestData = {
-    //             job_id: jobCostData.job_id,
-    //             isskulevel: jobCostData.isskulevel,
-    //             sku_id: jobCostData.sku_id,
-    //             rfq_id: jobCostData.rfq_id,
-    //             status: jobCostData.status
-    //         };
-
-    //         if (jobCostData.isskulevel) {
-    //             // SKU level - single cost
-    //             if (!jobCostData.job_cost) {
-    //                 setAlertMessage({
-    //                     type: "error",
-    //                     message: "Please enter both job cost values"
-    //                 });
-    //                 setShowAlert(true);
-    //                 return;
-    //             }
-    //             requestData.job_costs = [{
-    //                 job_cost: jobCostData.job_cost
-    //                 // job_cost_per_kg: jobCostData.job_cost_per_kg
-    //             }];
-    //         } else {
-    //             // Product level - array of costs
-    //             if (jobCostData.job_costs.length === 0 ||
-    //                 jobCostData.job_costs.some(cost => !cost?.job_cost)) {
-    //                 setAlertMessage({
-    //                     type: "error",
-    //                     message: "Please enter job costs for all products"
-    //                 });
-    //                 setShowAlert(true);
-    //                 return;
-    //             }
-    //             requestData.job_costs = jobCostData.job_costs;
-    //         }
-
-    //         const response = await axiosInstance.post("/sku/job-cost", requestData);
-
-    //         // re-calculate the sub_total_cost
-    //         const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
-
-    //         if (response.data.success && calculateSubTotal_response.data.success) {
-    //             setAlertMessage({
-    //                 type: "success",
-    //                 message: response.data.message || "Job costs saved successfully"
-    //             });
-    //             setShowAlert(true);
-    //             setShowJobCostModal(false);
-
-    //             // Reset form
-    //             setJobCostData({
-    //                 job_id: null,
-    //                 job_cost: '',
-    //                 // job_cost_per_kg: '',
-    //                 isskulevel: true,
-    //                 sku_id: skuId,
-    //                 rfq_id: rfqId,
-    //                 status: true,
-    //                 job_costs: []
-    //             });
-    //             fetchJobCosts(); // Refresh job costs after saving
-    //             // Refresh the SKU data
-    //             const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
-    //             if (skuResponse.data.success) {
-    //                 // setSku(skuResponse.data.data[0]);
-    //                 // Sort the products: GP COIL first, then BOM
-    //                 const sortedSku = { ...skuResponse.data.data[0] };
-    //                 if (sortedSku.products && sortedSku.products.length > 0) {
-    //                     sortedSku.products = [...sortedSku.products].sort((a, b) => {
-    //                         // Sort by is_bom flag (false values first - GP COIL)
-    //                         if (a.is_bom === b.is_bom) return 0;
-    //                         return a.is_bom ? 1 : -1;
-    //                     });
-    //                 }
-    //                 setSku(sortedSku);
-    //             }
-    //         } else {
-    //             setAlertMessage({
-    //                 type: "error",
-    //                 message: response.data.message || "Failed to save job costs"
-    //             });
-    //             setShowAlert(true);
-    //         }
-    //     } catch (error) {
-    //         setAlertMessage({
-    //             type: "error",
-    //             message: error.response?.data?.message || "Error saving job costs"
-    //         });
-    //         setShowAlert(true);
-    //     }
-    // };
 
 
     const handleSaveJobCost = async () => {
@@ -887,7 +784,7 @@ export default function SkuDetailPage() {
                 >
                     <div>
                         <button
-                            onClick={() => navigate(`/sku-details/${rfqId}`)}
+                            onClick={() => navigate(`/sku-details/${rfqId}/${stateId}`)}
                             className="text-[#000060] hover:text-[#0000a0] transition-colors flex items-center mb-4"
                         >
                             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -916,7 +813,7 @@ export default function SkuDetailPage() {
                             <div className="flex justify-end">
                                 <div className="flex bg-none space-x-4 p-4 bg-blue-400 ">
                                     <div>Sub total cost: </div>
-                                    <div>{(sku?.sub_total_cost != null && sku.sub_total_cost > 0) ? sku.sub_total_cost : 0.00}</div>
+                                    <div>{(sku?.sub_total_cost != null && sku?.sub_total_cost > 0) ? sku?.sub_total_cost : 0.00}</div>
                                 </div>
                             </div>
                             <table className="min-w-full border border-gray-200 bg-white">
@@ -924,7 +821,7 @@ export default function SkuDetailPage() {
                                     {/* SKU Header Row */}
                                     <tr className="bg-blue-100">
                                         <th colSpan={sku?.products?.length + 1} className="px-6 py-4 text-center border border-gray-200">
-                                            <h2 className="text-2xl font-semibold text-gray-800">{sku.sku_name}</h2>
+                                            <h2 className="text-2xl font-semibold text-gray-800">{sku?.sku_name}</h2>
                                         </th>
                                     </tr>
 
@@ -932,7 +829,7 @@ export default function SkuDetailPage() {
                                     {/* Material Type Row */}
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">Material</th>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <th key={index} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">
                                                 {product.is_bom === true ? "BOM" : "GP COIL"}
                                             </th>
@@ -943,14 +840,14 @@ export default function SkuDetailPage() {
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-200">Drawing No</th>
                                         <td colSpan={sku?.products?.length} className="px-6 py-4 text-center border border-gray-200">
-                                            <span className="text-sm font-semibold text-gray-800">{sku.drawing_no || 'N/A'}</span>
+                                            <span className="text-sm font-semibold text-gray-800">{sku?.drawing_no || 'N/A'}</span>
                                         </td>
                                     </tr>
 
                                     {/* Part Name Row */}
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider bg-blue-200 border border-gray-200">PART NAME</th>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <th key={index} className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider bg-blue-900 border border-gray-200">
                                                 {product.product_name}
                                             </th>
@@ -962,7 +859,7 @@ export default function SkuDetailPage() {
                                     {/* Quantity Row */}
                                     <tr>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Quantity per assembly</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.quantity_per_assembly || "-"}
                                             </td>
@@ -972,7 +869,7 @@ export default function SkuDetailPage() {
                                     {/* Material Type Row */}
                                     <tr>
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Raw Material type</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.raw_material_type_name || "-"}
                                             </td>
@@ -982,7 +879,7 @@ export default function SkuDetailPage() {
                                     {/* Material Rate Row */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-100">Raw Material Rate</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.raw_material_rate || "-"}
                                             </td>
@@ -992,7 +889,7 @@ export default function SkuDetailPage() {
                                     {/* Scrap Rate Row */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">Scrap Rate</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.scrap_rate || "-"}
                                             </td>
@@ -1002,11 +899,11 @@ export default function SkuDetailPage() {
                                     {/* Yield % Row */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">Yield %</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.yield_percentage || "-"}</span>
-                                                    {stateId == 13 && (
+                                                    {(stateId == 13 && product.is_bom != true) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1028,11 +925,11 @@ export default function SkuDetailPage() {
                                     {/* BOM Cost/kg Row */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">BOM Cost/kg</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.bom_cost_per_kg || "-"}</span>
-                                                    {stateId == 13 && (
+                                                    {(stateId == 13 && product.is_bom==true) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1053,7 +950,7 @@ export default function SkuDetailPage() {
 
                                     {/* Particular Row */}
                                     <tr>
-                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200">
+                                        <td colSpan={sku?.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200">
                                             A PARTICULAR
                                         </td>
                                     </tr>
@@ -1061,7 +958,7 @@ export default function SkuDetailPage() {
                                     {/* Net Weight Row */}
                                     <tr className="bg-blue-400">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Net weight of product (kg)</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.net_weight_of_product || "-"}</span>
@@ -1087,15 +984,15 @@ export default function SkuDetailPage() {
                                     {/* Assembly cost */}
                                     <tr className="bg-blue-400">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Assembly</td>
-                                        <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                            {sku.assembly_weight || "-"}
+                                        <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                            {sku?.assembly_weight || "-"}
                                         </td>
                                     </tr>
 
                                     {/* Gross weight in kg */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Gross weight (kg)</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.gross_weight_kg || "-"}
                                             </td>
@@ -1106,7 +1003,7 @@ export default function SkuDetailPage() {
                                     {/* RM wastage in kg */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 ">R.M. Wastage (kg)</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.rm_wastage_kg || "-"}
                                             </td>
@@ -1116,7 +1013,7 @@ export default function SkuDetailPage() {
                                     {/* Cost of RM */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 ">Cost of R.M.</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.cost_of_rm || "-"}
                                             </td>
@@ -1126,7 +1023,7 @@ export default function SkuDetailPage() {
                                     {/* Less cost of scrap */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 ">Less cost of scrap</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.less_cost_of_scrap || "-"}
                                             </td>
@@ -1136,7 +1033,7 @@ export default function SkuDetailPage() {
                                     {/* Net RM cost in RS */}
                                     <tr className="">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200 bg-blue-300">NET R.M. COST IN Rs.</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.net_rm_cost || "-"}
                                             </td>
@@ -1145,7 +1042,7 @@ export default function SkuDetailPage() {
 
                                     {/* LABOUR Row */}
                                     <tr>
-                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
+                                        <td colSpan={sku?.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
                                                 <h2 className="text-lg text-gray-800">B LABOUR COST</h2>
                                                 {stateId == 13 && (
@@ -1164,7 +1061,7 @@ export default function SkuDetailPage() {
                                     {/* BOM */}
                                     <tr className="bg-blue-50 hover:bg-gray-50">
                                         <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">BOM</td>
-                                        {sku.products?.map((product, index) => (
+                                        {sku?.products?.map((product, index) => (
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {product.final_bom_cost || "-"}
                                             </td>
@@ -1223,7 +1120,7 @@ export default function SkuDetailPage() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                    <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                         {jobCostGroup.costs.find(c => c.is_skulevel)?.job_cost || "-"}
                                                     </td>
                                                 </tr>
@@ -1277,7 +1174,7 @@ export default function SkuDetailPage() {
                                                             )}
                                                         </div>
                                                     </td>
-                                                    {sku.products?.map((product, index) => {
+                                                    {sku?.products?.map((product, index) => {
                                                         const cost = jobCostGroup.costs.find(c => c.product_id === product.product_id);
                                                         return (
                                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1292,7 +1189,7 @@ export default function SkuDetailPage() {
 
                                     {/* Other cost Row */}
                                     <tr>
-                                        <td colSpan={sku.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
+                                        <td colSpan={sku?.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
                                                 <h2 className="text-lg text-gray-800">OTHER COST</h2>
                                                 {stateId == 13 && (
@@ -1348,7 +1245,7 @@ export default function SkuDetailPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200">
                                                     {parseFloat(cost.other_cost_per_kg).toFixed(2)}
                                                 </td>
-                                                <td colSpan={sku.products?.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200 text-center">
+                                                <td colSpan={sku?.products?.length} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border border-gray-200 text-center">
                                                     {parseFloat(cost.other_cost).toFixed(2)}
                                                 </td>
                                             </tr>
@@ -1362,11 +1259,11 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Sub total cost */}
-                                    {skuOtherCosts.length > 0 && (
+                                    {skuOtherCosts?.length > 0 && (
                                         < tr className="bg-blue-400">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Sub total cost</td>
-                                            <td colSpan={sku.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {sku.sub_total_cost || "-"}
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.sub_total_cost || "-"}
                                             </td>
                                         </tr>
                                     )}

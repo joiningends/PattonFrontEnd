@@ -35,6 +35,12 @@ import axiosInstance from "./axiosConfig";
 import RFQDetailsPage from "./components/RFQ/RfqDetailPage";
 import AddProductPage from "./components/RFQ/AddProductsPage";
 import SkuDetailPage from "./components/RFQ/SkuDetailPage";
+import JobTypesListingPage from "./components/JobType/JobTypeListPage";
+import EditJobTypePage from "./components/JobType/EditJobTypePage";
+import CreateJobTypePage from "./components/JobType/AddJobTypePage";
+import OtherCostsListingPage from "./components/OtherCost/OtherCostListPage";
+import CreateOtherCostPage from "./components/OtherCost/AddOtherCostPage";
+import EditOtherCostPage from "./components/OtherCost/EditOtherCostPage";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -140,6 +146,17 @@ const AppLayout = () => {
           <Route path="/raw-materials" element={<RawMaterialListingPage />} />
           <Route path="/create-raw-material" element={<CreateRawMaterialPage />} />
           <Route path="/edit-raw-material/:id" element={<EditRawMaterialPage />} />
+
+          {/* Job types */}
+          <Route path="/job-types" element={<JobTypesListingPage/>} />
+          <Route path="/job-types/create" element={<CreateJobTypePage/>} />
+          <Route path="/job-types/edit/:id" element={<EditJobTypePage/>} />
+
+          {/* Other cost */}
+          <Route path="/other-costs" element={<OtherCostsListingPage/>} />
+          <Route path="/other-costs/create" element={<CreateOtherCostPage/>} />
+          <Route path="/other-costs/edit/:id" element={<EditOtherCostPage/>} />
+          
         </Routes>
       </main>
     </div>

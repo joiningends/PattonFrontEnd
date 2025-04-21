@@ -1728,7 +1728,7 @@ export default function RFQListingPage() {
               <div className="p-6 space-y-6">
                 {/* Dropdown for NPD Engineers */}
                 <div className="space-y-2">
-                  <h2>Send RFQ with id: { } to plant head for review.</h2>
+                  <h2>Send RFQ - {selectedRFQ.rfq_name} to plant head for review.</h2>
                 </div>
 
 

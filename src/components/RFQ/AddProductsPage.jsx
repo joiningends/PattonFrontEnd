@@ -1520,7 +1520,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                         <Tooltip anchorSelect="#my-tooltip">View Products</Tooltip>
                                     </>
                                 )}
-                                {role_id === 21 || role_id === 19 && (
+                                {(role_id === 21 || role_id === 19) && (
                                     <button
                                         onClick={() => onAddProduct(sku)}
                                         className="p-2 rounded-full hover:bg-green-100"
