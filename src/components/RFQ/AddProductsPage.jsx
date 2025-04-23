@@ -46,7 +46,7 @@ export default function AddProductPage() {
     const { role } = useAppStore();
 
     const appState = localStorage.getItem("appState");
-  
+
     // Parse the JSON string to get an object
     const parsedState = JSON.parse(appState);
 
@@ -644,13 +644,17 @@ export default function AddProductPage() {
                         <div className="bg-[#f8f8fd] rounded-lg p-6">
                             <div className="flex justify-between mb-2 items-center text-center">
                                 <h2 className="text-xl font-semibold text-[#000060] mb-4">SKU List</h2>
-                                {/* <button
-                                    onClick={() => setShowJobCostModal(true)}
-                                    className="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
-                                >
-                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
-                                    Add Factory Overhead
-                                </button> */}
+                                {stateId == 14 && (
+                                    <>
+                                        <button
+                                            // onClick={() => setShowJobCostModal(true)}
+                                            className="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
+                                        >
+                                            <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                            Add Factory Overhead
+                                        </button>
+                                    </>
+                                )}
                             </div>
                             <SKUTable
                                 skus={sku}
@@ -1482,26 +1486,30 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
         <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[#e1e1f5]">
                 <thead className="bg-[#f8f8fd]">
-                    <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Description</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Part No.</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Annual Usage</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Action</th>
+                    <tr className="text-center">
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Description</th>
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Part No.</th>
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Annual Usage</th>
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>
+                        {stateId == 14 && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Sub-Total Cost</th>)}
+                        {stateId == 14 && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total Factory Cost</th>)}
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Action</th>
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-[#e1e1f5]">
                     {skus.map((sku, index) => (
-                        <tr key={index}>
+                        <tr key={index} className="text-center">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#000060]">{sku.sku_name}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.description}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.part_no}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.drawing_no}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.annual_usage}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>
+                            {stateId == 14 && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
+                            {stateId == 14 && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${sku.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                     {sku.status ? 'Active' : 'Inactive'}

@@ -1050,6 +1050,8 @@ export default function RFQListingPage() {
                           >
                             <PackagePlusIcon className="w-5 h-5" />
                           </button> */}
+
+                          {/* Plant head login */}
                           {(rfq.state_id === 2 && roleId === 15) && (
                             <>
                               <button
@@ -1064,6 +1066,21 @@ export default function RFQListingPage() {
                               >
                                 <XIcon className="w-5 h-5" />
                               </button>
+                            </>
+                          )}
+
+                          {/* For plant head Revision */}
+                          {(rfq.state_id === 14 && roleId === 15) && (
+                            <>
+                              <button
+                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                className="p-2 rounded-full hover:bg-green-100"
+                                id="add-products"
+                              >
+                                <ScrollIcon className="w-5 h-5" />
+                              </button>
+
+                              <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
                             </>
                           )}
 
