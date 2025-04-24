@@ -449,6 +449,90 @@ export default function RFQListingPage() {
     }
   }
 
+  // Assign RFQ 
+  const handleMultiAssignRFQ = async () => {
+    setIsLoading(true);
+    setError(null);
+    let successCount = 0;
+    let errorMessages = [];
+
+    try {
+      // Assign to NPD Engineer if selected
+      if (selectedNPDEngineer) {
+        try {
+          const response = await axiosInstance.post("/rfq/assign", {
+            p_rfq_id: selectedRFQ.rfq_id,
+            p_assigned_to_id: selectedNPDEngineer.user_id,
+            p_assigned_to_roleid: 19, // NPD Engineer role
+            p_assigned_by_id: user.id,
+            p_assigned_by_roleid: 15, // Plant Head role
+            p_status: true,
+            p_comments: approveComment,
+          });
+          if (response.data.success) successCount++;
+        } catch (error) {
+          errorMessages.push(`NPD Engineer: ${error.response?.data?.message || error.message}`);
+        }
+      }
+
+      // Assign to Vendor Engineer if selected
+      if (selectedVendorEngineer) {
+        try {
+          const response = await axiosInstance.post("/rfq/assign", {
+            p_rfq_id: selectedRFQ.rfq_id,
+            p_assigned_to_id: selectedVendorEngineer.user_id,
+            p_assigned_to_roleid: 21, // Vendor Engineer role
+            p_assigned_by_id: user.id,
+            p_assigned_by_roleid: 15, // Plant Head role
+            p_status: true,
+            p_comments: approveComment,
+          });
+          if (response.data.success) successCount++;
+        } catch (error) {
+          errorMessages.push(`Vendor Engineer: ${error.response?.data?.message || error.message}`);
+        }
+      }
+
+      // Assign to Process Engineer if selected
+      if (selectedProcessEngineer) {
+        try {
+          const response = await axiosInstance.post("/rfq/assign", {
+            p_rfq_id: selectedRFQ.rfq_id,
+            p_assigned_to_id: selectedProcessEngineer.user_id,
+            p_assigned_to_roleid: 20, // Process Engineer role
+            p_assigned_by_id: user.id,
+            p_assigned_by_roleid: 15, // Plant Head role
+            p_status: true,
+            p_comments: approveComment,
+          });
+          if (response.data.success) successCount++;
+        } catch (error) {
+          errorMessages.push(`Process Engineer: ${error.response?.data?.message || error.message}`);
+        }
+      }
+
+      if (successCount > 0) {
+        setSuccessMessage(`Successfully assigned to ${successCount} Engineer(s)`);
+        fetchRFQs();
+        setIsOpen(false);
+        setSelectedNPDEngineer(null);
+        setSelectedVendorEngineer(null);
+        setSelectedProcessEngineer(null);
+        setApproveComment("");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
+
+      if (errorMessages.length > 0) {
+        setError(`Some assignments failed: ${errorMessages.join('; ')}`);
+      }
+
+    } catch (error) {
+      setError("Error in assignment process: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   const handleAssignRFQByNPDeng = async () => {
     if (!selectedVendorEngineer) {
@@ -619,9 +703,10 @@ export default function RFQListingPage() {
 
 
   const openApproveAssignNPDengModal = (rfq) => {
-    console.log("Opening modal for RFQ:", rfq); // Debugging line
     setSelectedRFQ(rfq);
     fetchNPDengineers(rfq.rfq_id);
+    fetchVendorEngineer(rfq.rfq_id);
+    fetchProcessEngineer(rfq.rfq_id);
     setIsOpen(true);
   }
 
@@ -1353,6 +1438,7 @@ export default function RFQListingPage() {
       )}
 
 
+      {/* Assign RFQ modal */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -1370,14 +1456,14 @@ export default function RFQListingPage() {
               {/* Modal Header */}
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
-                <p className="text-sm text-[#4b4b80]">Assign this RFQ to an NPD Engineer</p>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to multiple roles</p>
               </div>
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
-                {/* Dropdown for NPD Engineers */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
+                {/* NPD Engineers Section */}
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium text-[#000060]">NPD Engineers</h3>
                   <select
                     className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
                     value={selectedNPDEngineer?.user_id || ""}
@@ -1388,10 +1474,52 @@ export default function RFQListingPage() {
                       setSelectedNPDEngineer(selected);
                     }}
                   >
-                    <option value="" disabled>
-                      Select an engineer
-                    </option>
+                    <option value="" disabled>Select NPD Engineer</option>
                     {npdEngineer.map((engineer) => (
+                      <option key={engineer.user_id} value={engineer.user_id}>
+                        {engineer.first_name + " " + engineer.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Vendor Engineers Section */}
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium text-[#000060]">Vendor Engineers</h3>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={selectedVendorEngineer?.user_id || ""}
+                    onChange={(e) => {
+                      const selected = vendorEngineers.find(
+                        (engineer) => engineer.user_id === parseInt(e.target.value)
+                      );
+                      setSelectedVendorEngineer(selected);
+                    }}
+                  >
+                    <option value="" disabled>Select Vendor Engineer</option>
+                    {vendorEngineers.map((engineer) => (
+                      <option key={engineer.user_id} value={engineer.user_id}>
+                        {engineer.first_name + " " + engineer.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Process Engineers Section */}
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium text-[#000060]">Process Engineers</h3>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={selectedProcessEngineer?.user_id || ""}
+                    onChange={(e) => {
+                      const selected = processEngineers.find(
+                        (engineer) => engineer.user_id === parseInt(e.target.value)
+                      );
+                      setSelectedProcessEngineer(selected);
+                    }}
+                  >
+                    <option value="" disabled>Select Process Engineer</option>
+                    {processEngineers.map((engineer) => (
                       <option key={engineer.user_id} value={engineer.user_id}>
                         {engineer.first_name + " " + engineer.last_name}
                       </option>
@@ -1407,8 +1535,6 @@ export default function RFQListingPage() {
                   rows="3"
                   required
                 />
-
-
               </div>
 
               {/* Modal Footer */}
@@ -1420,9 +1546,12 @@ export default function RFQListingPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleAssignRFQ}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleMultiAssignRFQ}
+                  disabled={isLoading || (!selectedNPDEngineer || !selectedVendorEngineer || !selectedProcessEngineer)}
+                  className={`px-4 py-2 rounded-lg transition-colors ${(selectedNPDEngineer || selectedVendorEngineer || selectedProcessEngineer)
+                    ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
                 >
                   {isLoading ? "Assigning..." : "Assign RFQ"}
                 </button>
@@ -1743,7 +1872,6 @@ export default function RFQListingPage() {
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
-                {/* Dropdown for NPD Engineers */}
                 <div className="space-y-2">
                   <h2>Send RFQ - {selectedRFQ.rfq_name} to plant head for review.</h2>
                 </div>

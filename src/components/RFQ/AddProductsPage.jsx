@@ -40,6 +40,10 @@ export default function AddProductPage() {
     const [rawMaterial, setRawMaterial] = useState([]);
     const [isBOMmodalOpen, setIsBOMmodalOpen] = useState(false);
     const [isNonBOMmodalOpen, setIsNonBOMmodalOpen] = useState(false);
+    const [showFactoryOverheadModal, setShowFactoryOverheadModal] = useState(false);
+    const [factoryOverheadPercent, setFactoryOverheadPercent] = useState({
+        factory_overhead_perc: "",
+    });
 
     console.log("State ID: ", stateId);
 
@@ -52,27 +56,32 @@ export default function AddProductPage() {
 
     const roleId = parsedState?.user?.roleid || null;
 
-    useEffect(() => {
-        const fetchSkus = async () => {
-            setIsLoading(true);
 
-            try {
+    const fetchSkus = async () => {
+        setIsLoading(true);
 
-                const response = await axiosInstance.get(`/sku/getsku/${rfqId}`);
+        try {
 
-                console.log(response.data.data);
+            const response = await axiosInstance.get(`/sku/getsku/${rfqId}`);
 
-                if (response.data.success) {
-                    setSku(response.data.data);
-                } else {
-                    setError("Failed to fetch SKU data.");
-                }
-            } catch (error) {
-                setError("Error fetching SKU data: ", error);
+            console.log(response.data.data);
+
+            if (response.data.success) {
+                setSku(response.data.data);
+                // Set factory overhead only after data is loaded
+                setFactoryOverheadPercent({
+                    factory_overhead_perc: response.data.data[0]?.factory_overhead_perc || ""
+                });
+            } else {
+                setError("Failed to fetch SKU data.");
             }
-            setIsLoading(false);
-        };
+        } catch (error) {
+            setError("Error fetching SKU data: ", error);
+        }
+        setIsLoading(false);
+    }; 
 
+    useEffect(() => {
         fetchSkus();
         fetchRawMaterial();
     }, [rfqId]);
@@ -196,6 +205,54 @@ export default function AddProductPage() {
             });
         }
         setValidationErrors({ ...validationErrors, [name]: "" });
+    };
+
+
+    const handleFactoryOverheadPercentage = async () => {
+        const errors = {};
+        if (!factoryOverheadPercent.factory_overhead_perc) {
+            errors.factory_overhead_perc = "Factory overhead cost is required.";
+            setValidationErrors(errors);
+            return;
+        }
+
+        try {
+            const response = await axiosInstance.post(
+                `/rfq/save-factory-overhead`,
+                {
+                    rfq_id: rfqId,
+                    factory_overhead_perc: factoryOverheadPercent.factory_overhead_perc
+                }
+            );
+            if (response.data.success) {
+
+                // Update local state
+                setSku(prevSku =>
+                    prevSku.map(s => ({
+                        ...s,
+                        factory_overhead_perc: factoryOverheadPercent.factory_overhead_perc
+                    }))
+                );
+
+                // Calculate total factory cost
+                await axiosInstance.get(`/rfq/calculate/total-factory-cost/${rfqId}`);
+
+                fetchSkus();
+
+                setSuccessMessage("Factory overhead percentage saved successfully!");
+                setShowFactoryOverheadModal(false);
+                setTimeout(() => setSuccessMessage(""), 3000);
+            } else {
+                setError(response.data.message || "Failed to save factory overhead");
+            }
+        } catch (error) {
+            setError(
+                "Error saving factory overhead percentage: " +
+                (error.response?.data?.message || error.message)
+            );
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -620,15 +677,6 @@ export default function AddProductPage() {
                                 List of SKU allocated to <span className="font-bold text-2xl">{sku[0]?.rfq_name}</span>
                             </p>
                         </div>
-                        {/* <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => navigate(-1)}
-                        className="w-full lg:w-auto bg-gradient-to-r from-[#000060] to-[#0000a0] text-white px-6 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-[#000060] focus:ring-opacity-50"
-                    >
-                        <ChevronLeft className="inline-block mr-2 h-5 w-5" />
-                        Back
-                    </motion.button> */}
                     </motion.div>
                 </header >
 
@@ -647,7 +695,7 @@ export default function AddProductPage() {
                                 {stateId == 14 && (
                                     <>
                                         <button
-                                            // onClick={() => setShowJobCostModal(true)}
+                                            onClick={() => setShowFactoryOverheadModal(true)}
                                             className="px-4 py-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
                                         >
                                             <CirclePlusIcon className="w-4 h-4 mr-2" />
@@ -1471,6 +1519,86 @@ export default function AddProductPage() {
                     )}
                 </AnimatePresence>
 
+
+                <AnimatePresence>
+                    {showFactoryOverheadModal && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white rounded-lg shadow-xl w-full max-w-md"
+                            >
+                                {/* Error Message */}
+                                {error && (
+                                    <div className="p-4 bg-red-100 text-red-700 rounded-t-lg">
+                                        {error}
+                                    </div>
+                                )}
+
+                                {/* Modal Body */}
+                                <div className="p-6 space-y-6">
+                                    <div className="space-y-2">
+                                        <h2 className="text-lg font-semibold text-[#000060]">
+                                            Save the factory overhead percentage
+                                        </h2>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Factory Overhead Percentage <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                value={factoryOverheadPercent.factory_overhead_perc}
+                                                onChange={(e) => {
+                                                    setFactoryOverheadPercent({
+                                                        factory_overhead_perc: e.target.value
+                                                    });
+                                                    setError(null);
+                                                }}
+                                                placeholder="0.00"
+                                            />
+                                            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
+                                        </div>
+                                        {validationErrors.factory_overhead_perc && (
+                                            <p className="text-red-500 text-sm mt-1">
+                                                {validationErrors.factory_overhead_perc}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Modal Footer */}
+                                <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                                    <button
+                                        onClick={() => {
+                                            setShowFactoryOverheadModal(false);
+                                            setError(null);
+                                        }}
+                                        className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleFactoryOverheadPercentage}
+                                        disabled={isLoading}
+                                        className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isLoading ? "Saving..." : "Save"}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
             </motion.div >
 
 
@@ -1509,7 +1637,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.annual_usage}</td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>
                             {stateId == 14 && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
-                            {stateId == 14 && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
+                            {stateId == 14 && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_factory_cost}</td>)}
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${sku.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                     {sku.status ? 'Active' : 'Inactive'}
