@@ -341,8 +341,8 @@ export default function RFQListingPage() {
     }
     let assigned_by = null;
     if (roleId === 19) assigned_by = 15;
-    else if (roleId === 21) assigned_by = 19;
-    else if (roleId === 20) assigned_by = 21;
+    else if (roleId === 21) assigned_by = 15;
+    else if (roleId === 20) assigned_by = 15;
     try {
       const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbyuserrole/${user.id}?p_assigned_to_roleId=${roleId}&p_assigned_by_roleId=${assigned_by}`)
 
@@ -535,33 +535,33 @@ export default function RFQListingPage() {
 
 
   const handleAssignRFQByNPDeng = async () => {
-    if (!selectedVendorEngineer) {
-      setError("Please select an engineer to assign the RFQ.");
-      return;
-    }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await axiosInstance.post("/rfq/assign", {
-        p_rfq_id: selectedRFQ.rfq_id,
-        p_assigned_to_id: selectedVendorEngineer.user_id,
-        p_assigned_to_roleid: 21,         // hard code the role of vendor development engineer
-        p_assigned_by_id: user.id,
-        p_assigned_by_roleid: 19,         // hard code the role of npd engineer
-        p_status: true,
-        p_comments: approveComment,
+      const response = await axiosInstance.post("/rfq/save-comments", {
+        user_id: user.id,
+        rfq_id: selectedRFQ.rfq_id,
+        state_id: 11,                 // Hardcode state for RFQ sent to vendor engineer.
+        comments: approveComment,
       });
 
-      console.log("Assing rfq response: ", response);
+      console.log("Save comments response: ", response);
 
-      if (response.data.success) {
-        setSuccessMessage("RFQ assigned successfully!");
+
+      const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+        rfq_id: selectedRFQ.rfq_id,
+        rfq_state: 11,                 // Hardcode state for RFQ sent to vendor engineer.
+      });
+
+      if (response.data.success && stateResponse.data.success) {
+        setSuccessMessage("RFQ assigned successfully to vendor engineer!");
         fetchRFQsforUserRole();
         setVendorModalIsOpen(false);
         setSelectedVendorEngineer([]);
         setApproveComment("");
+        setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign RFQ");
       }
@@ -575,37 +575,36 @@ export default function RFQListingPage() {
 
 
   const handleAssignRFQByVendorEng = async () => {
-    if (!selectedProcessEngineer) {
-      setError("Please select process engineer to assign the RFQ.");
-      return;
-    }
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await axiosInstance.post("/rfq/assign", {
-        p_rfq_id: selectedRFQ.rfq_id,
-        p_assigned_to_id: selectedProcessEngineer.user_id,
-        p_assigned_to_roleid: 20,             // hard code the role of process engineer
-        p_assigned_by_id: user.id,
-        p_assigned_by_roleid: 21,             // hard code the role of vendor development engineer
-        p_status: true,
-        p_comments: approveComment,
+      const response = await axiosInstance.post("/rfq/save-comments", {
+        user_id: user.id,
+        rfq_id: selectedRFQ.rfq_id,
+        state_id: 13,                 // Hardcode state for RFQ sent to vendor engineer.
+        comments: approveComment,
       });
 
-      console.log("Assign rfq response: ", response);
+      console.log("Save comments reponse: ", response);
+
+      const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+        rfq_id: selectedRFQ.rfq_id,
+        rfq_state: 13,                 // Hardcode state for RFQ sent to vendor engineer.
+      });
 
       const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
         p_rfq_id: selectedRFQ.rfq_id
       });
 
-      if (response.data.success && autoCalResponse.data.success) {
-        setSuccessMessage("Auto calculation done and RFQ assigned successfully!");
+      if (response.data.success && stateResponse.data.success && autoCalResponse.data.success) {
+        setSuccessMessage("Auto calculation done and RFQ assigned successfully to process engineer!");
         fetchRFQsforUserRole();
         setProcessModalIsOpen(false);
         setSelectedProcessEngineer([]);
         setApproveComment("");
+        setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign RFQ");
       }
@@ -622,18 +621,28 @@ export default function RFQListingPage() {
     setError(null);
 
     try {
-      const response = await axiosInstance.post("/rfq/update/rfq-state/", {
+      const response = await axiosInstance.post("/rfq/save-comments", {
+        user_id: user.id,
         rfq_id: selectedRFQ.rfq_id,
-        rfq_state: 14
+        state_id: 14,                 // Hardcode state for RFQ sent to vendor engineer.
+        comments: approveComment,
+      });
+
+      console.log("Save comments reponse: ", response);
+
+      const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+        rfq_id: selectedRFQ.rfq_id,
+        rfq_state: 14,                 // Hardcode state for RFQ sent to vendor engineer.
       });
 
       console.log("Update response", response);
 
-      if (response.data.success) {
+      if (response.data.success && stateResponse.data.success) {
         setSuccessMessage("Assigned to plant head for review.");
         setopenSendRfqtoPlantHeadByProcessModal(false);
         setSelectedRFQ(null);
         fetchRFQsforUserRole();
+        setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign to plant head");
       }
@@ -718,7 +727,7 @@ export default function RFQListingPage() {
 
   const openApproveAssignVendorengModal = (rfq) => {
     setSelectedRFQ(rfq);
-    fetchVendorEngineer(rfq.rfq_id);
+    // fetchVendorEngineer(rfq.rfq_id);
     setVendorModalIsOpen(true);
   }
 
@@ -1643,13 +1652,12 @@ export default function RFQListingPage() {
               {/* Modal Header */}
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
-                <p className="text-sm text-[#4b4b80]">Assign this RFQ to an Vendor development Engineer</p>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to Vendor development Engineer</p>
               </div>
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
-                {/* Dropdown for NPD Engineers */}
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
                   <select
                     className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
@@ -1670,7 +1678,7 @@ export default function RFQListingPage() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
 
                 <textarea
                   value={approveComment}
@@ -1793,8 +1801,8 @@ export default function RFQListingPage() {
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
-                {/* Dropdown for NPD Engineers */}
-                <div className="space-y-2">
+                
+                {/* <div className="space-y-2">
                   <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
                   <select
                     className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
@@ -1815,7 +1823,7 @@ export default function RFQListingPage() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div> */}
 
                 <textarea
                   value={approveComment}
