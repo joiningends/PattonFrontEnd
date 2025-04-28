@@ -12,6 +12,7 @@ import {
   Flashlight,
   UserRoundPlusIcon,
   ScrollIcon,
+  CirclePauseIcon,
   SheetIcon
 } from "lucide-react";
 import axios from "axios"
@@ -201,6 +202,8 @@ export default function RFQListingPage() {
   const [processModalIsOpen, setProcessModalIsOpen] = useState(false);
   const [selectedProcessEngineer, setSelectedProcessEngineer] = useState(null);
   const [openSendRfqtoPlantHeadByProcessModal, setopenSendRfqtoPlantHeadByProcessModal] = useState(false);
+  const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
+  const [selectStatus, setSelectedStatus] = useState(null);
 
   // const { isLoggedIn, user, role, permission } = useAppStore();
 
@@ -699,6 +702,48 @@ export default function RFQListingPage() {
     }
   }
 
+
+  // handle pause rfq modal
+  const handlePauseRFQModal = async (rfq) => {
+    setSelectedRFQ(rfq);
+    setIsPauseModalOpen(true);
+  }
+
+  // handle pause RFQ 
+  const handlePauseRFQ = async () => {
+    setIsLoading(true);
+    setError("");
+
+    const status = selectedRFQ.rfq_status ? false : true;
+    console.log("selectedRFQ: ", selectedRFQ);
+
+    try {
+      const response = await axiosInstance.get(`/rfq/update-rfq/status/${selectedRFQ.rfq_id}/${status}`);
+      console.log("Status update response: ", response);
+
+      const commentResponse = await axiosInstance.post("/rfq/save-comments", {
+        user_id: user.id,
+        rfq_id: selectedRFQ.rfq_id,
+        state_id: status ? selectedRFQ.state_id : 100,                 // Hardcode state for RFQ paused.
+        comments: approveComment,
+      });
+
+      if (response.data.success && commentResponse.data.success) {
+        setSuccessMessage("RFQ status updated successfully.");
+        fetchRFQs();
+        setIsPauseModalOpen(false);
+        setSelectedRFQ(null);
+        setSelectedStatus(null);
+        setApproveComment("");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
+    } catch (error) {
+      setError("Error pausing RFQ.");
+    } finally {
+      setIsLoading(false)
+    }
+  };
+
   const openApproveModal = (rfq) => {
     console.log("REPlant: ", plants);
     setSelectedRFQ(rfq)
@@ -964,50 +1009,6 @@ export default function RFQListingPage() {
             </div>
           </div>
         </motion.div>
-
-        {/* <div className="relative w-full sm:w-48"> */}
-        {/* <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setIsStateDropdownOpen(!isStateDropdownOpen)}
-            className="w-full h-full px-4 py-3 bg-[#f0f0f9] text-[#000060] rounded-lg text-sm hover:bg-[#e1e1f5] transition-colors shadow-md hover:shadow-lg flex items-center justify-between"
-          >
-            <Filter className="mr-2 h-4 w-4" />
-            <span>{filterState}</span>
-            <ChevronDown className="h-4 w-4" />
-          </motion.button>
-          <AnimatePresence>
-            {isStateDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="absolute z-[999] w-full mt-2 bg-white rounded-lg shadow-lg"
-                style={{ position: "absolute", minWidth: "200px" }}
-              >
-                <motion.button
-                  whileHover={{ backgroundColor: "#f0f0f9" }}
-                  onClick={() => handleStateSelect("All")}
-                  className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
-                >
-                  <span>All</span>
-                  {"All" === filterState && <Check className="h-4 w-4 text-[#000060]" />}
-                </motion.button>
-                {states.map((state) => (
-                  <motion.button
-                    key={state.state_id}
-                    whileHover={{ backgroundColor: "#f0f0f9" }}
-                    onClick={() => handleStateSelect(state.state_description)}
-                    className="w-full px-4 py-2 text-left text-sm transition-colors flex items-center justify-between"
-                  >
-                    <span>{state.state_description}</span>
-                    {state.state_description === filterState && <Check className="h-4 w-4 text-[#000060]" />}
-                  </motion.button>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence> */}
-        {/* </div> */}
       </header>
 
       <AnimatePresence>
@@ -1055,6 +1056,9 @@ export default function RFQListingPage() {
                     <div className="flex items-center">Client</div>
                   </th>
                   <th className="px-6 py-4 font-extrabold text-sm">
+                    <div className="flex items-center">Active</div>
+                  </th>
+                  <th className="px-6 py-4 font-extrabold text-sm">
                     <div className="flex items-center">Status</div>
                   </th>
                   <th className="px-6 py-4 font-extrabold text-sm">
@@ -1081,6 +1085,17 @@ export default function RFQListingPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">{rfq.client_name}</td>
+                    <td className="px-6 py-4 flex items-center">
+                      {rfq.rfq_status === true ?
+                        <div className="flex space-x-2 items-center justify-center">
+                          <span className="flex w-2 h-2 bg-lime-700 rounded-full animate-pulse"></span>
+                          <div>Active</div>
+                        </div>
+                        :
+                        <div className="flex space-x-2 items-center justify-center">
+                          <span className="flex w-2 h-2 bg-yellow-700 rounded-full animate-pulse"></span>
+                          <div>Paused</div>
+                        </div>}</td>
                     <td className="px-6 py-4">
                       {rfq.state_description && (
                         <button
@@ -1092,191 +1107,189 @@ export default function RFQListingPage() {
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      {(rfq.state_id === 1) ? (
-                        <div className="flex items-center space-x-2">
-                          {/* <button
-                            onClick={() => handleEdit(rfq.rfq_id)}
-                            className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
-                          >
-                            <EditIcon className="w-5 h-5" />
-                          </button> */}
-                          {/* <button
-                            onClick={() => handleDelete(rfq.rfq_id)}
-                            className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button> */}
-                          <button
-                            onClick={() => openApproveModal(rfq)}
-                            className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
-                          >
-                            <CheckIcon className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => openRejectModal(rfq)}
-                            className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                          >
-                            <XIcon className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => RfqDetailedInfo(rfq)}
-                            className="p-2 rounded-full hover:bg-yellow-200"
-                          >
-                            <Info className="w-5 h-5" />
-                          </button>
+                      <div className="flex items-center space-x-2">
+                        {(rfq.state_id === 1) ? (
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => openApproveModal(rfq)}
+                              className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                            >
+                              <CheckIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => openRejectModal(rfq)}
+                              className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                            >
+                              <XIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => RfqDetailedInfo(rfq)}
+                              className="p-2 rounded-full hover:bg-yellow-200"
+                            >
+                              <Info className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handlePauseRFQModal(rfq)}
+                              className="p-2 rounded-full hover:bg-yellow-400"
+                              id="rfq-pause"
+                            >
+                              <CirclePauseIcon className="w-5 h-5" />
+                            </button>
+                            <Tooltip anchorSelect="#rfq-pause">Pause RFQ</Tooltip>
 
-                        </div>
-                      ) : (
-                        // <span className="text-gray-500">No actions available</span>
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => RfqDetailedInfo(rfq)}
-                            className="p-2 rounded-full hover:bg-yellow-200"
-                            id="rfq-details"
-                          >
-                            <Info className="w-5 h-5" />
-                          </button>
-                          <Tooltip anchorSelect="#rfq-details">RFQ Details</Tooltip>
+                          </div>
+                        ) : (
+                          // <span className="text-gray-500">No actions available</span>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => RfqDetailedInfo(rfq)}
+                              className="p-2 rounded-full hover:bg-yellow-200"
+                              id="rfq-details"
+                            >
+                              <Info className="w-5 h-5" />
+                            </button>
+                            <Tooltip anchorSelect="#rfq-details">RFQ Details</Tooltip>
 
-                          {/* <button
-                            onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
-                            className="p-2 rounded-full hover:bg-green-100"
-                          >
-                            <PackagePlusIcon className="w-5 h-5" />
-                          </button> */}
+                            {(roleId === 12 || roleId === 8) && (
+                              <>
+                                <button
+                                  onClick={() => handlePauseRFQModal(rfq)}
+                                  className="p-2 rounded-full hover:bg-yellow-400"
+                                  id="rfq-pause"
+                                >
+                                  <CirclePauseIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#rfq-pause">Pause RFQ</Tooltip>
+                              </>
+                            )}
 
-                          {/* Plant head login */}
-                          {(rfq.state_id === 2 && roleId === 15) && (
-                            <>
-                              <button
-                                onClick={() => openApproveAssignNPDengModal(rfq)}
-                                className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
-                              >
-                                <CheckIcon className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => openRejectAssignNPDengModal(rfq)}
-                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                              >
-                                <XIcon className="w-5 h-5" />
-                              </button>
-                            </>
-                          )}
+                            {/* Plant head login */}
+                            {(rfq.state_id === 2 && roleId === 15) && (
+                              <>
+                                <button
+                                  onClick={() => openApproveAssignNPDengModal(rfq)}
+                                  className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                >
+                                  <CheckIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => openRejectAssignNPDengModal(rfq)}
+                                  className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                                >
+                                  <XIcon className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
 
-                          {/* For plant head Revision */}
-                          {(rfq.state_id === 14 && roleId === 15) && (
-                            <>
-                              <button
-                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
-                                className="p-2 rounded-full hover:bg-green-100"
-                                id="add-products"
-                              >
-                                <ScrollIcon className="w-5 h-5" />
-                              </button>
+                            {/* For plant head Revision */}
+                            {(rfq.state_id === 14 && roleId === 15) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
 
-                              <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
-                            </>
-                          )}
+                                <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+                              </>
+                            )}
 
-                          {/* For NPD engineer login */}
-                          {(rfq.state_id === 9 && roleId === 19) && (
-                            <>
-                              <button
-                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
-                                className="p-2 rounded-full hover:bg-green-100"
-                              >
-                                <PackagePlusIcon className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => openApproveAssignVendorengModal(rfq)}
-                                className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
-                              >
-                                <CheckIcon className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => openRejectAssignVendorengModal(rfq)}
-                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                              >
-                                <XIcon className="w-5 h-5" />
-                              </button>
-                            </>
-                          )}
+                            {/* For NPD engineer login */}
+                            {(rfq.state_id === 9 && roleId === 19) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                >
+                                  <PackagePlusIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => openApproveAssignVendorengModal(rfq)}
+                                  className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                >
+                                  <CheckIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => openRejectAssignVendorengModal(rfq)}
+                                  className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                                >
+                                  <XIcon className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
 
-                          {/* For vendor development engineer login */}
-                          {(rfq.state_id === 11 && roleId === 21) && (
-                            <>
-                              <button
-                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
-                                className="p-2 rounded-full hover:bg-green-100"
-                                id="add-products"
-                              >
-                                <PackagePlusIcon className="w-5 h-5" />
-                              </button>
+                            {/* For vendor development engineer login */}
+                            {(rfq.state_id === 11 && roleId === 21) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <PackagePlusIcon className="w-5 h-5" />
+                                </button>
 
-                              <Tooltip anchorSelect="#add-products">Add Products</Tooltip>
-                              <button
-                                onClick={() => openApproveAssignProcessengModal(rfq)}
-                                className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
-                                id="assign-processeng"
-                              >
-                                <UserRoundPlusIcon className="w-5 h-5" />
-                              </button>
-                              <Tooltip anchorSelect="#assign-processeng">Assign Process Engineer</Tooltip>
+                                <Tooltip anchorSelect="#add-products">Add Products</Tooltip>
+                                <button
+                                  onClick={() => openApproveAssignProcessengModal(rfq)}
+                                  className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="assign-processeng"
+                                >
+                                  <UserRoundPlusIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#assign-processeng">Assign Process Engineer</Tooltip>
 
-                              {/* <button
+                              </>
+                            )}
+
+                            {/* For Process engineer login */}
+                            {(rfq.state_id === 13 && roleId === 20) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
+
+                                <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+                                <button
+                                  onClick={() => openSendRfqtoPlantHeadByProcess(rfq)}
+                                  className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="assign-processeng"
+                                >
+                                  <UserRoundPlusIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#assign-processeng">Assign to PlantHead</Tooltip>
+
+                                {/* <button
                                 onClick={() => openRejectAssignVendorengModal(rfq)}
                                 className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
                               >
                                 <XIcon className="w-5 h-5" />
                               </button> */}
-                            </>
-                          )}
+                              </>
+                            )}
 
-                          {/* For Process engineer login */}
-                          {(rfq.state_id === 13 && roleId === 20) && (
-                            <>
-                              <button
-                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
-                                className="p-2 rounded-full hover:bg-green-100"
-                                id="add-products"
-                              >
-                                <ScrollIcon className="w-5 h-5" />
-                              </button>
+                            {/* For Process engineer login */}
+                            {(rfq.state_id === 14 && roleId === 20) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
 
-                              <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
-                              <button
-                                onClick={() => openSendRfqtoPlantHeadByProcess(rfq)}
-                                className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
-                                id="assign-processeng"
-                              >
-                                <UserRoundPlusIcon className="w-5 h-5" />
-                              </button>
-                              <Tooltip anchorSelect="#assign-processeng">Assign to PlantHead</Tooltip>
-
-                              {/* <button
-                                onClick={() => openRejectAssignVendorengModal(rfq)}
-                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                              >
-                                <XIcon className="w-5 h-5" />
-                              </button> */}
-                            </>
-                          )}
-
-                          {/* For Process engineer login */}
-                          {(rfq.state_id === 14 && roleId === 20) && (
-                            <>
-                              <button
-                                onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
-                                className="p-2 rounded-full hover:bg-green-100"
-                                id="add-products"
-                              >
-                                <ScrollIcon className="w-5 h-5" />
-                              </button>
-                            </>
-                          )}
-
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </motion.tr>
                 ))}
@@ -1657,28 +1670,6 @@ export default function RFQListingPage() {
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
-                {/* <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
-                  <select
-                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
-                    value={selectedVendorEngineer?.user_id || ""}
-                    onChange={(e) => {
-                      const selected = vendorEngineers.find(
-                        (engineer) => engineer.user_id === parseInt(e.target.value)
-                      );
-                      setSelectedVendorEngineer(selected);
-                    }}
-                  >
-                    <option value="" disabled>
-                      Select an engineer
-                    </option>
-                    {vendorEngineers.map((engineer) => (
-                      <option key={engineer.user_id} value={engineer.user_id}>
-                        {engineer.first_name + " " + engineer.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
 
                 <textarea
                   value={approveComment}
@@ -1801,7 +1792,7 @@ export default function RFQListingPage() {
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
-                
+
                 {/* <div className="space-y-2">
                   <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
                   <select
@@ -1907,6 +1898,65 @@ export default function RFQListingPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+
+      {/* Modal for Pause RFQ */}
+      <AnimatePresence>
+        {isPauseModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">{selectedRFQ.rfq_status ? "Pause" : "Activate"} RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Pause this RFQ to restrict any further actions</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setIsPauseModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePauseRFQ}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {selectedRFQ.rfq_status ? "Pause" : "Activate"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
 
     </motion.div>
   )
