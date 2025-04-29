@@ -740,7 +740,7 @@ export default function AddProductPage() {
                                 )}
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-2xl font-bold text-[#000060]">
-                                        Products for {selectedSku?.sku_name}
+                                        Components for {selectedSku?.sku_name}
                                     </h2>
                                     <button
                                         onClick={handleCloseModal}
@@ -751,7 +751,7 @@ export default function AddProductPage() {
                                 </div>
 
                                 <h3 className="text-xl font-semibold text-[#000060] mb-4">
-                                    {isEditMode ? "Edit Product" : "Add New Product"}
+                                    {isEditMode ? "Edit Component" : "Add New Component"}
                                 </h3>
                                 <form
                                     onSubmit={e => e.preventDefault()}
@@ -762,7 +762,7 @@ export default function AddProductPage() {
                                             htmlFor="product_name"
                                             className="block text-sm font-medium text-[#000060] mb-1"
                                         >
-                                            Product Name
+                                            Component Name
                                         </label>
                                         <input
                                             type="text"
@@ -924,7 +924,7 @@ export default function AddProductPage() {
                                 {selectedSku?.products && selectedSku.products.length > 0 ? (
                                     <div>
                                         <h3 className="text-xl font-semibold text-[#000060] mb-2">
-                                            Existing Products
+                                            Existing Components
                                         </h3>
                                         <table className="w-full border-collapse rounded-lg overflow-hidden">
                                             <thead>
@@ -1024,8 +1024,8 @@ export default function AddProductPage() {
                                     </div>
                                 ) : (
                                     <p className="text-[#4b4b80] italic">
-                                        No products added yet. Use the form above to add a new
-                                        product.
+                                        No components added yet. Use the form above to add a new
+                                        component.
                                     </p>
                                 )}
                             </motion.div>
@@ -1289,7 +1289,7 @@ export default function AddProductPage() {
                                 {selectedSku?.products && selectedSku.products.length > 0 ? (
                                     <div className="max-h-[500px] overflow-y-auto">
                                         <h3 className="text-xl font-semibold text-[#000060] mb-2">
-                                            Existing Products
+                                            Existing Components
                                         </h3>
                                         <table className="w-full border-collapse rounded-lg">
                                             <thead>
@@ -1386,7 +1386,7 @@ export default function AddProductPage() {
                                     </div>
                                 ) : (
                                     <p className="text-[#4b4b80] italic">
-                                        No products added yet. Use the form above to add a new product.
+                                        No components added yet. Use the form above to add a new component.
                                     </p>
                                 )}
                             </motion.div>
@@ -1416,7 +1416,7 @@ export default function AddProductPage() {
                                 )}
                                 <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-2xl font-bold text-[#000060]">
-                                        Products for {selectedSku?.sku_name}
+                                        Components for {selectedSku?.sku_name}
                                     </h2>
                                     <button
                                         onClick={handleCloseNonBOMmodal}
@@ -1434,7 +1434,7 @@ export default function AddProductPage() {
                                 {selectedSku?.products && selectedSku.products.length > 0 ? (
                                     <div>
                                         <h3 className="text-xl font-semibold text-[#000060] mb-2">
-                                            Existing Products
+                                            Existing Components
                                         </h3>
                                         <table className="w-full border-collapse rounded-lg overflow-hidden">
                                             <thead>
@@ -1510,8 +1510,8 @@ export default function AddProductPage() {
                                     </div>
                                 ) : (
                                     <p className="text-[#4b4b80] italic">
-                                        No products added yet. Use the form above to add a new
-                                        product.
+                                        No components added yet. Use the form above to add a new
+                                        component.
                                     </p>
                                 )}
                             </motion.div>
@@ -1653,7 +1653,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                         >
                                             <EyeIcon className="w-5 h-5" />
                                         </button>
-                                        <Tooltip anchorSelect="#my-tooltip">View Products</Tooltip>
+                                        <Tooltip anchorSelect="#my-tooltip">View Components</Tooltip>
                                     </>
                                 )}
                                 {(role_id === 21 || role_id === 19) && (
@@ -1665,7 +1665,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                         <CirclePlusIcon className="w-5 h-5" />
 
                                         {role_id === 19 ? (
-                                            <Tooltip anchorSelect="#add-bom">Add Products</Tooltip>
+                                            <Tooltip anchorSelect="#add-bom">Add Component</Tooltip>
                                         ) : (
                                             <Tooltip anchorSelect="#add-bom">Add BOM</Tooltip>
                                         )}

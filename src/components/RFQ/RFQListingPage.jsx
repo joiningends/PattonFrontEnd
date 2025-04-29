@@ -1088,12 +1088,12 @@ export default function RFQListingPage() {
                     <td className="px-6 py-4 flex items-center">
                       {rfq.rfq_status === true ?
                         <div className="flex space-x-2 items-center justify-center">
-                          <span className="flex w-2 h-2 bg-lime-700 rounded-full animate-pulse"></span>
+                          <span className="flex w-2 h-2 bg-lime-500 rounded-full animate-pulse"></span>
                           <div>Active</div>
                         </div>
                         :
                         <div className="flex space-x-2 items-center justify-center">
-                          <span className="flex w-2 h-2 bg-yellow-700 rounded-full animate-pulse"></span>
+                          <span className="flex w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
                           <div>Paused</div>
                         </div>}</td>
                     <td className="px-6 py-4">
@@ -1108,7 +1108,9 @@ export default function RFQListingPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
-                        {(rfq.state_id === 1) ? (
+
+                        {/* Account manager login */}
+                        {(rfq.state_id === 1 && rfq.rfq_status === true) ? (
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => openApproveModal(rfq)}
@@ -1125,9 +1127,11 @@ export default function RFQListingPage() {
                             <button
                               onClick={() => RfqDetailedInfo(rfq)}
                               className="p-2 rounded-full hover:bg-yellow-200"
+                              id="rfq-details"
                             >
                               <Info className="w-5 h-5" />
                             </button>
+                            <Tooltip anchorSelect="#rfq-details">RFQ Details</Tooltip>
                             <button
                               onClick={() => handlePauseRFQModal(rfq)}
                               className="p-2 rounded-full hover:bg-yellow-400"
@@ -1150,6 +1154,7 @@ export default function RFQListingPage() {
                             </button>
                             <Tooltip anchorSelect="#rfq-details">RFQ Details</Tooltip>
 
+                            {/* Account manager and Admin */}
                             {(roleId === 12 || roleId === 8) && (
                               <>
                                 <button
@@ -1164,7 +1169,7 @@ export default function RFQListingPage() {
                             )}
 
                             {/* Plant head login */}
-                            {(rfq.state_id === 2 && roleId === 15) && (
+                            {(rfq.state_id === 2 && roleId === 15 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => openApproveAssignNPDengModal(rfq)}
@@ -1182,7 +1187,7 @@ export default function RFQListingPage() {
                             )}
 
                             {/* For plant head Revision */}
-                            {(rfq.state_id === 14 && roleId === 15) && (
+                            {(rfq.state_id === 14 && roleId === 15 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
@@ -1197,7 +1202,7 @@ export default function RFQListingPage() {
                             )}
 
                             {/* For NPD engineer login */}
-                            {(rfq.state_id === 9 && roleId === 19) && (
+                            {(rfq.state_id === 9 && roleId === 19 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
@@ -1211,17 +1216,17 @@ export default function RFQListingPage() {
                                 >
                                   <CheckIcon className="w-5 h-5" />
                                 </button>
-                                <button
+                                {/* <button
                                   onClick={() => openRejectAssignVendorengModal(rfq)}
                                   className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
                                 >
                                   <XIcon className="w-5 h-5" />
-                                </button>
+                                </button> */}
                               </>
                             )}
 
                             {/* For vendor development engineer login */}
-                            {(rfq.state_id === 11 && roleId === 21) && (
+                            {(rfq.state_id === 11 && roleId === 21 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
@@ -1245,7 +1250,7 @@ export default function RFQListingPage() {
                             )}
 
                             {/* For Process engineer login */}
-                            {(rfq.state_id === 13 && roleId === 20) && (
+                            {(rfq.state_id === 13 && roleId === 20 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
@@ -1265,17 +1270,11 @@ export default function RFQListingPage() {
                                 </button>
                                 <Tooltip anchorSelect="#assign-processeng">Assign to PlantHead</Tooltip>
 
-                                {/* <button
-                                onClick={() => openRejectAssignVendorengModal(rfq)}
-                                className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                              >
-                                <XIcon className="w-5 h-5" />
-                              </button> */}
                               </>
                             )}
 
                             {/* For Process engineer login */}
-                            {(rfq.state_id === 14 && roleId === 20) && (
+                            {(rfq.state_id === 14 && roleId === 20 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
