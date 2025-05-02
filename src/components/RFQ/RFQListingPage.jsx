@@ -809,7 +809,7 @@ export default function RFQListingPage() {
         rfq_id: selectedRFQ.rfq_id,
         user_id: user.id, // This should be dynamically set based on the logged-in user
         state_id: 2,
-        plant_id: selectedPlants[0], // We're using the first selected plant for now
+        plant_ids: selectedPlants, // We're using the first selected plant for now
         comments: approveComment || null,
       })
       if (response.data.success) {
@@ -1331,7 +1331,7 @@ export default function RFQListingPage() {
       </motion.div>
 
       {/* Approve Modal */}
-      {isApproveModalOpen && (
+      {/* {isApproveModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold text-[#000060] mb-4">Approve RFQ</h2>
@@ -1379,6 +1379,68 @@ export default function RFQListingPage() {
                   }`}
               >
                 Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )} */}
+
+      {/* Approve Modal */}
+      {isApproveModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-[#000060] mb-4">Approve RFQ</h2>
+            <p className="mb-4 text-[#4b4b80]">
+              Select one or more plants and add a comment to approve this RFQ.
+            </p>
+            <div className="mb-4 space-y-2 max-h-60 overflow-y-auto">
+              {plants.map((plant) => (
+                <label key={plant.plant_id} className="flex items-center space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedPlants.includes(plant.plant_id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPlants([...selectedPlants, plant.plant_id])
+                      } else {
+                        setSelectedPlants(selectedPlants.filter((id) => id !== plant.plant_id))
+                      }
+                    }}
+                    className="form-checkbox h-5 w-5 text-[#000060] rounded border-gray-300 focus:ring-[#000060] transition duration-150 ease-in-out"
+                  />
+                  <span className="text-[#2d2d5f]">{plant.plantname}</span>
+                </label>
+              ))}
+            </div>
+            <textarea
+              value={approveComment}
+              onChange={(e) => setApproveComment(e.target.value)}
+              placeholder="Add your comment here... (required)"
+              className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+              rows="3"
+              required
+            />
+            {selectedPlants.length > 0 && (
+              <p className="text-sm text-[#4b4b80] mb-4">
+                This RFQ will be assigned to {selectedPlants.length} plant(s).
+              </p>
+            )}
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsApproveModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={!isApproveValid}
+                className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
+                    ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+              >
+                Approve to {selectedPlants.length} Plant(s)
               </button>
             </div>
           </div>
