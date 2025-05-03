@@ -215,6 +215,8 @@ export default function RFQListingPage() {
   const parsedState = JSON.parse(appState);
 
   const roleId = parsedState?.user?.roleid || null;
+  const userId = parsedState?.user?.id || null;
+
 
   if (isStoreLoading) {
     return <div>Loading user data...</div>;
@@ -235,7 +237,7 @@ export default function RFQListingPage() {
   // fetch NPD engineers
   const fetchNPDengineers = async (rfqId) => {
     try {
-      const response = await axiosInstance.get(`/users/get-npdengineer/${rfqId}`);
+      const response = await axiosInstance.get(`/users/get-npdengineer/${userId}`);
       if (response.data.success) {
         console.log("NPD engineer's: ", response.data.data);
         setNPDEngineer(response.data.data);
@@ -251,7 +253,7 @@ export default function RFQListingPage() {
   // fetch Vendor engineers
   const fetchVendorEngineer = async (rfqId) => {
     try {
-      const response = await axiosInstance.get(`/users/get-vendoreng/${rfqId}`);
+      const response = await axiosInstance.get(`/users/get-vendoreng/${userId}`);
       if (response.data.success) {
         console.log("Vendor engineer's: ", response.data.data);
         setVendorEngineers(response.data.data);
@@ -266,7 +268,7 @@ export default function RFQListingPage() {
 
   const fetchProcessEngineer = async (rfqId) => {
     try {
-      const response = await axiosInstance.get(`/users/get-processeng/${rfqId}`);
+      const response = await axiosInstance.get(`/users/get-processeng/${userId}`);
       if (response.data.success) {
         console.log("Process engineer: ", response.data.data);
         setProcessEngineers(response.data.data);
@@ -309,8 +311,15 @@ export default function RFQListingPage() {
 
   const fetchRFQs = useCallback(async () => {
     setIsLoading(true)
+    let query = ``;
+      if(roleId == 8) {
+        query = `http://localhost:3000/api/rfq/getrfq-planthead`;
+      }else{
+        query = `http://localhost:3000/api/rfq/getrfq`
+      }
     try {
-      const response = await axiosInstance.post("http://localhost:3000/api/rfq/getrfq", {
+      console.log(user.id);
+      const response = await axiosInstance.post(query, {
         p_user_id: user.id, // This should be dynamically set based on the logged-in user
         p_role_id: roleId,
         p_rfq_id: null,
@@ -327,6 +336,7 @@ export default function RFQListingPage() {
     }
     setIsLoading(false)
   }, [])
+  
 
 
   // fetch the RFQs for NPD eng.

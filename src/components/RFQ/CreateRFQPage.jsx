@@ -10,6 +10,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import axiosInstance from "../../axiosConfig";
 import * as XLSX from "xlsx";
+import useAppStore from "../../zustandStore";
 
 import sampleExcel from "../../assets/Sample_excel_Bulkupload.xlsx";
 
@@ -44,6 +45,8 @@ export default function CreateRFQPage() {
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const [selectedSKU, setSelectedSKU] = useState(null);
   const [submitError, setSubmitError] = useState("");
+
+  const { user } = useAppStore();
 
   const openDescriptionModal = sku => {
     setSelectedSKU(sku);
@@ -177,7 +180,7 @@ export default function CreateRFQPage() {
           "/rfq/saverfq",
           {
             p_rfq_name: rfqName,
-            p_user_id: 3, // This should be dynamically set based on the logged-in user
+            p_user_id: user.id, 
             p_client_id: selectedClient.value,
             p_skus: skus.map(sku => ({
               sku_name: sku.name,

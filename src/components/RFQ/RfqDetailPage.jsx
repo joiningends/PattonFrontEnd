@@ -71,8 +71,8 @@ export default function RFQDetailsPage() {
 
 
             try {
-                const response = await axiosInstance.post(`/rfq/getrfq`, {
-                    p_user_id: userId,
+                const response = await axiosInstance.post(`/rfq/getrfq-planthead`, {
+                    p_user_id: user.id,
                     p_rfq_id: rfqId,               // Need to be dynamic
                     p_client_id: null,
                 });
