@@ -817,9 +817,9 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
-        user_id: user.id, // This should be dynamically set based on the logged-in user
+        user_id: user.id, 
         state_id: 2,
-        plant_ids: selectedPlants, // We're using the first selected plant for now
+        plant_ids: selectedPlants,            // array of plants 
         comments: approveComment || null,
       })
       if (response.data.success) {

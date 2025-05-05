@@ -18,7 +18,6 @@ import {
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
 
-
 export default function PlantListingPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,7 +34,6 @@ export default function PlantListingPage() {
   let pagePermission = null;
   if (permission) {
     pagePermission = permission?.find((p) => p.page_id === 9);
-    console.log(pagePermission.permissions);
   }
 
   useEffect(() => {
@@ -46,10 +44,23 @@ export default function PlantListingPage() {
     setIsLoading(true);
     try {
       const response = await axiosInstance.get(`/plant`);
-
-      console.log("Plant response: ", response);
+      
       if (response.data.success) {
-        setPlants(response.data.data[0]);
+        // Process the plant data to handle engineer arrays
+        const processedPlants = response.data.data.map(plant => ({
+          ...plant,
+          // Convert JSON arrays to arrays if they're strings
+          process_engineers: typeof plant.process_engineers === 'string' 
+            ? JSON.parse(plant.process_engineers) 
+            : plant.process_engineers || [],
+          npd_engineers: typeof plant.npd_engineers === 'string' 
+            ? JSON.parse(plant.npd_engineers) 
+            : plant.npd_engineers || [],
+          vendor_development_engineers: typeof plant.vendor_development_engineers === 'string' 
+            ? JSON.parse(plant.vendor_development_engineers) 
+            : plant.vendor_development_engineers || []
+        }));
+        setPlants(processedPlants);
       } else {
         setError("Failed to fetch plants");
       }
@@ -70,21 +81,18 @@ export default function PlantListingPage() {
           .toString()
           .toLowerCase()
           .includes(searchTerm.toLowerCase())) ||
-      (plant.process_engineer &&
-        plant.process_engineer
-          .toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
-      (plant.npd_engineer &&
-        plant.npd_engineer
-          .toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
-      (plant.vendor_development_engineer &&
-        plant.vendor_development_engineer
-          .toString()
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase())) ||
+      (plant.process_engineers && 
+        plant.process_engineers.some(eng => 
+          eng.username.toLowerCase().includes(searchTerm.toLowerCase())
+        )) ||
+      (plant.npd_engineers && 
+        plant.npd_engineers.some(eng => 
+          eng.username.toLowerCase().includes(searchTerm.toLowerCase())
+        )) ||
+      (plant.vendor_development_engineers && 
+        plant.vendor_development_engineers.some(eng => 
+          eng.username.toLowerCase().includes(searchTerm.toLowerCase())
+        )) ||
       plant.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
       plant.state.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -124,6 +132,12 @@ export default function PlantListingPage() {
         );
       }
     }
+  };
+
+  // Helper function to display engineer names
+  const renderEngineers = (engineers) => {
+    if (!engineers || engineers.length === 0) return "Not assigned";
+    return engineers.map(eng => eng.username).join(", ");
   };
 
   return (
@@ -233,19 +247,19 @@ export default function PlantListingPage() {
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <User className="mr-2" />
-                        Process Engineer
+                        Process Engineer(s)
                       </div>
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <User className="mr-2" />
-                        NPD Engineer
+                        NPD Engineer(s)
                       </div>
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">
                       <div className="flex items-center">
                         <User className="mr-2" />
-                        Vendor dev Engineer
+                        Vendor Dev Engineer(s)
                       </div>
                     </th>
                     <th className="px-6 py-4 font-extrabold text-sm">
@@ -262,7 +276,7 @@ export default function PlantListingPage() {
                 <tbody>
                   {currentPlants.map((plant, index) => (
                     <motion.tr
-                      key={plant.id}
+                      key={plant.plant_id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.1 }}
@@ -281,18 +295,18 @@ export default function PlantListingPage() {
                         {plant.plant_head || "Not assigned"}
                       </td>
                       <td className="px-6 py-4">
-                        {plant.process_engineer || "Not assigned"}
+                        {renderEngineers(plant.process_engineers)}
                       </td>
                       <td className="px-6 py-4">
-                        {plant.npd_engineer || "Not assigned"}
+                        {renderEngineers(plant.npd_engineers)}
                       </td>
                       <td className="px-6 py-4">
-                        {plant.vendor_development_engineer || "Not assigned"}
+                        {renderEngineers(plant.vendor_development_engineers)}
                       </td>
                       <td className="px-6 py-4">{`${plant.city}, ${plant.state}`}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-2">
-                          {pagePermission.permissions.find((p) => p.permission_id === 2) && (
+                          {pagePermission?.permissions?.find((p) => p.permission_id === 2) && (
                             <button
                               onClick={() => handleEdit(plant.plant_id)}
                               className="p-2 text-[#000060] hover:text-[#0000a0] transition-colors rounded-full hover:bg-[#f0f0f9]"
@@ -300,7 +314,7 @@ export default function PlantListingPage() {
                               <Edit className="w-5 h-5" />
                             </button>
                           )}
-                          {pagePermission.permissions.find((p) => p.permission_id === 3) && (
+                          {pagePermission?.permissions?.find((p) => p.permission_id === 3) && (
                             <button
                               onClick={() => handleDelete(plant.plant_id)}
                               className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"

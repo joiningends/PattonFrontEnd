@@ -15,9 +15,9 @@ export default function CreatePlantPage() {
   const [plantData, setPlantData] = useState({
     plantname: "",
     plant_head: "",
-    process_engineer: "",
-    npd_engineer: "",
-    vendor_development_engineer: "",
+    npd_engineers: [],
+    vendor_development_engineers: [],
+    process_engineers: [],
     address1: "",
     address2: "",
     city: "",
@@ -52,24 +52,30 @@ export default function CreatePlantPage() {
     setErrors({ ...errors, [name]: "" });
   };
 
-  const handleSelectChange = (selectedOption, { name }) => {
-    setPlantData({ ...plantData, [name]: selectedOption.value });
+  const handleSingleSelectChange = (selectedOption, { name }) => {
+    setPlantData({ ...plantData, [name]: selectedOption ? selectedOption.value : "" });
+    setErrors({ ...errors, [name]: "" });
+  };
+
+  const handleMultiSelectChange = (selectedOptions, { name }) => {
+    setPlantData({
+      ...plantData,
+      [name]: selectedOptions ? selectedOptions.map(option => option.value) : []
+    });
     setErrors({ ...errors, [name]: "" });
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!plantData.plantname.trim())
-      newErrors.plantname = "Plant name is required";
+    if (!plantData.plantname.trim()) newErrors.plantname = "Plant name is required";
     if (!plantData.plant_head) newErrors.plant_head = "Plant head is required";
-    if (!plantData.process_engineer)
-      newErrors.process_engineer = "Process engineer is required";
-    if (!plantData.npd_engineer)
-      newErrors.npd_engineer = "NPD engineer is required";
-    if (!plantData.vendor_development_engineer)
-      newErrors.vendor_development_engineer = "Vendor development engineer is required";
-    if (!plantData.address1.trim())
-      newErrors.address1 = "Address 1 is required";
+    if (!plantData.npd_engineers || plantData.npd_engineers.length === 0)
+      newErrors.npd_engineers = "At least one NPD engineer is required";
+    if (!plantData.vendor_development_engineers || plantData.vendor_development_engineers.length === 0)
+      newErrors.vendor_development_engineers = "At least one vendor development engineer is required";
+    if (!plantData.process_engineers || plantData.process_engineers.length === 0)
+      newErrors.process_engineers = "At least one process engineer is required";
+    if (!plantData.address1.trim()) newErrors.address1 = "Address 1 is required";
     if (!plantData.city.trim()) newErrors.city = "City is required";
     if (!plantData.state.trim()) newErrors.state = "State is required";
     if (!plantData.pincode.trim()) newErrors.pincode = "Pin code is required";
@@ -85,18 +91,27 @@ export default function CreatePlantPage() {
     }
     setIsSubmitting(true);
     try {
-      const response = await axiosInstance.post(
-        `/plant/save`,
-        plantData
-      );
+      const response = await axiosInstance.post(`/plant/save`, {
+        plantname: plantData.plantname,
+        plant_head: plantData.plant_head,
+        address1: plantData.address1,
+        address2: plantData.address2,
+        city: plantData.city,
+        state: plantData.state,
+        pincode: plantData.pincode,
+        p_npd_engineers: plantData.npd_engineers,
+        p_vendor_engineers: plantData.vendor_development_engineers,
+        p_process_engineers: plantData.process_engineers
+      });
+
       if (response.data.success) {
-        setSuccessMessage("Plant created successfully");
+        setSuccessMessage("Plant created and engineers assigned successfully");
         setTimeout(() => {
           navigate("/plants");
         }, 2000);
       } else {
         setErrors({
-          submit: response.data.message || "Failed to create plant",
+          submit: assignResponse.data.message || "Failed to assign engineers",
         });
       }
     } catch (error) {
@@ -161,6 +176,17 @@ export default function CreatePlantPage() {
           )}
         </AnimatePresence>
 
+        {errors.submit && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg"
+          >
+            {errors.submit}
+          </motion.div>
+        )}
+
+        {/* plant creation modal */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -192,9 +218,7 @@ export default function CreatePlantPage() {
                   />
                 </div>
                 {errors.plantname && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.plantname}
-                  </p>
+                  <p className="mt-1 text-sm text-red-500">{errors.plantname}</p>
                 )}
               </div>
 
@@ -209,92 +233,79 @@ export default function CreatePlantPage() {
                   id="plant_head"
                   name="plant_head"
                   options={userOptions}
-                  onChange={option =>
-                    handleSelectChange(option, { name: "plant_head" })
-                  }
+                  onChange={handleSingleSelectChange}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select Plant Head"
                 />
                 {errors.plant_head && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.plant_head}
-                  </p>
+                  <p className="mt-1 text-sm text-red-500">{errors.plant_head}</p>
                 )}
               </div>
 
               <div>
                 <label
-                  htmlFor="process_engineer"
+                  htmlFor="npd_engineers"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  Process Engineer
+                  NPD Engineer(s)
                 </label>
                 <Select
-                  id="process_engineer"
-                  name="process_engineer"
+                  id="npd_engineers"
+                  name="npd_engineers"
                   options={userOptions}
-                  onChange={option =>
-                    handleSelectChange(option, { name: "process_engineer" })
-                  }
+                  isMulti
+                  onChange={handleMultiSelectChange}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select Process Engineer"
+                  placeholder="Select NPD Engineer(s)"
                 />
-                {errors.process_engineer && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.process_engineer}
-                  </p>
+                {errors.npd_engineers && (
+                  <p className="mt-1 text-sm text-red-500">{errors.npd_engineers}</p>
                 )}
               </div>
 
               <div>
                 <label
-                  htmlFor="npd_engineer"
+                  htmlFor="vendor_development_engineers"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  NPD Engineer
+                  Vendor Development Engineer(s)
                 </label>
                 <Select
-                  id="npd_engineer"
-                  name="npd_engineer"
+                  id="vendor_development_engineers"
+                  name="vendor_development_engineers"
                   options={userOptions}
-                  onChange={option =>
-                    handleSelectChange(option, { name: "npd_engineer" })
-                  }
+                  isMulti
+                  onChange={handleMultiSelectChange}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select NPD Engineer"
+                  placeholder="Select Vendor Development Engineer(s)"
                 />
-                {errors.npd_engineer && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.npd_engineer}
-                  </p>
+                {errors.vendor_development_engineers && (
+                  <p className="mt-1 text-sm text-red-500">{errors.vendor_development_engineers}</p>
                 )}
               </div>
 
               <div>
                 <label
-                  htmlFor="vendor_development_engineer"
+                  htmlFor="process_engineers"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  Vendor Development Engineer
+                  Process Engineer(s)
                 </label>
                 <Select
-                  id="vendor_development_engineer"
-                  name="vendor_development_engineer"
+                  id="process_engineers"
+                  name="process_engineers"
                   options={userOptions}
-                  onChange={option =>
-                    handleSelectChange(option, { name: "vendor_development_engineer" })
-                  }
+                  isMulti
+                  onChange={handleMultiSelectChange}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select Vendor development Engineer"
+                  placeholder="Select Process Engineer(s)"
                 />
-                {errors.vendor_development_engineer && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.vendor_development_engineer}
-                  </p>
+                {errors.process_engineers && (
+                  <p className="mt-1 text-sm text-red-500">{errors.process_engineers}</p>
                 )}
               </div>
 
@@ -424,11 +435,10 @@ export default function CreatePlantPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${
-                  isSubmitting
+                className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 ${isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : "hover:shadow-lg transform hover:-translate-y-1"
-                }`}
+                  }`}
               >
                 {isSubmitting ? "Creating..." : "Create Plant"}
               </button>

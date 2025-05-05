@@ -8,7 +8,6 @@ import axios from "axios";
 import Select from "react-select";
 import axiosInstance from "../../axiosConfig";
 
-
 export default function EditPlantPage() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -16,12 +15,9 @@ export default function EditPlantPage() {
     plantname: "",
     plant_head: "",
     plant_head_id: null,
-    process_engineer: "",
-    process_engineer_id: null,
-    npd_engineer: "",
-    npd_engineer_id: null,
-    vendor_development_engineer: "",
-    vendor_development_engineer_id: null,
+    npd_engineers: [],
+    vendor_development_engineers: [],
+    process_engineers: [],
     address1: "",
     address2: "",
     city: "",
@@ -41,11 +37,31 @@ export default function EditPlantPage() {
   const fetchPlantData = async () => {
     try {
       const response = await axiosInstance.get(`/plant/${id}`);
-      console.log("plantData: ", response.data.data[0]);
       if (response.data.success) {
-        setPlantData(response.data.data[0][0]);
-      } else {
-        setErrors({ submit: "Failed to fetch plant data" });
+        const plant = response.data.data[0] || response.data.data;
+
+        // Normalize engineer data to always be arrays of IDs
+        const normalizeEngineers = (engineers) => {
+          if (!engineers) return [];
+          if (Array.isArray(engineers)) {
+            return engineers.map(eng => eng.id || eng);
+          }
+          return [engineers.id || engineers];
+        };
+
+        setPlantData({
+          plantname: plant.plantname,
+          plant_head: plant.plant_head || "",
+          plant_head_id: plant.plant_head_id || null,
+          npd_engineers: normalizeEngineers(plant.npd_engineers),
+          vendor_development_engineers: normalizeEngineers(plant.vendor_development_engineers),
+          process_engineers: normalizeEngineers(plant.process_engineers),
+          address1: plant.address1,
+          address2: plant.address2,
+          city: plant.city,
+          state: plant.state,
+          pincode: plant.pincode
+        });
       }
     } catch (error) {
       setErrors({ submit: "Error fetching plant data" });
@@ -71,61 +87,36 @@ export default function EditPlantPage() {
     setErrors({ ...errors, [name]: "" });
   };
 
-  // const handleSelectChange = (selectedOption, { name }) => {
-  //   setPlantData({ ...plantData, [name]: selectedOption.value });
-  //   setErrors({ ...errors, [name]: "" });
-  // };
-
-  const handleSelectChange = (selectedOption, { name }) => {
-    console.log("Selected Option:", selectedOption);
-    console.log("Field Name:", name);
-
-    if (name === "plant_head") {
-      setPlantData({
-        ...plantData,
-        plant_head: selectedOption.label,
-        plant_head_id: selectedOption.value,
-      });
-    } else if (name === "process_engineer") {
-      setPlantData({
-        ...plantData,
-        process_engineer: selectedOption.label,
-        process_engineer_id: selectedOption.value,
-      });
-    } else if (name === "npd_engineer") {
-      setPlantData({
-        ...plantData,
-        npd_engineer: selectedOption.label,
-        npd_engineer_id: selectedOption.value,
-      });
-    } else if (name == "vendor_development_engineer") {
-      setPlantData({
-        ...plantData,
-        vendor_development_engineer: selectedOption.label,
-        vendor_development_engineer_id: selectedOption.value,
-      });
-    }
+  const handleSingleSelectChange = (selectedOption, { name }) => {
+    setPlantData({
+      ...plantData,
+      [name]: selectedOption ? selectedOption.label : "",
+      [`${name}_id`]: selectedOption ? selectedOption.value : null
+    });
     setErrors({ ...errors, [name]: "" });
+  };
 
-    console.log("Updated Plant Data:", plantData);
+  const handleMultiSelectChange = (selectedOptions, { name }) => {
+    setPlantData({
+      ...plantData,
+      [name]: selectedOptions ? selectedOptions.map(option => option.value) : []
+    });
+    setErrors({ ...errors, [name]: "" });
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!plantData.plantname?.trim())
-      newErrors.plantname = "Plant name is required";
-    if (!plantData.plant_head) newErrors.plant_head = "Plant head is required";
-    if (!plantData.process_engineer)
-      newErrors.process_engineer = "Process engineer is required";
-    if (!npd_engineer)
-      newErrors.npd_engineer = "NPD engineer is required";
-    if (!vendor_development_engineer)
-      newErrors.vendor_development_engineer = "Vendor development engineer is required";
-    if (!plantData.address1?.trim())
-      newErrors.address1 = "Address 1 is required";
+    if (!plantData.plantname?.trim()) newErrors.plantname = "Plant name is required";
+    if (!plantData.plant_head_id) newErrors.plant_head = "Plant head is required";
+    if (!plantData.npd_engineers || plantData.npd_engineers.length === 0)
+      newErrors.npd_engineers = "At least one NPD engineer is required";
+    if (!plantData.vendor_development_engineers || plantData.vendor_development_engineers.length === 0)
+      newErrors.vendor_development_engineers = "At least one Vendor Development engineer is required";
+    if (!plantData.process_engineers || plantData.process_engineers.length === 0)
+      newErrors.process_engineers = "At least one Process engineer is required";
+    if (!plantData.address1?.trim()) newErrors.address1 = "Address 1 is required";
     if (!plantData.city?.trim()) newErrors.city = "City is required";
     if (!plantData.state?.trim()) newErrors.state = "State is required";
-    // if (!plantData.pincode?.trim()) newErrors.pincode = "Pin code is required";
     if (!String(plantData.pincode)?.trim()) newErrors.pincode = "Pin code is required";
     return newErrors;
   };
@@ -139,10 +130,22 @@ export default function EditPlantPage() {
     }
     setIsSubmitting(true);
     try {
-      const response = await axiosInstance.post(
-        `/plant/edit/${id}`,
-        plantData
-      );
+
+      const payload = {
+        plantname: plantData.plantname,
+        plant_head: plantData.plant_head_id,
+        address1: plantData.address1,
+        address2: plantData.address2,
+        city: plantData.city,
+        state: plantData.state,
+        pincode: plantData.pincode,
+        npd_engineers: plantData.npd_engineers.map(eng => eng.id || eng),
+        vendor_development_engineers: plantData.vendor_development_engineers.map(eng => eng.id || eng),
+        process_engineers: plantData.process_engineers.map(eng => eng.id || eng)
+      };
+
+      const response = await axiosInstance.post(`/plant/edit/${id}`, payload);
+
       if (response.data.success) {
         setSuccessMessage("Plant updated successfully");
         setTimeout(() => {
@@ -165,6 +168,19 @@ export default function EditPlantPage() {
     value: user.id,
     label: user.username,
   }));
+
+  // Get current selected options for multi-select fields
+  const getSelectedOptions = (engineers) => {
+    if (!engineers || engineers.length === 0) return [];
+
+    return userOptions.filter(option =>
+      engineers.some(eng => {
+        // Handle both object with id property and direct ID values
+        const engId = eng.id || eng;
+        return engId === option.value;
+      })
+    );
+  };
 
   return (
     <motion.div
@@ -215,6 +231,16 @@ export default function EditPlantPage() {
           )}
         </AnimatePresence>
 
+        {errors.submit && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg"
+          >
+            {errors.submit}
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -246,9 +272,7 @@ export default function EditPlantPage() {
                   />
                 </div>
                 {errors.plantname && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.plantname}
-                  </p>
+                  <p className="mt-1 text-sm text-red-500">{errors.plantname}</p>
                 )}
               </div>
 
@@ -259,106 +283,87 @@ export default function EditPlantPage() {
                 >
                   Plant Head
                 </label>
-                {/* <Select
-                  id="plant_head"
-                  name="plant_head"
-                  options={userOptions}
-                  value={userOptions.find(
-                    option => option.value === plantData.plant_head_id
-                  )}
-                  onChange={option =>
-                    handleSelectChange(option, { name: "plant_head" })
-                  }
-                  className="react-select-container"
-                  classNamePrefix="react-select"
-                  placeholder="Select Plant Head"
-                /> */}
                 <Select
                   id="plant_head"
                   name="plant_head"
                   options={userOptions}
                   value={userOptions.find(option => option.value === plantData.plant_head_id)}
-                  onChange={option => handleSelectChange(option, { name: "plant_head" })}
+                  onChange={option => handleSingleSelectChange(option, { name: "plant_head" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
                   placeholder="Select Plant Head"
                 />
                 {errors.plant_head && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.plant_head}
-                  </p>
+                  <p className="mt-1 text-sm text-red-500">{errors.plant_head}</p>
                 )}
               </div>
 
               <div>
                 <label
-                  htmlFor="process_engineer"
+                  htmlFor="npd_engineers"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  Process Engineer
+                  NPD Engineer(s)
                 </label>
                 <Select
-                  id="process_engineer"
-                  name="process_engineer"
+                  id="npd_engineers"
+                  name="npd_engineers"
                   options={userOptions}
-                  value={userOptions.find(option => option.value === plantData.process_engineer_id)}
-                  onChange={option => handleSelectChange(option, { name: "process_engineer" })}
+                  isMulti
+                  value={getSelectedOptions(plantData.npd_engineers)}
+                  onChange={option => handleMultiSelectChange(option, { name: "npd_engineers" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select Process Engineer"
+                  placeholder="Select NPD Engineer(s)"
                 />
-                {errors.process_engineer && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.process_engineer}
-                  </p>
+                {errors.npd_engineers && (
+                  <p className="mt-1 text-sm text-red-500">{errors.npd_engineers}</p>
                 )}
               </div>
 
               <div>
                 <label
-                  htmlFor="npd_engineer"
+                  htmlFor="vendor_development_engineers"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  NPD Engineer
+                  Vendor Development Engineer(s)
                 </label>
                 <Select
-                  id="npd_engineer"
-                  name="npd_engineer"
+                  id="vendor_development_engineers"
+                  name="vendor_development_engineers"
                   options={userOptions}
-                  value={userOptions.find(option => option.value === plantData.npd_engineer_id)}
-                  onChange={option => handleSelectChange(option, { name: "npd_engineer" })}
+                  isMulti
+                  value={getSelectedOptions(plantData.vendor_development_engineers)}
+                  onChange={option => handleMultiSelectChange(option, { name: "vendor_development_engineers" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select NPD Engineer"
+                  placeholder="Select Vendor Development Engineer(s)"
                 />
-                {errors.npd_engineer && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.npd_engineer}
-                  </p>
+                {errors.vendor_development_engineers && (
+                  <p className="mt-1 text-sm text-red-500">{errors.vendor_development_engineers}</p>
                 )}
               </div>
 
               <div>
                 <label
-                  htmlFor="vendor_development_engineer"
+                  htmlFor="process_engineers"
                   className="block text-sm font-medium text-[#000060] mb-2"
                 >
-                  Vendor Development Engineer
+                  Process Engineer(s)
                 </label>
                 <Select
-                  id="vendor_development_engineer"
-                  name="vendor_development_engineer"
+                  id="process_engineers"
+                  name="process_engineers"
                   options={userOptions}
-                  value={userOptions.find(option => option.value === plantData.vendor_development_engineer_id)}
-                  onChange={option => handleSelectChange(option, { name: "vendor_development_engineer" })}
+                  isMulti
+                  value={getSelectedOptions(plantData.process_engineers)}
+                  onChange={option => handleMultiSelectChange(option, { name: "process_engineers" })}
                   className="react-select-container"
                   classNamePrefix="react-select"
-                  placeholder="Select Vendor Development Engineer"
+                  placeholder="Select Process Engineer(s)"
                 />
-                {errors.vendor_development_engineer && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.vendor_development_engineer}
-                  </p>
+                {errors.process_engineers && (
+                  <p className="mt-1 text-sm text-red-500">{errors.process_engineers}</p>
                 )}
               </div>
 
