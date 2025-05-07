@@ -177,6 +177,7 @@ export default function RFQListingPage() {
   const [error, setError] = useState(null)
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false)
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
+  const [isApproveAndSentToReviewModalOpen, setIsApproveAndSentToReviewModalOpen] = useState(false);
   const [selectedRFQ, setSelectedRFQ] = useState(null)
   const [approveComment, setApproveComment] = useState("")
   const [selectedPlants, setSelectedPlants] = useState([])
@@ -312,11 +313,11 @@ export default function RFQListingPage() {
   const fetchRFQs = useCallback(async () => {
     setIsLoading(true)
     let query = ``;
-      if(roleId == 8) {
-        query = `http://localhost:3000/api/rfq/getrfq-planthead`;
-      }else{
-        query = `http://localhost:3000/api/rfq/getrfq`
-      }
+    if (roleId == 8) {
+      query = `http://localhost:3000/api/rfq/getrfq-planthead`;
+    } else {
+      query = `http://localhost:3000/api/rfq/getrfq`
+    }
     try {
       console.log(user.id);
       const response = await axiosInstance.post(query, {
@@ -336,7 +337,7 @@ export default function RFQListingPage() {
     }
     setIsLoading(false)
   }, [])
-  
+
 
 
   // fetch the RFQs for NPD eng.
@@ -765,6 +766,11 @@ export default function RFQListingPage() {
     setIsRejectModalOpen(true)
   }
 
+  const openApprvalModalForReview = (rfq) => {
+    setSelectedRFQ(rfq);
+    setIsApproveAndSentToReviewModalOpen(true);
+  }
+
 
   const openApproveAssignNPDengModal = (rfq) => {
     setSelectedRFQ(rfq);
@@ -817,7 +823,7 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
-        user_id: user.id, 
+        user_id: user.id,
         state_id: 2,
         plant_ids: selectedPlants,            // array of plants 
         comments: approveComment || null,
@@ -1196,7 +1202,7 @@ export default function RFQListingPage() {
                               </>
                             )}
 
-                            {/* For plant head Revision */}
+                            {/* For plant head Reciew */}
                             {(rfq.state_id === 14 && roleId === 15 && rfq.rfq_status === true) && (
                               <>
                                 <button
@@ -1208,6 +1214,25 @@ export default function RFQListingPage() {
                                 </button>
 
                                 <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+                                <button
+                                  onClick={() => openApprvalModalForReview(rfq)}
+                                  className="p-2 rounded-xl hover:bg-green-100 bg-blue-400 text-white hover:text-black"
+                                >
+                                  Send for Review
+                                </button>
+                                <button
+                                  onClick={() => openApproveModal(rfq)}
+                                  className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                >
+                                  <CheckIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => openRejectModal(rfq)}
+                                  className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
+                                >
+                                  <XIcon className="w-5 h-5" />
+                                </button>
+
                               </>
                             )}
 
@@ -1283,7 +1308,7 @@ export default function RFQListingPage() {
                               </>
                             )}
 
-                            {/* For Process engineer login */}
+                            {/* For Process engineer login after sending for review*/}
                             {(rfq.state_id === 14 && roleId === 20 && rfq.rfq_status === true) && (
                               <>
                                 <button
@@ -1446,8 +1471,8 @@ export default function RFQListingPage() {
                 onClick={handleApprove}
                 disabled={!isApproveValid}
                 className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
-                    ? "bg-[#000060] text-white hover:bg-[#0000a0]"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
               >
                 Approve to {selectedPlants.length} Plant(s)
@@ -1508,6 +1533,58 @@ export default function RFQListingPage() {
                   }`}
               >
                 Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Modal for sending the RFQ for review */}
+      {isApproveAndSentToReviewModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-[#000060] mb-4">Review RFQ</h2>
+            <p className="mb-4 text-[#4b4b80]">
+              Select one of the engineer to send for the review add a comment to this RFQ.
+            </p>
+            <div className="space-y-4">
+              <h3 className="text-md font-medium text-[#000060]">Send to Engineer</h3>
+              <select
+                className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                // onChange={setEngineerTypeForReview(e.target.value)}
+              >
+                <option selected value="">Select an engineer</option>
+                <option value="NPD">NPD Engineer</option>
+                <option value="VDE">Vendor Development Engineer</option>
+                <option value="PE">Process Engineer</option>
+              </select>
+            </div>
+            <textarea
+              value={approveComment}
+              onChange={(e) => setApproveComment(e.target.value)}
+              placeholder="Add your comment here... (required)"
+              className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+              rows="3"
+              required
+            />
+
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setIsApproveAndSentToReviewModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={!isApproveValid}
+                className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
+                  ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+              >
+                Approve to {selectedPlants.length} Plant(s)
               </button>
             </div>
           </div>
