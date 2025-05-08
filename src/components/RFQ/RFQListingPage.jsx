@@ -13,7 +13,8 @@ import {
   UserRoundPlusIcon,
   ScrollIcon,
   CirclePauseIcon,
-  SheetIcon
+  SheetIcon,
+  Satellite
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -181,6 +182,7 @@ export default function RFQListingPage() {
   const [selectedRFQ, setSelectedRFQ] = useState(null)
   const [approveComment, setApproveComment] = useState("")
   const [selectedPlants, setSelectedPlants] = useState([])
+  const [engineerTypeForReview, setEngineerTypeForReview] = useState();
   const [plants, setPlants] = useState([])
   const [rejectReasons, setRejectReasons] = useState([])
   const [rejectComment, setRejectComment] = useState("")
@@ -843,6 +845,62 @@ export default function RFQListingPage() {
     }
   }
 
+  const handleSendtoReview = async (e) => {
+    console.log("called me");
+    if (!engineerTypeForReview || !approveComment) {
+      setError("Please fill all the required fields.");
+      return;
+    }
+
+    try {
+
+      let state = null;
+      console.log("Etype: ",engineerTypeForReview);
+      switch (engineerTypeForReview) {
+        case "NPD": state = 15; break;
+        case "VDE": state = 16; break;
+        case "PE": state = 17; break;
+        default:
+          setError("Invalid engineer type selected");
+          return;
+      }
+
+      console.log("state: ", state);
+
+      const [updateStateResponse, insertCommentResponse] = await Promise.all([
+        axiosInstance.post("/rfq/update/rfq-state/", {
+          rfq_id: selectedRFQ.rfq_id,
+          rfq_state: state
+        }),
+        axiosInstance.post("/rfq/save-comments/", {
+          user_id: userId,
+          rfq_id: selectedRFQ.rfq_id,
+          state_id: state,
+          comments: approveComment
+        })
+      ]);
+
+      console.log("response1: ", updateStateResponse);
+      console.log("response2: ", insertCommentResponse);
+
+
+      if (updateStateResponse.data.success && insertCommentResponse.data.success) {
+        fetchRFQs();
+        setIsApproveAndSentToReviewModalOpen(false);
+        setSelectedRFQ(null);
+        setEngineerTypeForReview("");
+        setApproveComment("");
+        setError("");
+        setSuccessMessage("RFQ sent successfully for review.");
+        // Consider adding a callback here to refresh parent component state
+      } else {
+        setError("Failed to complete the review request.");
+      }
+    } catch (error) {
+      setError("Failed to send for review. Please try again.");
+      console.error("Review submission error:", error);
+    }
+  }
 
 
   const handleReject = async () => {
@@ -1543,54 +1601,74 @@ export default function RFQListingPage() {
       {/* Modal for sending the RFQ for review */}
       {isApproveAndSentToReviewModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4 animate-fade-in">
             <h2 className="text-2xl font-bold text-[#000060] mb-4">Review RFQ</h2>
             <p className="mb-4 text-[#4b4b80]">
-              Select one of the engineer to send for the review add a comment to this RFQ.
+              Select one of the engineers to send for review and add a comment to this RFQ.
             </p>
-            <div className="space-y-4">
-              <h3 className="text-md font-medium text-[#000060]">Send to Engineer</h3>
-              <select
-                className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
-                // onChange={setEngineerTypeForReview(e.target.value)}
-              >
-                <option selected value="">Select an engineer</option>
-                <option value="NPD">NPD Engineer</option>
-                <option value="VDE">Vendor Development Engineer</option>
-                <option value="PE">Process Engineer</option>
-              </select>
-            </div>
-            <textarea
-              value={approveComment}
-              onChange={(e) => setApproveComment(e.target.value)}
-              placeholder="Add your comment here... (required)"
-              className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
-              rows="3"
-              required
-            />
 
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setIsApproveAndSentToReviewModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApprove}
-                disabled={!isApproveValid}
-                className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
-                  ? "bg-[#000060] text-white hover:bg-[#0000a0]"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
-              >
-                Approve to {selectedPlants.length} Plant(s)
-              </button>
-            </div>
+            {/* Display error message if exists */}
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault(); // Prevent default form submission
+              await handleSendtoReview();
+            }}>
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="text-md font-medium text-[#000060]">Send to Engineer <span className="text-red-500">*</span></span>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060] mt-1"
+                    onChange={(e) => setEngineerTypeForReview(e.target.value)}
+                    required
+                  >
+                    <option value="">Select an engineer</option>
+                    <option value="NPD">NPD Engineer</option>
+                    <option value="VDE">Vendor Development Engineer</option>
+                    <option value="PE">Process Engineer</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-md font-medium text-[#000060]">Comments <span className="text-red-500">*</span></span>
+                  <textarea
+                    value={approveComment}
+                    onChange={(e) => setApproveComment(e.target.value)}
+                    placeholder="Add your comment here..."
+                    className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mt-1"
+                    rows="3"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => { setIsApproveAndSentToReviewModalOpen(false); setError(""); setApproveComment("")}}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!engineerTypeForReview && !approveComment}
+                  className={`px-4 py-2 rounded-lg transition-colors ${(engineerTypeForReview && approveComment)
+                    ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
+                >
+                  Send to {engineerTypeForReview || "Engineer"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
-
 
       {statusDescription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
