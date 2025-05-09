@@ -45,7 +45,7 @@ export default function AddProductPage() {
         factory_overhead_perc: "",
     });
 
-    console.log("State ID: ", stateId);
+    // console.log("State ID: ", stateId);
 
     const { role } = useAppStore();
 
@@ -768,7 +768,7 @@ export default function AddProductPage() {
                                             type="text"
                                             id="product_name"
                                             name="product_name"
-                                            value={newProduct.product_name}
+                                            value={newProduct?.product_name}
                                             onChange={handleInputChange}
                                             className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
                                             placeholder="Enter product name"
@@ -790,7 +790,7 @@ export default function AddProductPage() {
                                             type="number"
                                             id="quantity_per_assembly"
                                             name="quantity_per_assembly"
-                                            value={newProduct.quantity_per_assembly}
+                                            value={newProduct?.quantity_per_assembly}
                                             onChange={handleInputChange}
                                             className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
                                             placeholder="Enter quantity"
@@ -838,7 +838,7 @@ export default function AddProductPage() {
                                             type="number"
                                             id="yield_percentage"
                                             name="yield_percentage"
-                                            value={newProduct.yield_percentage}
+                                            value={newProduct?.yield_percentage}
                                             onChange={handleInputChange}
                                             className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
                                             placeholder="Enter yield percentage"
@@ -860,7 +860,7 @@ export default function AddProductPage() {
                                             type="number"
                                             id="net_weight_of_product"
                                             name="net_weight_of_product"
-                                            value={newProduct.net_weight_of_product}
+                                            value={newProduct?.net_weight_of_product}
                                             onChange={handleInputChange}
                                             className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
                                             placeholder="Enter net weight of product"
@@ -871,39 +871,6 @@ export default function AddProductPage() {
                                             </p>
                                         )}
                                     </div>
-                                    {/* <div>
-                                        <label
-                                            htmlFor="bom_cost_per_kg"
-                                            className="block text-sm font-medium text-[#000060] mb-1"
-                                        >
-                                            BOM Cost per KG
-                                        </label>
-                                        <div className="flex">
-                                            <select
-                                                value={currency}
-                                                onChange={e => setCurrency(e.target.value)}
-                                                className="p-2 border rounded-l focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                                            >
-                                                <option value="INR">₹</option>
-                                                <option value="USD">$</option>
-                                                <option value="EUR">€</option>
-                                            </select>
-                                            <input
-                                                type="number"
-                                                id="bom_cost_per_kg"
-                                                name="bom_cost_per_kg"
-                                                value={newProduct.bom_cost_per_kg}
-                                                onChange={handleInputChange}
-                                                className="flex-grow p-2 border-t border-b border-r rounded-r focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                                                placeholder="Enter BOM cost per KG"
-                                            />
-                                        </div>
-                                        {validationErrors.bom_cost_per_kg && (
-                                            <p className="text-red-500 text-sm mt-1">
-                                                {validationErrors.bom_cost_per_kg}
-                                            </p>
-                                        )}
-                                    </div> */}
                                 </form>
 
                                 <div className="mt-6 flex justify-end space-x-4 mb-6">

@@ -360,6 +360,9 @@ export default function RFQListingPage() {
     else if (roleId === 21) assigned_by = 15;
     else if (roleId === 20) assigned_by = 15;
     try {
+      console.log("RoleID: ", roleId);
+      console.log("Assignedby: : ", assigned_by);
+
       const response = await axiosInstance.get(`http://localhost:3000/api/rfq/getrfqbyuserrole/${user.id}?p_assigned_to_roleId=${roleId}&p_assigned_by_roleId=${assigned_by}`)
 
       console.log("RFQ - ", response);
@@ -380,9 +383,9 @@ export default function RFQListingPage() {
     try {
       const response = await axiosInstance.get("http://localhost:3000/api/plant")
       if (response.data.success) {
-        console.log("Plants: ", response.data.data[0]);
+        console.log("Plants: ", response.data.data);
 
-        setPlants(response.data.data[0]);
+        setPlants(response.data.data);
       } else {
         setError("Failed to fetch plants")
       }
@@ -424,46 +427,6 @@ export default function RFQListingPage() {
   }, [isOpen]);
 
 
-  // Handle assign RFQ to npd_engineers
-  const handleAssignRFQ = async () => {
-    if (!selectedNPDEngineer) {
-      setError("Please select an engineer to assign the RFQ.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await axiosInstance.post("/rfq/assign", {
-        p_rfq_id: selectedRFQ.rfq_id,
-        p_assigned_to_id: selectedNPDEngineer.user_id,
-        p_assigned_to_roleid: 19,         // hard code the role of npd engineer
-        p_assigned_by_id: user.id,
-        p_assigned_by_roleid: 15,         // hard code the role of plant head
-        p_status: true,
-        p_comments: approveComment,
-      });
-
-      console.log(response);
-
-      if (response.data.success) {
-        setSuccessMessage("RFQ assigned successfully!");    // might chnage it to actuall alter
-        fetchRFQs();
-        // onCloseModal();               // Close the modal on success
-        setIsOpen(false);
-        setSelectedRFQ(null);
-        setSelectedNPDEngineer([]);
-        setApproveComment("");
-      } else {
-        setError("Failed to assign RFQ");
-      }
-    } catch (error) {
-      setError("Error assigning RFQ");
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   // Assign RFQ 
   const handleMultiAssignRFQ = async () => {
@@ -790,18 +753,11 @@ export default function RFQListingPage() {
 
   const openApproveAssignVendorengModal = (rfq) => {
     setSelectedRFQ(rfq);
-    // fetchVendorEngineer(rfq.rfq_id);
     setVendorModalIsOpen(true);
-  }
-
-  const openRejectAssignVendorengModal = (rfq) => {
-    setSelectedRFQ(rfq);
-    setIsRejectVendorModalOpen(true);
   }
 
   const openApproveAssignProcessengModal = (rfq) => {
     setSelectedRFQ(rfq);
-    fetchProcessEngineer(rfq.rfq_id);
     setProcessModalIsOpen(true);
   }
 
@@ -855,7 +811,7 @@ export default function RFQListingPage() {
     try {
 
       let state = null;
-      console.log("Etype: ",engineerTypeForReview);
+      console.log("Etype: ", engineerTypeForReview);
       switch (engineerTypeForReview) {
         case "NPD": state = 15; break;
         case "VDE": state = 16; break;
@@ -1260,7 +1216,7 @@ export default function RFQListingPage() {
                               </>
                             )}
 
-                            {/* For plant head Reciew */}
+                            {/* For plant head Review */}
                             {(rfq.state_id === 14 && roleId === 15 && rfq.rfq_status === true) && (
                               <>
                                 <button
@@ -1295,7 +1251,7 @@ export default function RFQListingPage() {
                             )}
 
                             {/* For NPD engineer login */}
-                            {(rfq.state_id === 9 && roleId === 19 && rfq.rfq_status === true) && (
+                            {((rfq.state_id === 9 || rfq.state_id === 15) && roleId === 19 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
@@ -1319,17 +1275,17 @@ export default function RFQListingPage() {
                             )}
 
                             {/* For vendor development engineer login */}
-                            {(rfq.state_id === 11 && roleId === 21 && rfq.rfq_status === true) && (
+                            {((rfq.state_id === 11 || rfq.state_id === 16) && roleId === 21 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}`)}
                                   className="p-2 rounded-full hover:bg-green-100"
                                   id="add-products"
                                 >
-                                  <PackagePlusIcon className="w-5 h-5" />
+                                  <ScrollIcon className="w-5 h-5" />
                                 </button>
 
-                                <Tooltip anchorSelect="#add-products">Add Products</Tooltip>
+                                <Tooltip anchorSelect="#add-products">SKU List</Tooltip>
                                 <button
                                   onClick={() => openApproveAssignProcessengModal(rfq)}
                                   className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
@@ -1343,7 +1299,7 @@ export default function RFQListingPage() {
                             )}
 
                             {/* For Process engineer login */}
-                            {(rfq.state_id === 13 && roleId === 20 && rfq.rfq_status === true) && (
+                            {((rfq.state_id === 13 || rfq.state_id === 17) && roleId === 20 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
@@ -1649,7 +1605,7 @@ export default function RFQListingPage() {
               <div className="flex justify-end space-x-2 mt-6">
                 <button
                   type="button"
-                  onClick={() => { setIsApproveAndSentToReviewModalOpen(false); setError(""); setApproveComment("")}}
+                  onClick={() => { setIsApproveAndSentToReviewModalOpen(false); setError(""); setApproveComment("") }}
                   className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
                 >
                   Cancel
@@ -2089,20 +2045,33 @@ export default function RFQListingPage() {
               exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-lg shadow-xl w-full max-w-md"
             >
-              {/* Modal Header
+
+              {/* Modal Header */}
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
-                <p className="text-sm text-[#4b4b80]">Assign this RFQ to Process Engineer</p>
-              </div> */}
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to Plant head for review</p>
+              </div>
+
 
               {/* Modal Body */}
               <div className="p-6 space-y-6">
                 <div className="space-y-2">
                   <h2>Send RFQ - {selectedRFQ.rfq_name} to plant head for review.</h2>
                 </div>
+              </div>
 
+              <div className="p-6 space-y-6">
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
 
               </div>
+
 
               {/* Modal Footer */}
               <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
