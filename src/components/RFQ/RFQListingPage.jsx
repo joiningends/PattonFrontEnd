@@ -20,6 +20,7 @@ import axios from "axios"
 import axiosInstance from "../../axiosConfig"
 import useAppStore from "../../zustandStore";
 import { Tooltip } from "react-tooltip";
+import { comment } from "postcss";
 
 // Icons (you may need to install an icon library or use SVGs)
 const SearchIcon = () => (
@@ -207,7 +208,9 @@ export default function RFQListingPage() {
   const [openSendRfqtoPlantHeadByProcessModal, setopenSendRfqtoPlantHeadByProcessModal] = useState(false);
   const [isPauseModalOpen, setIsPauseModalOpen] = useState(false);
   const [selectStatus, setSelectedStatus] = useState(null);
-
+  const [isSendtoCommercialTeamModalOpen, setIsSendtoCommercialTeamModalOpen] = useState(false);
+  const [commercialTeam, setCommercialTeam] = useState([]);
+  const [selectedCommercialTeam, setSelectedCommercialTeam] = useState(null);
   // const { isLoggedIn, user, role, permission } = useAppStore();
 
   const { isLoggedIn, user, role, permission, isLoading: isStoreLoading } = useAppStore();
@@ -280,6 +283,20 @@ export default function RFQListingPage() {
       }
     } catch (error) {
       setError("Error fetching Process engineer: " + (error.response?.data?.message || error.message))
+    }
+  }
+
+  const fetchCommercialTeam = async () => {
+    try {
+      const response = await axiosInstance.get('/users/get-commercial-team');
+      if (response.data.success) {
+        console.log("Commercial Team: ", response.data.data);
+        setCommercialTeam(response.data.data);
+      } else {
+        setError("Failed to fetch Commercial team");
+      }
+    } catch (error) {
+      setError("Error fetching commercial team: " + (error.response?.data.message || error.message))
     }
   }
 
@@ -553,6 +570,41 @@ export default function RFQListingPage() {
   };
 
 
+  const handleAssignToCommercialTeam = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+
+      const assignResponse = await axiosInstance.post("/rfq/assign", {
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_assigned_to_id: selectedCommercialTeam.userid,
+        p_assigned_to_roleid: 22,           // Commercial team
+        p_assigned_by_id: userId,
+        p_assigned_by_roleid: 15,           // Plant Head role
+        p_status: true,
+        p_comments: approveComment,
+      });
+
+      console.log("Assign response: ", assignResponse);
+
+      if (assignResponse.data.success) {
+        setSuccessMessage("RFQ assigned successfully to Commercial Team.");
+        fetchRFQs();
+        setIsSendtoCommercialTeamModalOpen(false);
+        setSelectedCommercialTeam(null);
+        setApproveComment("");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setError("Failed to assign RFQ");
+      }
+    } catch (error) {
+      setError("Error sending to commercial team");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+
   const handleAssignRFQByVendorEng = async () => {
 
     setIsLoading(true);
@@ -721,9 +773,14 @@ export default function RFQListingPage() {
   };
 
   const openApproveModal = (rfq) => {
-    console.log("REPlant: ", plants);
     setSelectedRFQ(rfq)
     setIsApproveModalOpen(true)
+  }
+
+  const openSendtoCommercialTeamModal = (rfq) => {
+    fetchCommercialTeam();
+    setSelectedRFQ(rfq);
+    setIsSendtoCommercialTeamModalOpen(true);
   }
 
   const openRejectModal = (rfq) => {
@@ -1235,18 +1292,13 @@ export default function RFQListingPage() {
                                   Send for Review
                                 </button>
                                 <button
-                                  onClick={() => openApproveModal(rfq)}
+                                  onClick={() => openSendtoCommercialTeamModal(rfq)}
                                   className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="send-comercial"
                                 >
                                   <CheckIcon className="w-5 h-5" />
                                 </button>
-                                <button
-                                  onClick={() => openRejectModal(rfq)}
-                                  className="p-2 text-red-500 hover:text-red-700 transition-colors rounded-full hover:bg-red-100"
-                                >
-                                  <XIcon className="w-5 h-5" />
-                                </button>
-
+                                <Tooltip anchorSelect="#send-comercial">Send to Commercial team</Tooltip>
                               </>
                             )}
 
@@ -1975,29 +2027,6 @@ export default function RFQListingPage() {
               {/* Modal Body */}
               <div className="p-6 space-y-6">
 
-                {/* <div className="space-y-2">
-                  <label className="text-sm font-medium text-[#4b4b80]">Select Engineer</label>
-                  <select
-                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
-                    value={selectedProcessEngineer?.user_id || ""}
-                    onChange={(e) => {
-                      const selected = processEngineers.find(
-                        (engineer) => engineer.user_id === parseInt(e.target.value)
-                      );
-                      setSelectedProcessEngineer(selected);
-                    }}
-                  >
-                    <option value="" disabled>
-                      Select an engineer
-                    </option>
-                    {processEngineers.map((engineer) => (
-                      <option key={engineer.user_id} value={engineer.user_id}>
-                        {engineer.first_name + " " + engineer.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div> */}
-
                 <textarea
                   value={approveComment}
                   onChange={(e) => setApproveComment(e.target.value)}
@@ -2145,6 +2174,84 @@ export default function RFQListingPage() {
                   className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {selectedRFQ.rfq_status ? "Pause" : "Activate"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isSendtoCommercialTeamModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to Commercial Team</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+
+                {/* Commercial team Section */}
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium text-[#000060]">Commercial Team</h3>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060]"
+                    value={selectedCommercialTeam?.userid || ""}
+                    onChange={(e) => {
+                      const selected = commercialTeam.find(
+                        (engineer) => engineer.userid === parseInt(e.target.value)
+                      );
+                      setSelectedCommercialTeam(selected);
+                    }}
+                  >
+                    <option value="" disabled>Select Commercial Team</option>
+                    {commercialTeam.map((engineer) => (
+                      <option key={engineer.userid} value={engineer.userid}>
+                        {engineer.firstname + " " + engineer.lastname}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setIsSendtoCommercialTeamModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignToCommercialTeam}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Assigning..." : "Assign RFQ"}
                 </button>
               </div>
             </motion.div>
