@@ -31,11 +31,12 @@ export default function RFQDetailsPage() {
     const parsedState = JSON.parse(appState);
 
     const roleId = parsedState?.user?.roleid || null;
+    const userId = parsedState?.user?.id || null;
 
-    let userId = null;
-    if (user) {
-        userId = user.id;
-    }
+    // let userId = null;
+    // if (user) {
+    //     userId = user.id;
+    // }
 
 
 
@@ -57,41 +58,62 @@ export default function RFQDetailsPage() {
         }
     };
 
+
+    const fetchRFQDetailsForEng = async () => {
+        setIsLoading(true);
+
+        try {
+            const response = await axiosInstance.post(`/rfq/getrfq-planthead`, {
+                p_user_id: userId,
+                p_rfq_id: rfqId,               // Need to be dynamic
+                p_client_id: null,
+            });
+
+            console.log("response data: ", response.data.data);
+
+            if (response.data.success) {
+                setRFQ(response.data.data[0]);
+            } else {
+                setError("Failed to fetch RFQ details");
+            }
+
+        } catch (error) {
+            setError("Error fetching RFQ details");
+        }
+        setIsLoading(false);
+    };
+
+    const fetchRFQDetailsForACandPH = async () => {
+        setIsLoading(true);
+
+        try {
+            const response = await axiosInstance.post(`/rfq/getrfq`, {
+                p_user_id: userId,
+                p_rfq_id: rfqId,               
+                p_client_id: null,
+            });
+
+            console.log("response data: ", response.data.data);
+
+            if (response.data.success) {
+                setRFQ(response.data.data[0]);
+            } else {
+                setError("Failed to fetch RFQ details");
+            }
+
+        } catch (error) {
+            setError("Error fetching RFQ details");
+        }
+        setIsLoading(false);
+    };
+
     // Fetch RFQ details
     useEffect(() => {
-        const fetchRFQDetails = async () => {
-            setIsLoading(true);
-
-            console.log("USERID: ", user.id);
-            console.log("RFQID: ", rfqId);
-
-            if (role && (roleId === 19 || roleId === 8 || roleId === 21 || roleId === 20)) {
-                userId = null;
-            }
-
-
-            try {
-                const response = await axiosInstance.post(`/rfq/getrfq-planthead`, {
-                    p_user_id: user.id,
-                    p_rfq_id: rfqId,               // Need to be dynamic
-                    p_client_id: null,
-                });
-
-                console.log("response data: ", response.data.data);
-
-                if (response.data.success) {
-                    setRFQ(response.data.data[0]);
-                } else {
-                    setError("Failed to fetch RFQ details");
-                }
-
-            } catch (error) {
-                setError("Error fetching RFQ details");
-            }
-            setIsLoading(false);
-        };
-
-        fetchRFQDetails();
+        if(roleId === 8 || roleId === 15){
+            fetchRFQDetailsForACandPH();
+        }else{
+            fetchRFQDetailsForEng();
+        }
         fetchDocuments();
     }, [rfqId]);
 
@@ -254,7 +276,7 @@ export default function RFQDetailsPage() {
                         className="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg bg-green-100"
                     >
                         <div className="flex items-center space-x-2">
-                                <Check className="h-5 w-5 text-green-500" />
+                            <Check className="h-5 w-5 text-green-500" />
                             <span
                                 className="text-sm"
                             >

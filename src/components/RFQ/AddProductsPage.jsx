@@ -1638,7 +1638,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                         )}
                                     </button>
                                 )}
-                                {role_id === 20 && (
+                                {(role_id === 20 || role_id === 15) && (
                                     <button
                                         onClick={() => navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}`)}
                                         className="p-2 rounded-full hover:bg-green-100"
