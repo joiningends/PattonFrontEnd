@@ -376,6 +376,7 @@ export default function RFQListingPage() {
     if (roleId === 19) assigned_by = 15;
     else if (roleId === 21) assigned_by = 15;
     else if (roleId === 20) assigned_by = 15;
+    else if (roleId === 22) assigned_by = 15;
     try {
       console.log("RoleID: ", roleId);
       console.log("Assignedby: : ", assigned_by);
@@ -414,7 +415,7 @@ export default function RFQListingPage() {
   useEffect(() => {
     if (!roleId) return;
 
-    if (roleId === 19 || roleId === 21 || roleId === 20) {
+    if (roleId === 19 || roleId === 21 || roleId === 20 || roleId === 22) {
       fetchRFQsforUserRole().catch((err) => {
         console.error("Error in fetchRFQsforUserRole:", err)
         setError("Failed to load RFQs. Please try again later.")
@@ -1376,6 +1377,19 @@ export default function RFQListingPage() {
 
                             {/* For Process engineer login after sending for review*/}
                             {(rfq.state_id === 14 && roleId === 20 && rfq.rfq_status === true) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
+
+                            {/* Commercial team login*/}
+                            {(rfq.state_id === 6 && roleId === 22 && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
