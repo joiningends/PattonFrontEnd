@@ -2,7 +2,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, Check, ArrowLeft, PencilIcon, CirclePlusIcon, Trash2Icon, ChartNoAxesColumnDecreasing } from "lucide-react";
+import { AlertCircle, Check, ArrowLeft, PencilIcon, CirclePlusIcon, Trash2Icon, Percent } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
@@ -1264,6 +1264,29 @@ export default function SkuDetailPage() {
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Sub total cost</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {sku?.sub_total_cost || "-"}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* factory overhead cost */}
+                                    {skuOtherCosts?.length > 0 && (
+                                        < tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
+                                                <div className="pl-3 col-span-2">Factory over head</div>
+                                                <div className="py-3 border-l-2 justify-center flex items-center">{sku?.factory_overhead_perc || "-"}<Percent className="w-4 h-4"/></div>
+                                            </td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.factory_overhead_cost || "-"}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* factory cost */}
+                                    {skuOtherCosts?.length > 0 && (
+                                        < tr className="bg-blue-400">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Factory cost</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.total_factory_cost || "-"}
                                             </td>
                                         </tr>
                                     )}
