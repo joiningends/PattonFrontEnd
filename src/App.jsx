@@ -41,6 +41,9 @@ import CreateJobTypePage from "./components/JobType/AddJobTypePage";
 import OtherCostsListingPage from "./components/OtherCost/OtherCostListPage";
 import CreateOtherCostPage from "./components/OtherCost/AddOtherCostPage";
 import EditOtherCostPage from "./components/OtherCost/EditOtherCostPage";
+import CurrencyListPage from "./components/Currency/CurrencyListPage";
+import CreateCurrencyPage from "./components/Currency/AddCurrencyPage";
+import EditCurrencyPage from "./components/Currency/EditCurrencyPage";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -156,7 +159,12 @@ const AppLayout = () => {
           <Route path="/other-costs" element={<OtherCostsListingPage/>} />
           <Route path="/other-costs/create" element={<CreateOtherCostPage/>} />
           <Route path="/other-costs/edit/:id" element={<EditOtherCostPage/>} />
-          
+
+          {/* Currency pages */}
+          <Route path="/currency" element={<CurrencyListPage/>} />
+          <Route path="/currency/create" element={<CreateCurrencyPage/>} />
+          <Route path="/currency/edit/:id" element={<EditCurrencyPage/>} />
+
         </Routes>
       </main>
     </div>

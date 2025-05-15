@@ -29,8 +29,17 @@ export default function SkuDetailPage() {
     const [editingOtherCost, setEditingOtherCost] = useState(null);
     const [editingJobCost, setEditingJobCost] = useState(null);
 
+    const [showOverheadPercentage, setShowOverheadPercentage] = useState(false);
+    const [editOverheadPercentage, setEditOverheadPercentage] = useState(null);
+    const [overheadPercentage, setOverheadPercentage] = useState(null);
+
     // const state = 14;
     console.log(stateId);
+
+    const appState = localStorage.getItem("appState");
+    const parsedState = JSON.parse(appState);
+
+    const roleId = parsedState?.user?.roleid || null;
 
     const [otherCosts, setOtherCosts] = useState({
         other_cost_id: null,
@@ -653,6 +662,72 @@ export default function SkuDetailPage() {
         }
     };
 
+    const handleSaveOverhead = async () => {
+        try {
+            // Basic validation
+            if (!overheadPercentage || overheadPercentage < 0) {
+                setAlertMessage({
+                    type: "error",
+                    message: "Please fill all required fields with valid inputs"
+                });
+                setShowAlert(true);
+                setTimeout(()=> {}, 1000);
+                return;
+            }
+
+
+            const response = await axiosInstance.post("/sku/overhead/value", {
+                p_sku_id: skuId,
+                p_over_head_perc: overheadPercentage,
+            });
+
+            // const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+
+            if (response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: response.data.message || "Overhead percentage and value calculated and saved successfully"
+                });
+                setShowAlert(true);
+                setShowOverheadPercentage(false);
+                setEditOverheadPercentage(null);
+
+                // Reset form
+                setOverheadPercentage(null);
+
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message ||
+                        (editingOtherCost ? "Failed to update overhead" : "Failed to save overhead")
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message ||
+                    (editingOtherCost ? "Error updating overhead" : "Error saving overhead")
+            });
+            setShowAlert(true);
+        }
+    };
+
 
 
     if (isLoading) {
@@ -929,7 +1004,7 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.bom_cost_per_kg || "-"}</span>
-                                                    {(stateId == 13 && product.is_bom==true) && (
+                                                    {(stateId == 13 && product.is_bom == true) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1273,7 +1348,7 @@ export default function SkuDetailPage() {
                                         < tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
                                                 <div className="pl-3 col-span-2">Factory over head</div>
-                                                <div className="py-3 border-l-2 justify-center flex items-center">{sku?.factory_overhead_perc || "-"}<Percent className="w-4 h-4"/></div>
+                                                <div className="py-3 border-l-2 justify-center flex items-center">{sku?.factory_overhead_perc || "-"}<Percent className="w-4 h-4" /></div>
                                             </td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {sku?.factory_overhead_cost || "-"}
@@ -1287,6 +1362,22 @@ export default function SkuDetailPage() {
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Factory cost</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {sku?.total_factory_cost || "-"}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {roleId === 22 && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku.over_head_perc ? sku.over_head_perc :
+                                                    <button
+                                                        onClick={() => setShowOverheadPercentage(true)}
+                                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                                                    >
+                                                        <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                        Add over head
+                                                    </button>}
                                             </td>
                                         </tr>
                                     )}
@@ -1610,6 +1701,117 @@ export default function SkuDetailPage() {
                                     disabled={!otherCosts.other_cost_id || !otherCosts.other_cost_per_kg}
                                 >
                                     Save Other Cost
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+
+            {/* Add Over head percentage modal */}
+            <AnimatePresence>
+                {showOverheadPercentage && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 "
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+                                <div className="flex justify-between items-center">
+
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {editOverheadPercentage ? "Edit overhead percentage" : "Add overhead percentage"}
+                                    </h3>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowOverheadPercentage(false);
+                                            setEditOverheadPercentage(null);
+                                            setOverheadPercentage(null);
+                                        }}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+
+                                    {/* Assembly weight */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Factory cost
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled"
+                                            value={sku?.total_factory_cost}
+                                            disabled
+                                        />
+                                    </div>
+
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className=" text-sm font-medium text-gray-700 flex gap-2 items-center">
+                                                Over head <Percent className="w-4 h-4" /> <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={sku.over_head_perc}
+                                                    onChange={(e) => setOverheadPercentage(e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Over head cost (auto)
+                                            </label>
+                                            <div className="relative">
+                                                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={overheadPercentage ? (overheadPercentage / 100) * sku?.total_factory_cost : "00.00"}
+                                                    disabled
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => { setShowOverheadPercentage(false); setOverheadPercentage(null) }}
+                                    className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveOverhead}
+                                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={!overheadPercentage}
+                                >
+                                    Save over head
                                 </button>
                             </div>
                         </motion.div>
