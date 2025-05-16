@@ -1610,7 +1610,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                             {(stateId == 14 || stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_factory_cost}</td>)}
                             {(stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.fob_value}</td>)}
                             {(stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.cif_value}</td>)}
-                            {(stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_value}</td>)}
+                            {(stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_cost}</td>)}
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${sku.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                     {sku.status ? 'Active' : 'Inactive'}

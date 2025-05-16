@@ -2,7 +2,7 @@
 import React from "react";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, Check, ArrowLeft, PencilIcon, CirclePlusIcon, Trash2Icon, Percent } from "lucide-react";
+import { AlertCircle, Check, ArrowLeft, PencilIcon, CirclePlusIcon, Trash2Icon, Percent, FireExtinguisherIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import axiosInstance from "../../axiosConfig";
 import useAppStore from "../../zustandStore";
@@ -33,8 +33,26 @@ export default function SkuDetailPage() {
     const [editOverheadPercentage, setEditOverheadPercentage] = useState(null);
     const [overheadPercentage, setOverheadPercentage] = useState(null);
 
+    const [showFreightInsuranceModal, setShowFreightInsuranceModal] = useState(false);
+    const [editFreightInsurance, setEditFreightInsurance] = useState(null);
+    const [freightInsurance, setFreightInsurance] = useState({
+        freight_cost_per_kg: null,
+        insurance_cost_per_kg: null
+    });
+
+    const [showMarginModal, setShowMarginModal] = useState(false);
+    const [editMargin, setEditMargin] = useState(null);
+    const [margin, setMargin] = useState(null);
+
+    const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+    const [currencyData, setCurrencyData] = useState([]);
+    const [editCurrency, setEditCurrency] = useState(null);
+    const [currencyId, setCurrencyId] = useState(null);
+    const [currencyValue, setCurrencyValue] = useState(null);
+
+
     // const state = 14;
-    console.log(stateId);
+    // console.log(stateId);
 
     const appState = localStorage.getItem("appState");
     const parsedState = JSON.parse(appState);
@@ -671,7 +689,7 @@ export default function SkuDetailPage() {
                     message: "Please fill all required fields with valid inputs"
                 });
                 setShowAlert(true);
-                setTimeout(()=> {}, 1000);
+                setTimeout(() => { }, 1000);
                 return;
             }
 
@@ -728,7 +746,220 @@ export default function SkuDetailPage() {
         }
     };
 
+    const handleSaveFreightInsurance = async () => {
+        try {
+            // Basic validation
+            if (!freightInsurance?.freight_cost_per_kg || freightInsurance?.freight_cost_per_kg < 0 || !freightInsurance?.insurance_cost_per_kg || freightInsurance?.insurance_cost_per_kg < 0) {
+                setAlertMessage({
+                    type: "error",
+                    message: "Please fill all required fields with valid inputs"
+                });
+                setShowAlert(true);
+                setTimeout(() => { }, 1000);
+                return;
+            }
 
+
+            const response = await axiosInstance.post("/sku/freight-insurance/cal-cif", {
+                p_sku_id: skuId,
+                p_freight_cost_per_kg: freightInsurance.freight_cost_per_kg || null,
+                p_insurance_cost_per_kg: freightInsurance.insurance_cost_per_kg || null,
+            });
+
+
+            if (response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: response.data.message || "Freight and insurance cost per kg saved successfully"
+                });
+                setShowAlert(true);
+                setShowFreightInsuranceModal(false);
+                setEditFreightInsurance(null);
+
+                // Reset form
+                setFreightInsurance(null);
+
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message ||
+                        (editFreightInsurance ? "Failed to update freight and insurance cost per kg" : "Failed to save freight and insurance cost per kg")
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message ||
+                    (editFreightInsurance ? "Failed to update freight and insurance cost per kg" : "Failed to save freight and insurance cost per kg")
+            });
+            setShowAlert(true);
+        }
+    };
+
+    const handleSaveMargin = async () => {
+        try {
+            console.log("Margin: ", margin);
+            // Basic validation
+            if (!margin || margin < 0) {
+                setAlertMessage({
+                    type: "error",
+                    message: "Please fill all required fields with valid inputs"
+                });
+                setShowAlert(true);
+                return;
+            }
+
+
+            const response = await axiosInstance.post("/sku/margin/total-cost", {
+                p_sku_id: skuId,
+                p_pil_margin: margin || null,
+            });
+
+
+            if (response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: response.data.message || "Margin cost saved successfully"
+                });
+                setShowAlert(true);
+                setShowMarginModal(false);
+                setEditMargin(null);
+
+                // Reset form
+                setMargin(null);
+
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message ||
+                        (editMargin ? "Failed to update Margin cost" : "Failed to save Margin cost")
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message ||
+                    (editMargin ? "Failed to update Margin cost" : "Failed to save Margin cost")
+            });
+            setShowAlert(true);
+        }
+    };
+
+
+    const fetchCurrency = async () => {
+        try {
+            const response = await axiosInstance.get(`/currency/fetch`);
+
+            console.log("response data: ", response.data.data);
+            if (response.data.success) {
+                setCurrencyData(response.data.data);
+            } else {
+                setError("Failed to fetch Currency data.");
+            }
+        } catch (error) {
+            setError("Error fetching ")
+        }
+    };
+
+    const handleOpenCurrencyModal = () => {
+        fetchCurrency();
+        setShowCurrencyModal(true);
+    }
+
+    const handleConvertCurrency = async () => {
+        try {
+            // Basic validation
+            if (!currencyId) {
+                setAlertMessage({
+                    type: "error",
+                    message: "Please fill all required fields"
+                });
+                setShowAlert(true);
+                return;
+            }
+
+
+            const response = await axiosInstance.post("/sku/client-currency/cost", {
+                p_sku_id: skuId,
+                p_currency_id: currencyId || null,
+            });
+
+
+            if (response.data.success) {
+                setAlertMessage({
+                    type: "success",
+                    message: response.data.message || "Currency cost saved successfully"
+                });
+                setShowAlert(true);
+                setShowCurrencyModal(false);
+                setEditCurrency(null);
+
+                // Reset form
+                setCurrencyId(null);
+                setCurrencyValue(null);
+
+                // Refresh the SKU data
+                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                if (skuResponse.data.success) {
+                    // setSku(skuResponse.data.data[0]);
+                    // Sort the products: GP COIL first, then BOM
+                    const sortedSku = { ...skuResponse.data.data[0] };
+                    if (sortedSku.products && sortedSku.products.length > 0) {
+                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                            // Sort by is_bom flag (false values first - GP COIL)
+                            if (a.is_bom === b.is_bom) return 0;
+                            return a.is_bom ? 1 : -1;
+                        });
+                    }
+                    setSku(sortedSku);
+                }
+            } else {
+                setAlertMessage({
+                    type: "error",
+                    message: response.data.message || "Failed to save Currency cost",
+                });
+                setShowAlert(true);
+            }
+        } catch (error) {
+            setAlertMessage({
+                type: "error",
+                message: error.response?.data?.message || "Failed to save Currency cost"
+            });
+            setShowAlert(true);
+        }
+    };
 
     if (isLoading) {
         return (
@@ -1366,11 +1597,16 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {roleId === 22 && (
+                                    {/* Over head  */}
+                                    {(roleId === 22 && !sku?.over_head_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td>
+                                            {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td> */}
+                                            <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
+                                                <div className="pl-3 col-span-2">Over head</div>
+                                                <div className="py-3 border-l-2 justify-center flex items-center">{sku?.over_head_perc ? parseFloat(sku?.over_head_perc).toFixed(2) : ""}<Percent className="w-4 h-4" /></div>
+                                            </td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {sku.over_head_perc ? sku.over_head_perc :
+                                                {sku?.over_head_value ? sku?.over_head_value :
                                                     <button
                                                         onClick={() => setShowOverheadPercentage(true)}
                                                         className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
@@ -1378,6 +1614,143 @@ export default function SkuDetailPage() {
                                                         <CirclePlusIcon className="w-4 h-4 mr-2" />
                                                         Add over head
                                                     </button>}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {(roleId === 22 && sku?.over_head_perc) && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td> */}
+                                            <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
+                                                <div className="pl-3 col-span-2">Over head</div>
+                                                <div className="py-3 border-l-2 justify-center flex items-center">{sku?.over_head_perc ? parseFloat(sku?.over_head_perc).toFixed(2) : ""}<Percent className="w-4 h-4" /></div>
+                                            </td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.over_head_value}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* Fob value */}
+                                    {(roleId === 22 && sku?.fob_value) && (
+                                        <tr className="bg-blue-500 ">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">FOB Value</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.fob_value}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* freight and insurance value */}
+                                    {(roleId === 22 && (!sku?.freight_cost_per_kg || !sku?.insurance_cost_per_kg) && sku?.fob_value) && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost & Insurance cost</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                <button
+                                                    onClick={() => setShowFreightInsuranceModal(true)}
+                                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                                                >
+                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                    Add costs
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {(roleId === 22 && (sku?.freight_cost_per_kg || sku?.insurance_cost_per_kg)) && (
+                                        <>
+                                            <tr className="bg-blue-50 hover:bg-gray-50">
+                                                {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost</td> */}
+                                                <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
+                                                    <div className="pl-3 col-span-2">Freight cost</div>
+                                                    <div className="py-3 border-l-2 justify-center flex items-center">{`${parseFloat(sku?.freight_cost_per_kg).toFixed(1)} / kg` || "-"}</div>
+                                                </td>
+                                                <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                    {sku?.freight_cost}
+                                                </td>
+                                            </tr>
+                                            <tr className="bg-blue-50 hover:bg-gray-50">
+                                                {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Insurance cost</td> */}
+                                                <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
+                                                    <div className="pl-3 col-span-2">Insurance cost</div>
+                                                    <div className="py-3 border-l-2 justify-center flex items-center">{`${parseFloat(sku?.insurance_cost_per_kg).toFixed(1)} / kg` || "-"}</div>
+                                                </td>
+                                                <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                    {sku?.insurance_cost}
+                                                </td>
+                                            </tr>
+                                        </>
+                                    )}
+
+                                    {/* CIF value */}
+                                    {(roleId === 22 && sku?.cif_value) && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">CIF Value</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.cif_value}
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* Margin value */}
+                                    {(roleId === 22 && !sku?.pil_margin_perc && sku?.cif_value) && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">PIL Quote with {sku?.pil_margin_perc ? sku?.pil_margin_perc : ""} margin</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                <button
+                                                    onClick={() => setShowMarginModal(true)}
+                                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                                                >
+                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                    Add margin
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {(roleId === 22 && sku?.pil_margin_perc) && (
+                                        <>
+                                            <tr className="bg-blue-400">
+                                                {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost</td> */}
+                                                <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
+                                                    <div className="pl-3 col-span-2">PIL Quote with margin</div>
+                                                    <div className="py-3 border-l-2 justify-center flex items-center">{parseFloat(sku?.pil_margin_perc).toFixed(1) || "-"} <Percent className="w-4 h-4" /></div>
+                                                </td>
+                                                <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                    {sku?.margin_value}
+                                                </td>
+                                            </tr>
+                                            <tr className="bg-blue-400">
+                                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Total</td>
+                                                <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                    {sku?.total_cost}
+                                                </td>
+                                            </tr>
+                                        </>
+                                    )}
+
+                                    {/* Currency Conversion */}
+                                    {(roleId === 22 && !sku?.client_cost && sku?.pil_margin_perc) && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Currency conversion</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                <button
+                                                    onClick={handleOpenCurrencyModal}
+                                                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
+                                                >
+                                                    <CirclePlusIcon className="w-4 h-4 mr-2" />
+                                                    Convert Currency
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* Currency Conversion */}
+                                    {(roleId === 22 && sku?.client_cost) && (
+                                        <tr className="bg-blue-50 hover:bg-gray-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">INR - {sku?.currency_code ? sku?.currency_code : ""}</td>
+                                            <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
+                                                {sku?.client_cost}
                                             </td>
                                         </tr>
                                     )}
@@ -1812,6 +2185,392 @@ export default function SkuDetailPage() {
                                     disabled={!overheadPercentage}
                                 >
                                     Save over head
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+
+            {/* Add Freight and Insurance cost modal */}
+            <AnimatePresence>
+                {showFreightInsuranceModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 "
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+                                <div className="flex justify-between items-center">
+
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {editFreightInsurance ? "Edit Freight and Insurance cost per KG" : "Add Freight and Insurance cost per KG"}
+                                    </h3>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowFreightInsuranceModal(false);
+                                            setEditFreightInsurance(null);
+                                            setFreightInsurance(null);
+                                        }}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+
+                                    {/* Assembly weight */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Assembly Weight
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled"
+                                            value={sku?.assembly_weight}
+                                            disabled
+                                        />
+                                    </div>
+
+                                    {/* Freight Cost */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className=" text-sm font-medium text-gray-700 flex gap-2 items-center">
+                                                Freight Cost Per Kg <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={sku.freight_cost_per_kg}
+                                                    onChange={(e) => setFreightInsurance({ ...freightInsurance, freight_cost_per_kg: e.target.value })}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Freight Cost (auto)
+                                            </label>
+                                            <div className="relative">
+                                                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={freightInsurance?.freight_cost_per_kg ? freightInsurance?.freight_cost_per_kg * sku?.assembly_weight : "00.00"}
+                                                    disabled
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Insurance Cost */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className=" text-sm font-medium text-gray-700 flex gap-2 items-center">
+                                                Insurance Cost Per Kg <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={sku.insurance_cost_per_kg}
+                                                    onChange={(e) => setFreightInsurance({ ...freightInsurance, insurance_cost_per_kg: e.target.value })}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Insurance Cost (auto)
+                                            </label>
+                                            <div className="relative">
+                                                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={freightInsurance?.insurance_cost_per_kg ? freightInsurance?.insurance_cost_per_kg * sku?.assembly_weight : "00.00"}
+                                                    disabled
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowFreightInsuranceModal(false);
+                                        setEditFreightInsurance(null);
+                                        setFreightInsurance(null);
+                                    }}
+                                    className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveFreightInsurance}
+                                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={!freightInsurance?.freight_cost_per_kg || !freightInsurance?.insurance_cost_per_kg}
+                                >
+                                    Save Costs
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* PIL margin */}
+            <AnimatePresence>
+                {showMarginModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 "
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+                                <div className="flex justify-between items-center">
+
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {editMargin ? "Edit Margin cost" : "Add Margin cost"}
+                                    </h3>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowMarginModal(false);
+                                            setEditMargin(null);
+                                            setMargin(null);
+                                        }}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+
+                                    {/* Assembly weight */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            CIF Value
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled"
+                                            value={sku?.cif_value}
+                                            disabled
+                                        />
+                                    </div>
+
+                                    {/* Margin Cost */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className=" text-sm font-medium text-gray-700 flex gap-2 items-center">
+                                                Margin <Percent className="w-4 h-4" /> <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={sku.pil_margin_perc}
+                                                    onChange={(e) => setMargin(e.target.value)}
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Margin Cost (auto)
+                                            </label>
+                                            <div className="relative">
+                                                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={margin ? (margin / 100) * sku?.cif_value : "00.00"}
+                                                    disabled
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowMarginModal(false);
+                                        setEditMargin(null);
+                                        setMargin(null);
+                                    }}
+                                    className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveMargin}
+                                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={!margin}
+                                >
+                                    Save Margin
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+
+            {/* Currency conversion */}
+            <AnimatePresence>
+                {showCurrencyModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 "
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 20, opacity: 0 }}
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6">
+                                <div className="flex justify-between items-center">
+
+                                    <h3 className="text-xl font-semibold text-white">
+                                        Currency Conversion
+                                    </h3>
+
+                                    <button
+                                        onClick={() => {
+                                            setShowCurrencyModal(false);
+                                            setEditCurrency(null);
+                                            setCurrencyId(null);
+                                            setCurrencyValue(null);
+                                        }}
+                                        className="text-white/80 hover:text-white transition-colors"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="p-6 overflow-y-auto flex-1">
+                                <div className="space-y-6">
+
+                                    {/* Total Cost */}
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Total Cost
+                                        </label>
+                                        <input
+                                            type="number"
+                                            className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled"
+                                            value={sku?.total_cost}
+                                            disabled
+                                        />
+                                    </div>
+
+                                    {/* Conversion */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Currency */}
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Currency <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                value={sku?.client_currency_id}
+                                                onChange={(e) => {
+                                                    const selectedOption = e.target.options[e.target.selectedIndex];
+                                                    setCurrencyId(e.target.value);
+                                                    setCurrencyValue(selectedOption.getAttribute('data-value'));
+                                                }}
+                                            >
+                                                <option value="">Select currency</option>
+                                                {currencyData?.map((curr) => (
+                                                    <option key={curr.id} value={curr.id} data-value={curr.currency_value}>{curr.currency_code}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Currency Cost (auto)
+                                            </label>
+                                            <div className="relative">
+                                                {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
+                                                <input
+                                                    type="number"
+                                                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                                                    value={currencyValue ? (sku?.total_cost / currencyValue) : "00.00"}
+                                                    disabled
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end space-x-3">
+                                <button
+                                    onClick={() => {
+                                        setShowCurrencyModal(false);
+                                        setEditCurrency(null);
+                                        setCurrencyId(null);
+                                        setCurrencyValue(null);
+                                    }}
+                                    className="px-5 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConvertCurrency}
+                                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                                    disabled={!currencyId}
+                                >
+                                    Save Margin
                                 </button>
                             </div>
                         </motion.div>
