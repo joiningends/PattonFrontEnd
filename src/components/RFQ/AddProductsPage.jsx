@@ -1585,9 +1585,9 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                         <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Name</th>
                         {stateId == 6 ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Description</th>}
                         {stateId == 6 ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Part No.</th>}
-                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>
+                        {stateId == 6 ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>}
                         {stateId == 6 ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Annual Usage</th>}
-                        <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>
+                        {stateId == 6 ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>}
                         {(stateId == 14 || stateId == 6) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Sub-Total Cost</th>)}
                         {(stateId == 14 || stateId == 6) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total Factory Cost</th>)}
                         {(stateId == 6) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">FOB Value</th>)}
@@ -1603,9 +1603,9 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#000060]">{sku.sku_name}</td>
                             {stateId == 6 ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.description}</td>}
                             {stateId == 6 ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.part_no}</td>}
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.drawing_no}</td>
+                            {stateId == 6 ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.drawing_no}</td>}
                             {stateId == 6 ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.annual_usage}</td>}
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>
+                            {stateId == 6 ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>}
                             {(stateId == 14 || stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
                             {(stateId == 14 || stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_factory_cost}</td>)}
                             {(stateId == 6) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.fob_value}</td>)}

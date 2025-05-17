@@ -699,6 +699,41 @@ export default function SkuDetailPage() {
                 p_over_head_perc: overheadPercentage,
             });
 
+            // Re-calculate CIF value
+            if (sku?.freight_cost_per_kg && sku?.insurance_cost_per_kg) {
+                const responseReCalCif = await axiosInstance.get(`/sku/recalculate/cif/${skuId}`);
+
+                if (responseReCalCif.data.success) {
+                    // Re-calculate Margin
+                    if (sku?.pil_margin_perc) {
+                        const responseReCalMargin = await axiosInstance.post("/sku/margin/total-cost", {
+                            p_sku_id: skuId,
+                            p_pil_margin: sku?.pil_margin_perc || null,
+                        });
+
+                        // Re-calculate Currency conversion
+                        if (responseReCalMargin.data.success) {
+
+                            if (sku?.total_cost && sku?.client_currency_id) {
+                                const currencyFetchResponse = await axiosInstance.post("/sku/client-currency/cost", {
+                                    p_sku_id: skuId,
+                                    p_currency_id: sku?.client_currency_id || null,
+                                });
+
+                                if (currencyFetchResponse?.data?.success) {
+                                    setAlertMessage({
+                                        type: "success",
+                                        message: responseReCalCif.data.message || "Costsheet re-calculated and saved successfully"
+                                    });
+                                    setShowAlert(true)
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+
             // const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
 
             if (response.data.success) {
@@ -749,64 +784,76 @@ export default function SkuDetailPage() {
     const handleSaveFreightInsurance = async () => {
         try {
             // Basic validation
-            if (!freightInsurance?.freight_cost_per_kg || freightInsurance?.freight_cost_per_kg < 0 || !freightInsurance?.insurance_cost_per_kg || freightInsurance?.insurance_cost_per_kg < 0) {
+            if (!freightInsurance?.freight_cost_per_kg || freightInsurance?.freight_cost_per_kg < 0 ||
+                !freightInsurance?.insurance_cost_per_kg || freightInsurance?.insurance_cost_per_kg < 0) {
                 setAlertMessage({
                     type: "error",
                     message: "Please fill all required fields with valid inputs"
                 });
                 setShowAlert(true);
-                setTimeout(() => { }, 1000);
                 return;
             }
 
-
+            // Save freight insurance first
             const response = await axiosInstance.post("/sku/freight-insurance/cal-cif", {
                 p_sku_id: skuId,
                 p_freight_cost_per_kg: freightInsurance.freight_cost_per_kg || null,
                 p_insurance_cost_per_kg: freightInsurance.insurance_cost_per_kg || null,
             });
 
-
-            if (response.data.success) {
-                setAlertMessage({
-                    type: "success",
-                    message: response.data.message || "Freight and insurance cost per kg saved successfully"
-                });
-                setShowAlert(true);
-                setShowFreightInsuranceModal(false);
-                setEditFreightInsurance(null);
-
-                // Reset form
-                setFreightInsurance(null);
-
-                // Refresh the SKU data
-                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
-                if (skuResponse.data.success) {
-                    // setSku(skuResponse.data.data[0]);
-                    // Sort the products: GP COIL first, then BOM
-                    const sortedSku = { ...skuResponse.data.data[0] };
-                    if (sortedSku.products && sortedSku.products.length > 0) {
-                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
-                            // Sort by is_bom flag (false values first - GP COIL)
-                            if (a.is_bom === b.is_bom) return 0;
-                            return a.is_bom ? 1 : -1;
-                        });
-                    }
-                    setSku(sortedSku);
-                }
-            } else {
-                setAlertMessage({
-                    type: "error",
-                    message: response.data.message ||
-                        (editFreightInsurance ? "Failed to update freight and insurance cost per kg" : "Failed to save freight and insurance cost per kg")
-                });
-                setShowAlert(true);
+            if (!response.data.success) {
+                throw new Error(response.data.message || "Failed to save freight and insurance costs");
             }
+
+            // Re-calculate PIL margin and total cost if needed
+            if (sku?.pil_margin_perc && sku?.cif_value) {
+                const responseReCalMargin = await axiosInstance.post("/sku/margin/total-cost", {
+                    p_sku_id: skuId,
+                    p_pil_margin: sku?.pil_margin_perc || null,
+                });
+
+                if (!responseReCalMargin.data.success) {
+                    throw new Error("Failed to recalculate margin and total cost");
+                }
+
+                // Re-calculate currency conversion
+                const responseReCalCurrency = await axiosInstance.post("/sku/client-currency/cost", {
+                    p_sku_id: skuId,
+                    p_currency_id: sku?.client_currency_id || null,
+                });
+
+                if (!responseReCalCurrency?.data?.success) {
+                    throw new Error("Failed to recalculate currency conversion");
+                }
+            }
+
+            // Refresh the SKU data
+            const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+            if (skuResponse.data.success) {
+                const sortedSku = { ...skuResponse.data.data[0] };
+                if (sortedSku.products && sortedSku.products.length > 0) {
+                    sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                        return a.is_bom === b.is_bom ? 0 : a.is_bom ? 1 : -1;
+                    });
+                }
+                setSku(sortedSku);
+            }
+
+            // Show success message and reset form
+            setAlertMessage({
+                type: "success",
+                message: "Freight and insurance costs saved and all calculations updated successfully"
+            });
+            setShowAlert(true);
+            setShowFreightInsuranceModal(false);
+            setEditFreightInsurance(null);
+            setFreightInsurance(null);
+
         } catch (error) {
             setAlertMessage({
                 type: "error",
-                message: error.response?.data?.message ||
-                    (editFreightInsurance ? "Failed to update freight and insurance cost per kg" : "Failed to save freight and insurance cost per kg")
+                message: error.response?.data?.message || error.message ||
+                    (editFreightInsurance ? "Failed to update freight and insurance costs" : "Failed to save freight and insurance costs")
             });
             setShowAlert(true);
         }
@@ -815,6 +862,7 @@ export default function SkuDetailPage() {
     const handleSaveMargin = async () => {
         try {
             console.log("Margin: ", margin);
+
             // Basic validation
             if (!margin || margin < 0) {
                 setAlertMessage({
@@ -825,62 +873,69 @@ export default function SkuDetailPage() {
                 return;
             }
 
-
+            // Save margin first
             const response = await axiosInstance.post("/sku/margin/total-cost", {
                 p_sku_id: skuId,
                 p_pil_margin: margin || null,
             });
 
-
-            if (response.data.success) {
-                setAlertMessage({
-                    type: "success",
-                    message: response.data.message || "Margin cost saved successfully"
-                });
-                setShowAlert(true);
-                setShowMarginModal(false);
-                setEditMargin(null);
-
-                // Reset form
-                setMargin(null);
-
-                // Refresh the SKU data
-                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
-                if (skuResponse.data.success) {
-                    // setSku(skuResponse.data.data[0]);
-                    // Sort the products: GP COIL first, then BOM
-                    const sortedSku = { ...skuResponse.data.data[0] };
-                    if (sortedSku.products && sortedSku.products.length > 0) {
-                        sortedSku.products = [...sortedSku.products].sort((a, b) => {
-                            // Sort by is_bom flag (false values first - GP COIL)
-                            if (a.is_bom === b.is_bom) return 0;
-                            return a.is_bom ? 1 : -1;
-                        });
-                    }
-                    setSku(sortedSku);
-                }
-            } else {
-                setAlertMessage({
-                    type: "error",
-                    message: response.data.message ||
-                        (editMargin ? "Failed to update Margin cost" : "Failed to save Margin cost")
-                });
-                setShowAlert(true);
+            if (!response.data.success) {
+                throw new Error(response.data.message || "Failed to save margin");
             }
+
+            // Re-calculate currency conversion if needed
+            if (sku?.client_currency_id && sku?.total_cost) {
+                const responseReCalCurrency = await axiosInstance.post("/sku/client-currency/cost", {
+                    p_sku_id: skuId,
+                    p_currency_id: sku?.client_currency_id || null,
+                });
+
+                if (!responseReCalCurrency?.data?.success) {
+                    throw new Error("Failed to recalculate currency conversion");
+                }
+            }
+
+            // Refresh the SKU data
+            const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+            if (skuResponse.data.success) {
+                const sortedSku = { ...skuResponse.data.data[0] };
+                if (sortedSku.products && sortedSku.products.length > 0) {
+                    sortedSku.products = [...sortedSku.products].sort((a, b) => {
+                        return a.is_bom === b.is_bom ? 0 : a.is_bom ? 1 : -1;
+                    });
+                }
+                setSku(sortedSku);
+            }
+
+            // Show success message and reset form
+            setAlertMessage({
+                type: "success",
+                message: "Margin saved and all calculations updated successfully"
+            });
+            setShowAlert(true);
+            setShowMarginModal(false);
+            setEditMargin(null);
+            setMargin(null);
+
         } catch (error) {
             setAlertMessage({
                 type: "error",
-                message: error.response?.data?.message ||
-                    (editMargin ? "Failed to update Margin cost" : "Failed to save Margin cost")
+                message: error.response?.data?.message || error.message ||
+                    (editMargin ? "Failed to update margin" : "Failed to save margin")
             });
             setShowAlert(true);
         }
     };
 
 
-    const fetchCurrency = async () => {
+    const fetchCurrency = async (id) => {
         try {
-            const response = await axiosInstance.get(`/currency/fetch`);
+            let response;
+            if (id) {
+                response = await axiosInstance.get(`/currency/fetch?id=${id}`);
+            } else {
+                response = await axiosInstance.get(`/currency/fetch`);
+            }
 
             console.log("response data: ", response.data.data);
             if (response.data.success) {
@@ -1626,7 +1681,24 @@ export default function SkuDetailPage() {
                                                 <div className="py-3 border-l-2 justify-center flex items-center">{sku?.over_head_perc ? parseFloat(sku?.over_head_perc).toFixed(2) : ""}<Percent className="w-4 h-4" /></div>
                                             </td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {sku?.over_head_value}
+                                                {/* {sku?.over_head_value} */}
+                                                <div className="flex items-center justify-center space-x-2">
+                                                    <span>{sku?.over_head_value || "-"}</span>
+                                                    {stateId == 6 && (
+                                                        <>
+                                                            <PencilIcon
+                                                                className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                onClick={() => {
+                                                                    setShowOverheadPercentage(true);
+                                                                    setOverheadPercentage(sku?.over_head_perc);
+                                                                    setEditOverheadPercentage(sku?.over_head_perc);
+                                                                }}
+                                                                id={`edit-overhead`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#edit-overhead`}>Edit Value</Tooltip>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     )}
@@ -1666,7 +1738,24 @@ export default function SkuDetailPage() {
                                                     <div className="py-3 border-l-2 justify-center flex items-center">{`${parseFloat(sku?.freight_cost_per_kg).toFixed(1)} / kg` || "-"}</div>
                                                 </td>
                                                 <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                    {sku?.freight_cost}
+                                                    {/* {sku?.freight_cost} */}
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        <span>{sku?.freight_cost || "-"}</span>
+                                                        {stateId == 6 && (
+                                                            <>
+                                                                <PencilIcon
+                                                                    className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setShowFreightInsuranceModal(true);
+                                                                        setFreightInsurance({ ...freightInsurance, freight_cost_per_kg: sku?.freight_cost_per_kg, insurance_cost_per_kg: sku?.insurance_cost_per_kg });
+                                                                        setEditFreightInsurance({ ...freightInsurance, freight_cost_per_kg: sku?.freight_cost_per_kg, insurance_cost_per_kg: sku?.insurance_cost_per_kg });
+                                                                    }}
+                                                                    id={`edit-overhead`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#edit-overhead`}>Edit Value</Tooltip>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr className="bg-blue-50 hover:bg-gray-50">
@@ -1676,7 +1765,24 @@ export default function SkuDetailPage() {
                                                     <div className="py-3 border-l-2 justify-center flex items-center">{`${parseFloat(sku?.insurance_cost_per_kg).toFixed(1)} / kg` || "-"}</div>
                                                 </td>
                                                 <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                    {sku?.insurance_cost}
+                                                    {/* {sku?.insurance_cost} */}
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        <span>{sku?.insurance_cost || "-"}</span>
+                                                        {stateId == 6 && (
+                                                            <>
+                                                                <PencilIcon
+                                                                    className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setShowFreightInsuranceModal(true);
+                                                                        setFreightInsurance({ ...freightInsurance, freight_cost_per_kg: sku?.freight_cost_per_kg, insurance_cost_per_kg: sku?.insurance_cost_per_kg });
+                                                                        setEditFreightInsurance({ ...freightInsurance, freight_cost_per_kg: sku?.freight_cost_per_kg, insurance_cost_per_kg: sku?.insurance_cost_per_kg });
+                                                                    }}
+                                                                    id={`edit-overhead`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#edit-overhead`}>Edit Value</Tooltip>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         </>
@@ -1717,7 +1823,24 @@ export default function SkuDetailPage() {
                                                     <div className="py-3 border-l-2 justify-center flex items-center">{parseFloat(sku?.pil_margin_perc).toFixed(1) || "-"} <Percent className="w-4 h-4" /></div>
                                                 </td>
                                                 <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                    {sku?.margin_value}
+                                                    {/* {sku?.margin_value} */}
+                                                    <div className="flex items-center justify-center space-x-2">
+                                                        <span>{sku?.margin_value || "-"}</span>
+                                                        {stateId == 6 && (
+                                                            <>
+                                                                <PencilIcon
+                                                                    className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                    onClick={() => {
+                                                                        setShowMarginModal(true);
+                                                                        setMargin(sku?.pil_margin_perc);
+                                                                        setEditMargin(sku?.pil_margin_perc);
+                                                                    }}
+                                                                    id={`edit-overhead`}
+                                                                />
+                                                                <Tooltip anchorSelect={`#edit-overhead`}>Edit Value</Tooltip>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                             <tr className="bg-blue-400">
@@ -1750,7 +1873,26 @@ export default function SkuDetailPage() {
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">INR - {sku?.currency_code ? sku?.currency_code : ""}</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
-                                                {sku?.client_cost}
+                                                {/* {sku?.client_cost} */}
+                                                <div className="flex items-center justify-center space-x-2">
+                                                    <span>{sku?.client_cost || "-"}</span>
+                                                    {stateId == 6 && (
+                                                        <>
+                                                            <PencilIcon
+                                                                className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                                                onClick={() => {
+                                                                    fetchCurrency();
+                                                                    setShowCurrencyModal(true);
+                                                                    setCurrencyId(sku?.client_currency_id);
+                                                                    // setCurrencyValue(sku?.client_cost)
+                                                                    setEditCurrency(sku?.client_currency_id);
+                                                                }}
+                                                                id={`edit-overhead`}
+                                                            />
+                                                            <Tooltip anchorSelect={`#edit-overhead`}>Edit Value</Tooltip>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     )}
@@ -2044,7 +2186,7 @@ export default function SkuDetailPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Total cost (auto)
+                                                Total cost
                                             </label>
                                             <div className="relative">
                                                 {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
@@ -2147,7 +2289,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={sku.over_head_perc}
+                                                    value={overheadPercentage}
                                                     onChange={(e) => setOverheadPercentage(e.target.value)}
                                                     placeholder="0.00"
                                                 />
@@ -2155,7 +2297,7 @@ export default function SkuDetailPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Over head cost (auto)
+                                                Over head cost
                                             </label>
                                             <div className="relative">
                                                 {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
@@ -2258,7 +2400,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={sku.freight_cost_per_kg}
+                                                    value={freightInsurance?.freight_cost_per_kg}
                                                     onChange={(e) => setFreightInsurance({ ...freightInsurance, freight_cost_per_kg: e.target.value })}
                                                     placeholder="0.00"
                                                 />
@@ -2266,7 +2408,7 @@ export default function SkuDetailPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Freight Cost (auto)
+                                                Freight Cost
                                             </label>
                                             <div className="relative">
                                                 {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
@@ -2290,7 +2432,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={sku.insurance_cost_per_kg}
+                                                    value={freightInsurance?.insurance_cost_per_kg}
                                                     onChange={(e) => setFreightInsurance({ ...freightInsurance, insurance_cost_per_kg: e.target.value })}
                                                     placeholder="0.00"
                                                 />
@@ -2298,7 +2440,7 @@ export default function SkuDetailPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Insurance Cost (auto)
+                                                Insurance Cost
                                             </label>
                                             <div className="relative">
                                                 {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
@@ -2404,7 +2546,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={sku.pil_margin_perc}
+                                                    value={margin}
                                                     onChange={(e) => setMargin(e.target.value)}
                                                     placeholder="0.00"
                                                 />
@@ -2412,7 +2554,7 @@ export default function SkuDetailPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Margin Cost (auto)
+                                                Margin Cost
                                             </label>
                                             <div className="relative">
                                                 {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
@@ -2535,7 +2677,7 @@ export default function SkuDetailPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Currency Cost (auto)
+                                                Currency Cost
                                             </label>
                                             <div className="relative">
                                                 {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">₹</span> */}
