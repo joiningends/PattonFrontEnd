@@ -14,7 +14,8 @@ import {
   ScrollIcon,
   CirclePauseIcon,
   SheetIcon,
-  Satellite
+  Satellite,
+  FastForward
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -211,6 +212,8 @@ export default function RFQListingPage() {
   const [isSendtoCommercialTeamModalOpen, setIsSendtoCommercialTeamModalOpen] = useState(false);
   const [commercialTeam, setCommercialTeam] = useState([]);
   const [selectedCommercialTeam, setSelectedCommercialTeam] = useState(null);
+  const [openSendRfqtoCommercialManagerModal, setOpenSendRfqtoCommercialManagerModal] = useState(false);
+  const [sendType, setSendType] = useState(null);
   // const { isLoggedIn, user, role, permission } = useAppStore();
 
   const { isLoggedIn, user, role, permission, isLoading: isStoreLoading } = useAppStore();
@@ -377,6 +380,7 @@ export default function RFQListingPage() {
     else if (roleId === 21) assigned_by = 15;
     else if (roleId === 20) assigned_by = 15;
     else if (roleId === 22) assigned_by = 15;
+    else if (roleId === 23) assigned_by = 22;
     try {
       console.log("RoleID: ", roleId);
       console.log("Assignedby: : ", assigned_by);
@@ -415,7 +419,7 @@ export default function RFQListingPage() {
   useEffect(() => {
     if (!roleId) return;
 
-    if (roleId === 19 || roleId === 21 || roleId === 20 || roleId === 22) {
+    if (roleId === 19 || roleId === 21 || roleId === 20 || roleId === 22 || roleId === 23) {
       fetchRFQsforUserRole().catch((err) => {
         console.error("Error in fetchRFQsforUserRole:", err)
         setError("Failed to load RFQs. Please try again later.")
@@ -685,6 +689,74 @@ export default function RFQListingPage() {
     }
   };
 
+
+  const handleAssignToCommercialManager = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let response;
+      if (sendType == 1) {
+        // Sending to Commercial Manager
+        response = await axiosInstance.post("/rfq/assign", {
+          p_rfq_id: selectedRFQ.rfq_id,
+          p_assigned_to_id: 29,               // Default Commercial Manager userId
+          p_assigned_to_roleid: 23,           // Commercial Manager
+          p_assigned_by_id: userId,
+          p_assigned_by_roleid: 22,           // Commercial Team
+          p_status: true,
+          p_comments: approveComment,
+        })
+
+        if (response.data.success) {
+          setSuccessMessage("RFQ assigned successfully to Commercial Manager.");
+          fetchRFQs();
+          setOpenSendRfqtoCommercialManagerModal(false);
+          setApproveComment("");
+          setSendType(null);
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError("Failed to assign RFQ");
+        }
+
+      } else if (sendType == 2) {
+        // Sending back to Account manager
+        response = await axiosInstance.post("/rfq/save-comments", {
+          user_id: userId,
+          rfq_id: selectedRFQ.rfq_id,
+          state_id: 19,                 // RFQ sent to Account manager for review
+          comments: approveComment,
+        });
+
+        if (response.data.success) {
+          const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+            rfq_id: selectedRFQ.rfq_id,
+            rfq_state: 19,                 // RFQ sent to Account manager for review
+          });
+
+          if (stateResponse.data.success) {
+            setSuccessMessage("RFQ sent to Account manager for review.");
+            fetchRFQs();
+            setOpenSendRfqtoCommercialManagerModal(false);
+            setApproveComment("");
+            setSendType(null);
+            setTimeout(() => setSuccessMessage(""), 3000);
+          } else {
+            setError("Failed to assign RFQ");
+          }
+        }
+      } else {
+        setError("Error Assigning this RFQ.");
+      }
+
+    } catch (error) {
+      setError("Error Assigning this RFQ");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+
   // const filteredRFQs = rfqs.filter(
   //   (rfq) =>
   //     rfq.rfq_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -822,6 +894,13 @@ export default function RFQListingPage() {
   const openSendRfqtoPlantHeadByProcess = (rfq) => {
     setSelectedRFQ(rfq);
     setopenSendRfqtoPlantHeadByProcessModal(true);
+  }
+
+  const openSendRfqtoCommercialManager = (rfq, send_type) => {
+    setSelectedRFQ(rfq);
+    setOpenSendRfqtoCommercialManagerModal(true);
+    setSendType(send_type);
+    console.log("LLOS: ", sendType);
   }
 
   const RfqDetailedInfo = (rfq) => {
@@ -1388,8 +1467,8 @@ export default function RFQListingPage() {
                               </>
                             )}
 
-                            {/* Commercial team login*/}
-                            {(rfq.state_id === 6 && roleId === 22 && rfq.rfq_status === true) && (
+                            {/* Commercial team and commercial manager login*/}
+                            {((rfq.state_id === 6 || rfq.state_id === 18) && (roleId === 22 || roleId === 23) && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
@@ -1398,6 +1477,26 @@ export default function RFQListingPage() {
                                 >
                                   <ScrollIcon className="w-5 h-5" />
                                 </button>
+                                <button
+                                  onClick={() => {
+                                    if (rfq.state_id === 6) {
+                                      openSendRfqtoCommercialManager(rfq, 1);   // 1: Sending to Commercial Manager
+                                    } else {
+                                      openSendRfqtoCommercialManager(rfq, 2);   // 2: Sending to Account Manager
+                                    }
+                                  }}
+                                  className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="assign-rfq"
+                                >
+                                  <UserRoundPlusIcon className="w-5 h-5" />
+                                </button>
+                                {(rfq.state_id === 6) ?
+                                  <Tooltip anchorSelect="#assign-rfq">Assign to Commercial Manager</Tooltip>
+                                  :
+                                  <Tooltip anchorSelect="#assign-rfq">Assign to Account Manager</Tooltip>
+                                }
+
+
                               </>
                             )}
 
@@ -2126,6 +2225,70 @@ export default function RFQListingPage() {
                 </button>
                 <button
                   onClick={handleAssignToPlantHeadByProcessEngineer}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sending RFQ to commercial manager by commercial team */}
+      <AnimatePresence>
+        {openSendRfqtoCommercialManagerModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ to {sendType == 1 ? "Commercial Manager" : "Account Manager"} for review</p>
+              </div>
+
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <h2>Send RFQ - {selectedRFQ.rfq_name} to {sendType == 1 ? "Commercial Manager" : "Account Manager"} for review.</h2>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+              </div>
+
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setOpenSendRfqtoCommercialManagerModal(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignToCommercialManager}
                   disabled={isLoading}
                   className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
