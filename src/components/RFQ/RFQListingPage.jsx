@@ -1276,7 +1276,7 @@ export default function RFQListingPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
 
-                        {/* Account manager login */}
+                        {/* Account manager or admin login */}
                         {(rfq.state_id === 1 && rfq.rfq_status === true) ? (
                           <div className="flex items-center space-x-2">
                             <button
@@ -1332,6 +1332,19 @@ export default function RFQListingPage() {
                                   <CirclePauseIcon className="w-5 h-5" />
                                 </button>
                                 <Tooltip anchorSelect="#rfq-pause">Pause RFQ</Tooltip>
+                                {rfq.state_id === 19 && (
+                                  <>
+                                    <button
+                                      onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                      className="p-2 rounded-full hover:bg-green-100"
+                                      id="add-products"
+                                    >
+                                      <ScrollIcon className="w-5 h-5" />
+                                    </button>
+
+                                    <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+                                  </>
+                                )}
                               </>
                             )}
 
