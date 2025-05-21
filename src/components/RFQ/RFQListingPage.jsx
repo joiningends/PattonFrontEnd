@@ -15,7 +15,9 @@ import {
   CirclePauseIcon,
   SheetIcon,
   Satellite,
-  FastForward
+  FastForward,
+  CircleArrowRightIcon,
+  CopyCheckIcon
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -214,6 +216,9 @@ export default function RFQListingPage() {
   const [selectedCommercialTeam, setSelectedCommercialTeam] = useState(null);
   const [openSendRfqtoCommercialManagerModal, setOpenSendRfqtoCommercialManagerModal] = useState(false);
   const [sendType, setSendType] = useState(null);
+  const [openSendRfqtoClientModal, setOpenSendRfqtoClientModal] = useState(false);
+  const [sku, setSku] = useState([]);
+  const [openCloseRfqbyClientApprovalModal, setOpenCloseRfqbyClientApprovalModal] = useState(false);
   // const { isLoggedIn, user, role, permission } = useAppStore();
 
   const { isLoggedIn, user, role, permission, isLoading: isStoreLoading } = useAppStore();
@@ -241,6 +246,27 @@ export default function RFQListingPage() {
 
   // if (user.id == 8)
 
+
+  // fetch SKU by rfqId
+  const fetchSkus = async (rfqId) => {
+    setIsLoading(true);
+    console.log("Hi : ", rfqId);
+    try {
+
+      const response = await axiosInstance.get(`/sku/getsku/${rfqId}`);
+
+      console.log(response.data.data);
+
+      if (response.data.success) {
+        setSku(response.data.data);
+      } else {
+        setError("Failed to fetch SKU data.");
+      }
+    } catch (error) {
+      setError("Error fetching SKU data: ", error);
+    }
+    setIsLoading(false);
+  };
 
 
   // fetch NPD engineers
@@ -1078,6 +1104,58 @@ export default function RFQListingPage() {
     }
   }
 
+  // Trigger function for popup send to client
+  const handleSendtoClient = (rfq) => {
+    setSelectedRFQ(rfq);
+    setOpenSendRfqtoClientModal(true);
+  }
+
+  // Handle function for sending ti client (update RFQ state and save comments)
+  const handleSendRFQtoClient = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await axiosInstance.post("/rfq/save-comments", {
+        user_id: userId,
+        rfq_id: selectedRFQ.rfq_id,
+        state_id: 8,                   // Hardcoded state for Send to client
+        comments: approveComment,
+      });
+
+      if (response.data.success) {
+        const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+          rfq_id: selectedRFQ.rfq_id,
+          rfq_state: 8,                 // Hardcoded state for Send to client
+        });
+
+        if (stateResponse.data.success) {
+          setSuccessMessage("RFQ sent to Client for approval");
+          fetchRFQs();
+          setOpenSendRfqtoClientModal(false);
+          setSelectedRFQ(null);
+          setApproveComment("");
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError("Failed sending to client for approval");
+        }
+      } else {
+        setError("Error: Sending to client for approval");
+      }
+    } catch (error) {
+      setError("Error: Sending this RFQ");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  //function to handle open modal for rfq close by client approval
+  const handleRFQClose = (rfq) => {
+    fetchSkus(rfq.rfq_id);
+    setSelectedRFQ(rfq);
+    setOpenCloseRfqbyClientApprovalModal(true);
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1343,6 +1421,29 @@ export default function RFQListingPage() {
                                     </button>
 
                                     <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+
+                                    <button
+                                      onClick={() => handleSendtoClient(rfq)}
+                                      className="p-2 rounded-full hover:bg-green-100"
+                                      id="send-client"
+                                    >
+                                      <CircleArrowRightIcon className="w-5 h-5" />
+                                    </button>
+
+                                    <Tooltip anchorSelect="#send-client">Send to Client</Tooltip>
+                                  </>
+                                )}
+                                {rfq.state_id === 8 && (
+                                  <>
+                                    <button
+                                      onClick={() => handleRFQClose(rfq)}
+                                      className="p-2 rounded-full hover:bg-green-100"
+                                      id="close-sku"
+                                    >
+                                      <CopyCheckIcon className="w-5 h-5" />
+                                    </button>
+
+                                    <Tooltip anchorSelect="#close-sku">Close RFQ</Tooltip>
                                   </>
                                 )}
                               </>
@@ -1556,61 +1657,6 @@ export default function RFQListingPage() {
           </div>
         </div>
       </motion.div>
-
-      {/* Approve Modal */}
-      {/* {isApproveModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-[#000060] mb-4">Approve RFQ</h2>
-            <p className="mb-4 text-[#4b4b80]">Select plants and add a comment to approve this RFQ.</p>
-            <div className="mb-4 space-y-2">
-              {plants.map((plant) => (
-                <label key={plant.plant_id} className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedPlants.includes(plant.plant_id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedPlants([...selectedPlants, plant.plant_id])
-                      } else {
-                        setSelectedPlants(selectedPlants.filter((id) => id !== plant.plant_id))
-                      }
-                    }}
-                    className="form-checkbox h-5 w-5 text-[#000060] rounded border-gray-300 focus:ring-[#000060] transition duration-150 ease-in-out"
-                  />
-                  <span className="text-[#2d2d5f]">{plant.plantname}</span>
-                </label>
-              ))}
-            </div>
-            <textarea
-              value={approveComment}
-              onChange={(e) => setApproveComment(e.target.value)}
-              placeholder="Add your comment here... (required)"
-              className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
-              rows="3"
-              required
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setIsApproveModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApprove}
-                disabled={!isApproveValid}
-                className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
-                  ? "bg-[#000060] text-white hover:bg-[#0000a0]"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  }`}
-              >
-                Approve
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
 
       {/* Approve Modal */}
       {isApproveModalOpen && (
@@ -2450,7 +2496,235 @@ export default function RFQListingPage() {
       </AnimatePresence>
 
 
+      {/* Send RFQ to client Popup */}
+      <AnimatePresence>
+        {openSendRfqtoClientModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Send RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Send this RFQ to client for approval</p>
+              </div>
+
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <h2>Send RFQ - <span className="font-bold">{selectedRFQ.rfq_name}</span> to client - <span className="font-bold">{selectedRFQ.client_name}</span> for approval.</h2>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+              </div>
+
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setOpenSendRfqtoClientModal(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendRFQtoClient}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Close RFQ after client approval */}
+      <AnimatePresence>
+        {openCloseRfqbyClientApprovalModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-3xl"
+            >
+
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Close RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Select from the list of SKU's to close</p>
+              </div>
+
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                {/* <div className="bg-white rounded-xl shadow-xl p-6 space-y-8"> */}
+                {sku && (
+                  <div className="bg-[#f8f8fd] rounded-lg p-6 shadow-xl">
+                    <SKUTable
+                      skus={sku}
+                      // onAddProduct={roleId === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
+                      // onViewProduct={handleProductDetails}
+                      role_id={roleId}
+                      navigate={navigate}
+                      rfq_id={selectedRFQ.rfq_id}
+                      stateId={selectedRFQ.state_id}
+                    />
+                  </div>
+                )}
+                {/* </div> */}
+              </div>
+
+              <div className="p-6 space-y-6">
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setOpenCloseRfqbyClientApprovalModal(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendRFQtoClient}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Submiting..." : "Submit"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
     </motion.div>
   )
 }
 
+
+// SKU table for Close RFQ popup
+function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id, stateId }) {
+  const [selectedSkus, setSelectedSkus] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  const handleSelectAllChange = (e) => {
+    const isChecked = e.target.checked;
+    setSelectAll(isChecked);
+    if (isChecked) {
+      setSelectedSkus(skus.map(sku => sku.sku_id));
+    } else {
+      setSelectedSkus([]);
+    }
+  };
+
+  const handleCheckboxChange = (skuId) => {
+    setSelectedSkus(prevSelected => {
+      if (prevSelected.includes(skuId)) {
+        return prevSelected.filter(id => id !== skuId);
+      } else {
+        return [...prevSelected, skuId];
+      }
+    });
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-[#e1e1f5]">
+        <thead className="bg-[#f8f8fd]">
+          <tr className="text-center">
+            {(stateId == 8) && (
+              <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={handleSelectAllChange}
+                />
+              </th>
+            )}
+            <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Name</th>
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Description</th>}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Part No.</th>}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Annual Usage</th>}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>}
+            {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Sub-Total Cost</th>)}
+            {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total Factory Cost</th>)}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">FOB Value</th>)}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">CIF value</th>)}
+            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total</th>)}
+            <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Status</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-[#e1e1f5]">
+          {skus.map((sku, index) => (
+            <tr key={index} className="text-center">
+              {(stateId == 8) && (
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#000060]">
+                  <input
+                    type="checkbox"
+                    checked={selectedSkus.includes(sku.sku_id)}
+                    onChange={() => handleCheckboxChange(sku.sku_id)}
+                  />
+                </td>
+              )}
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#000060]">{sku.sku_name}</td>
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.description}</td>}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.part_no}</td>}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.drawing_no}</td>}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.annual_usage}</td>}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>}
+              {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
+              {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_factory_cost}</td>)}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.fob_value}</td>)}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.cif_value}</td>)}
+              {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_cost}</td>)}
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${sku.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {sku.status ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
