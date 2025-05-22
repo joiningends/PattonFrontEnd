@@ -1630,7 +1630,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* factory overhead cost */}
-                                    {skuOtherCosts?.length > 0 && (
+                                    {(roleId != 20 && skuOtherCosts?.length) > 0 && (
                                         < tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
                                                 <div className="pl-3 col-span-2">Factory over head</div>
@@ -1643,7 +1643,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* factory cost */}
-                                    {skuOtherCosts?.length > 0 && (
+                                    {(roleId != 20 && skuOtherCosts?.length) > 0 && (
                                         < tr className="bg-blue-400">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Factory cost</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1978,7 +1978,7 @@ export default function SkuDetailPage() {
                                                 className={`px-4 py-2 rounded-lg flex-1 transition-all ${!jobCostData.isskulevel ? 'bg-blue-100 text-blue-700 border border-blue-300 font-medium' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                                 onClick={() => setJobCostData({ ...jobCostData, isskulevel: false })}
                                             >
-                                                Product Level
+                                                Component Level
                                             </button>
                                         </div>
                                     </div>
@@ -2010,7 +2010,7 @@ export default function SkuDetailPage() {
                                         // Product Level Form
                                         <div className="space-y-4">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                Job Costs (Non-BOM Products)
+                                                Job Costs (Non-BOM Components)
                                             </label>
                                             <div className="overflow-x-auto pb-3">
                                                 <div className="flex space-x-4 pb-2" style={{ minWidth: `${Math.max(1, sku?.products?.filter(p => p.is_bom !== true)?.length) * 280}px` }}>

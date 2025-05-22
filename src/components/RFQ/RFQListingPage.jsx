@@ -736,7 +736,7 @@ export default function RFQListingPage() {
 
         if (response.data.success) {
           setSuccessMessage("RFQ assigned successfully to Commercial Manager.");
-          fetchRFQs();
+          fetchRFQsforUserRole();
           setOpenSendRfqtoCommercialManagerModal(false);
           setApproveComment("");
           setSendType(null);
@@ -762,7 +762,7 @@ export default function RFQListingPage() {
 
           if (stateResponse.data.success) {
             setSuccessMessage("RFQ sent to Account manager for review.");
-            fetchRFQs();
+            fetchRFQsforUserRole();
             setOpenSendRfqtoCommercialManagerModal(false);
             setApproveComment("");
             setSendType(null);
@@ -926,7 +926,7 @@ export default function RFQListingPage() {
     setSelectedRFQ(rfq);
     setOpenSendRfqtoCommercialManagerModal(true);
     setSendType(send_type);
-    console.log("LLOS: ", sendType);
+    // console.log("LLOS: ", send_type);
   }
 
   const RfqDetailedInfo = (rfq) => {
@@ -1487,10 +1487,10 @@ export default function RFQListingPage() {
                                 </button>
                                 <button
                                   onClick={() => openSendtoCommercialTeamModal(rfq)}
-                                  className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  className="p-2 text-black-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                   id="send-comercial"
                                 >
-                                  <CheckIcon className="w-5 h-5" />
+                                  <UserRoundPlusIcon className="w-5 h-5" />
                                 </button>
                                 <Tooltip anchorSelect="#send-comercial">Send to Commercial team</Tooltip>
                               </>
@@ -1507,9 +1507,9 @@ export default function RFQListingPage() {
                                 </button>
                                 <button
                                   onClick={() => openApproveAssignVendorengModal(rfq)}
-                                  className="p-2 text-green-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  className="p-2 text-black-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                 >
-                                  <CheckIcon className="w-5 h-5" />
+                                  <UserRoundPlusIcon className="w-5 h-5" />
                                 </button>
                                 {/* <button
                                   onClick={() => openRejectAssignVendorengModal(rfq)}

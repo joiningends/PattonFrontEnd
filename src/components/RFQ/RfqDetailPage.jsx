@@ -110,7 +110,8 @@ export default function RFQDetailsPage() {
     // Fetch RFQ details
     useEffect(() => {
         if(roleId === 8 || roleId === 15){
-            fetchRFQDetailsForACandPH();
+            // fetchRFQDetailsForACandPH();
+            fetchRFQDetailsForEng();
         }else{
             fetchRFQDetailsForEng();
         }

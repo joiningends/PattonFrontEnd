@@ -31,7 +31,7 @@ export default function AddProductPage() {
     const [alertMessage, setAlertMessage] = useState({ type: "", message: "" });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
-    const [selectedSku, setSelectedSku] = useState(null);
+    const [selectedSku, setSelectedSku] = useState([]);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editIndex, setEditIndex] = useState(null);
     const [currentProductPage, setCurrentProductPage] = useState(1);
@@ -79,7 +79,7 @@ export default function AddProductPage() {
             setError("Error fetching SKU data: ", error);
         }
         setIsLoading(false);
-    }; 
+    };
 
     useEffect(() => {
         fetchSkus();
@@ -343,15 +343,16 @@ export default function AddProductPage() {
                         )
                     );
 
+                    fetchSkus();
                     // Update the selected SKU
                     setSelectedSku(prev => ({ ...prev, products: updatedProducts }));
-
                     resetNewProduct();
                     setIsEditMode(false);
                     setEditIndex(null);
                     setValidationErrors({});
                     setSuccessMessage("BOM Product saved successfully!");
                     setCurrentProductPage(1);
+
                     setTimeout(() => setSuccessMessage(""), 3000);
                 }
             } catch (error) {
@@ -415,8 +416,9 @@ export default function AddProductPage() {
     };
 
     const handleProductDetails = (sku) => {
-        console.log(sku);
+        console.log("SKU in handleProductDetails: ", sku);
         setSelectedSku(sku);
+        console.log("Selected SKU: ", selectedSku);
         setIsNonBOMmodalOpen(true);
         setIsEditMode(false);
         setEditIndex(null);
@@ -436,14 +438,15 @@ export default function AddProductPage() {
     const handleRemoveProduct = async (skuId, productIndex) => {
 
         console.log("skuId: ", skuId);
-        console.log("productId: ", productIndex);
+        console.log("productIndex: ", productIndex);
         const skuToEdit = sku.find(s => s.sku_id === skuId);
+        console.log("skuToEdit : ", skuToEdit);
         if (skuToEdit && skuToEdit.products?.[productIndex]) {
             // const productToDelete = skuToEdit.products[productIndex];
 
             const allProducts = skuToEdit.products;
-            const productToDelete = allProducts[productIndex];
-
+            const productToDelete = allProducts[productIndex + 1];
+            console.log("allProducts: ", allProducts);
             try {
                 // Call the delete API
                 const response = await axiosInstance.delete(
@@ -544,11 +547,11 @@ export default function AddProductPage() {
                     is_bom: true
                 }))
             });
-            console.log(response.data.data);
+            console.log("response.data.data :  ", response);
             if (response.data.success) {
                 setSku(prevSkuData =>
                     prevSkuData.map(sku =>
-                        sku.sku_id === skuId ? { ...sku, products: products } : sku
+                        sku.sku_id === skuId ? { ...sku, products: response.data.data } : sku
                     )
                 );
                 setSuccessMessage(
@@ -589,16 +592,18 @@ export default function AddProductPage() {
         : 0;
 
     const currentProducts = selectedSku?.products
-        ? selectedSku.products.slice(
-            (currentProductPage - 1) * productsPerPage,
-            currentProductPage * productsPerPage
-        )
+        ? selectedSku.products
+            .filter(p => p.is_bom != true)
+            .slice(
+                (currentProductPage - 1) * productsPerPage,
+                currentProductPage * productsPerPage
+            )
         : [];
 
 
     const currentBomProductsList = selectedSku?.products
         ? selectedSku.products
-            .filter(p => p.is_bom === true)
+            .filter(p => p.is_bom == true)
             .slice(
                 (currentProductPage - 1) * productsPerPage,
                 currentProductPage * productsPerPage
