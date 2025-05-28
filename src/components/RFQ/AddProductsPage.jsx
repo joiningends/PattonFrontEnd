@@ -445,7 +445,7 @@ export default function AddProductPage() {
             // const productToDelete = skuToEdit.products[productIndex];
 
             const allProducts = skuToEdit.products;
-            const productToDelete = allProducts[productIndex + 1];
+            const productToDelete = allProducts[productIndex];
             console.log("allProducts: ", allProducts);
             try {
                 // Call the delete API
@@ -590,6 +590,14 @@ export default function AddProductPage() {
             productsPerPage
         )
         : 0;
+
+    const currentSelectedProduct = selectedSku?.products
+        ? selectedSku.products
+            .slice(
+                (currentProductPage - 1) * productsPerPage,
+                currentProductPage * productsPerPage
+            )
+        : [];
 
     const currentProducts = selectedSku?.products
         ? selectedSku.products
@@ -1276,8 +1284,8 @@ export default function AddProductPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="overflow-auto">
-                                                {currentBomProductsList.map((product, index) => (
-                                                    <tr key={index} className="border-b">
+                                                {currentSelectedProduct.map((product, index) => (
+                                                    <tr key={index} className={`border-b ${product.is_bom ? '' : 'hidden'}`}>
                                                         <td className="p-2 border-b border-[#e1e1f5]">
                                                             {product.product_name}
                                                         </td>

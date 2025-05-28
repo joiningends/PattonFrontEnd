@@ -44,6 +44,11 @@ import EditOtherCostPage from "./components/OtherCost/EditOtherCostPage";
 import CurrencyListPage from "./components/Currency/CurrencyListPage";
 import CreateCurrencyPage from "./components/Currency/AddCurrencyPage";
 import EditCurrencyPage from "./components/Currency/EditCurrencyPage";
+import EmailListingPage from "./components/EmailConfig/EmailConfigListPage";
+import SaveEmailConfigPage from "./components/EmailConfig/SaveEmailConfigPage";
+import EditEmailConfigPage from "./components/EmailConfig/EditEmailConfigPage";
+import EmailTemplateListingPage from "./components/EmailTemplate/EmailTemplateListPage";
+import SaveEmailTemplatePage from "./components/EmailTemplate/SaveEmailTemplatePage";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -136,9 +141,9 @@ const AppLayout = () => {
           <Route path="/create_RFQ" element={<CreateRFQPage />} />
           <Route path="/edit_RFQ/:id" element={<EditRFQPage />} />
           <Route path="/rfq-detail/:rfqId" element={<RFQDetailsPage />} />
-          <Route path="/sku-details/:rfqId" element={<AddProductPage/>} />
-          <Route path="/sku-details/:rfqId/:stateId" element={<AddProductPage/>} />
-          <Route path="/sku-cost/:rfqId/:skuId/:stateId" element={<SkuDetailPage/>} />
+          <Route path="/sku-details/:rfqId" element={<AddProductPage />} />
+          <Route path="/sku-details/:rfqId/:stateId" element={<AddProductPage />} />
+          <Route path="/sku-cost/:rfqId/:skuId/:stateId" element={<SkuDetailPage />} />
 
           {/* Plant module */}
           <Route path="/plants" element={<PlantListingPage />} />
@@ -151,20 +156,31 @@ const AppLayout = () => {
           <Route path="/edit-raw-material/:id" element={<EditRawMaterialPage />} />
 
           {/* Job types */}
-          <Route path="/job-types" element={<JobTypesListingPage/>} />
-          <Route path="/job-types/create" element={<CreateJobTypePage/>} />
-          <Route path="/job-types/edit/:id" element={<EditJobTypePage/>} />
+          <Route path="/job-types" element={<JobTypesListingPage />} />
+          <Route path="/job-types/create" element={<CreateJobTypePage />} />
+          <Route path="/job-types/edit/:id" element={<EditJobTypePage />} />
 
           {/* Other cost */}
-          <Route path="/other-costs" element={<OtherCostsListingPage/>} />
-          <Route path="/other-costs/create" element={<CreateOtherCostPage/>} />
-          <Route path="/other-costs/edit/:id" element={<EditOtherCostPage/>} />
+          <Route path="/other-costs" element={<OtherCostsListingPage />} />
+          <Route path="/other-costs/create" element={<CreateOtherCostPage />} />
+          <Route path="/other-costs/edit/:id" element={<EditOtherCostPage />} />
 
           {/* Currency pages */}
-          <Route path="/currency" element={<CurrencyListPage/>} />
-          <Route path="/currency/create" element={<CreateCurrencyPage/>} />
-          <Route path="/currency/edit/:id" element={<EditCurrencyPage/>} />
+          <Route path="/currency" element={<CurrencyListPage />} />
+          <Route path="/currency/create" element={<CreateCurrencyPage />} />
+          <Route path="/currency/edit/:id" element={<EditCurrencyPage />} />
 
+          {/* Email Config pages */}
+          <Route path="/email-config" element={<EmailListingPage />} />
+          <Route path="/email-config/save" element={<SaveEmailConfigPage />} />
+          <Route path="/email-config/edit/:id" element={<EditEmailConfigPage />} />
+
+          {/* Email template pages */}
+          <Route path="/email-template" element={<EmailTemplateListingPage />} />
+          <Route path="/email-template/save" element={<SaveEmailTemplatePage />} />
+          <Route path="/email-template/detail/:id/:ops" element={<SaveEmailTemplatePage />} />
+          <Route path="/email-template/edit/:id/:ops" element={<SaveEmailTemplatePage />} />
+          
         </Routes>
       </main>
     </div>

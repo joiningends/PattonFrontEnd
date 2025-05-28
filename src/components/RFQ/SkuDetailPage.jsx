@@ -1653,7 +1653,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Over head  */}
-                                    {(roleId === 22 && !sku?.over_head_perc) && (
+                                    {((roleId === 22 || roleId === 15) && !sku?.over_head_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td> */}
                                             <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
@@ -1673,7 +1673,7 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.over_head_perc) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.over_head_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td> */}
                                             <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
@@ -1684,7 +1684,7 @@ export default function SkuDetailPage() {
                                                 {/* {sku?.over_head_value} */}
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{sku?.over_head_value || "-"}</span>
-                                                    {(stateId == 6 || stateId == 18) && (
+                                                    {(stateId == 6 || stateId == 18 || roleId === 15) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1704,7 +1704,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Fob value */}
-                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.fob_value) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.fob_value) && (
                                         <tr className="bg-blue-500 ">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">FOB Value</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1714,7 +1714,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* freight and insurance value */}
-                                    {(roleId === 22 && (!sku?.freight_cost_per_kg || !sku?.insurance_cost_per_kg) && sku?.fob_value) && (
+                                    {((roleId === 22 || roleId === 15) && (!sku?.freight_cost_per_kg || !sku?.insurance_cost_per_kg) && sku?.fob_value) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost & Insurance cost</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1729,7 +1729,7 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {((roleId === 22 || roleId === 23 || roleId === 8) && (sku?.freight_cost_per_kg || sku?.insurance_cost_per_kg)) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && (sku?.freight_cost_per_kg || sku?.insurance_cost_per_kg)) && (
                                         <>
                                             <tr className="bg-blue-50 hover:bg-gray-50">
                                                 {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost</td> */}
@@ -1768,7 +1768,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.insurance_cost} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.insurance_cost || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18) && (
+                                                        {(stateId == 6 || stateId == 18 || roleId === 15) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1789,7 +1789,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* CIF value */}
-                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.cif_value) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.cif_value) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">CIF Value</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1799,7 +1799,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Margin value */}
-                                    {(roleId === 22 && !sku?.pil_margin_perc && sku?.cif_value) && (
+                                    {((roleId === 22 || roleId === 15) && !sku?.pil_margin_perc && sku?.cif_value) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">PIL Quote with {sku?.pil_margin_perc ? sku?.pil_margin_perc : ""} margin</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1814,7 +1814,7 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.pil_margin_perc) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.pil_margin_perc) && (
                                         <>
                                             <tr className="bg-blue-400">
                                                 {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost</td> */}
@@ -1826,7 +1826,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.margin_value} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.margin_value || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18) && (
+                                                        {(stateId == 6 || stateId == 18 || roleId === 15) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1853,7 +1853,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Currency Conversion */}
-                                    {(roleId === 22 && !sku?.client_cost && sku?.pil_margin_perc) && (
+                                    {((roleId === 22 || roleId === 15) && !sku?.client_cost && sku?.pil_margin_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Currency conversion</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1869,7 +1869,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Currency Conversion */}
-                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.client_cost) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.client_cost) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">INR - {sku?.currency_code ? sku?.currency_code : ""}</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -2193,7 +2193,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={otherCosts.other_cost_per_kg * sku.assembly_weight}
+                                                    value={(otherCosts.other_cost_per_kg * sku.assembly_weight).toFixed(3)}
                                                     disabled
                                                 />
                                             </div>
@@ -2304,7 +2304,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={overheadPercentage ? (overheadPercentage / 100) * sku?.total_factory_cost : "00.00"}
+                                                    value={overheadPercentage ? ((overheadPercentage / 100) * sku?.total_factory_cost).toFixed(3) : "00.00"}
                                                     disabled
                                                 />
                                             </div>
@@ -2415,7 +2415,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={freightInsurance?.freight_cost_per_kg ? freightInsurance?.freight_cost_per_kg * sku?.assembly_weight : "00.00"}
+                                                    value={freightInsurance?.freight_cost_per_kg ? (freightInsurance?.freight_cost_per_kg * sku?.assembly_weight).toFixed(3) : "00.00"}
                                                     disabled
                                                 />
                                             </div>
@@ -2447,7 +2447,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={freightInsurance?.insurance_cost_per_kg ? freightInsurance?.insurance_cost_per_kg * sku?.assembly_weight : "00.00"}
+                                                    value={freightInsurance?.insurance_cost_per_kg ? (freightInsurance?.insurance_cost_per_kg * sku?.assembly_weight).toFixed(3) : "00.00"}
                                                     disabled
                                                 />
                                             </div>
@@ -2561,7 +2561,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={margin ? (margin / 100) * sku?.cif_value : "00.00"}
+                                                    value={margin ? ((margin / 100) * sku?.cif_value).toFixed(3) : "00.00"}
                                                     disabled
                                                 />
                                             </div>
@@ -2684,7 +2684,7 @@ export default function SkuDetailPage() {
                                                 <input
                                                     type="number"
                                                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                                                    value={currencyValue ? (sku?.total_cost / currencyValue) : "00.00"}
+                                                    value={currencyValue ? (sku?.total_cost / currencyValue).toFixed(3) : "00.00"}
                                                     disabled
                                                 />
                                             </div>

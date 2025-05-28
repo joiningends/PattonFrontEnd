@@ -185,7 +185,7 @@ export default function RFQListingPage() {
   const [isApproveAndSentToReviewModalOpen, setIsApproveAndSentToReviewModalOpen] = useState(false);
   const [selectedRFQ, setSelectedRFQ] = useState(null)
   const [approveComment, setApproveComment] = useState("")
-  const [selectedPlants, setSelectedPlants] = useState([])
+  const [selectedPlants, setSelectedPlants] = useState([]);
   const [engineerTypeForReview, setEngineerTypeForReview] = useState();
   const [plants, setPlants] = useState([])
   const [rejectReasons, setRejectReasons] = useState([])
@@ -220,6 +220,33 @@ export default function RFQListingPage() {
   const [sku, setSku] = useState([]);
   const [openCloseRfqbyClientApprovalModal, setOpenCloseRfqbyClientApprovalModal] = useState(false);
   // const { isLoggedIn, user, role, permission } = useAppStore();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const [showCustomConfirmModal, setShowCustomConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
+  const [confirmCallback, setConfirmCallback] = useState(null);
+
+  // In RFQListingPage component
+  const [selectedSkus, setSelectedSkus] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+
+  const handleSubmitWithConfirmation = () => {
+    let message = "";
+    if (selectedSkus.length === 0) {
+      message = "No SKUs are selected. Do you want to proceed without selecting any SKUs?";
+    } else if (selectedSkus.length === sku.length) {
+      message = "All SKUs are selected. Are you sure you want to proceed?";
+    } else {
+      message = `${selectedSkus.length} out of ${sku.length} SKUs are selected. Do you want to proceed with partial selection?`;
+    }
+
+    setConfirmMessage(message);
+    setConfirmCallback(() => handleSendRFQtoClient);
+    setShowCustomConfirmModal(true);
+  };
+
+
 
   const { isLoggedIn, user, role, permission, isLoading: isStoreLoading } = useAppStore();
 
@@ -692,12 +719,27 @@ export default function RFQListingPage() {
 
       console.log("Save comments reponse: ", response);
 
+      if (!response.data.success) setError("Falied to save comments, try again later.");
+
       const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
         rfq_id: selectedRFQ.rfq_id,
         rfq_state: 14,                 // Hardcode state for RFQ sent to vendor engineer.
       });
 
-      console.log("Update response", response);
+
+      // If factory overhead percent, then re-calculate factory overhead cost 
+      if (stateResponse.data.success && selectedRFQ?.factory_overhead_perc) {
+        const reCalculateResponse = await axiosInstance.post(`/rfq/save-factory-overhead`, {
+          rfq_id: selectedRFQ.rfq_id,
+          factory_overhead_perc: selectedRFQ.factory_overhead_perc
+        })
+
+        if (reCalculateResponse.data.success) {
+          // Calculate total factory cost
+          await axiosInstance.get(`/rfq/calculate/total-factory-cost/${rfqId}`);
+
+        }
+      }
 
       if (response.data.success && stateResponse.data.success) {
         setSuccessMessage("Assigned to plant head for review.");
@@ -936,33 +978,106 @@ export default function RFQListingPage() {
   const isApproveValid = selectedPlants.length > 0 && approveComment.trim() !== ""
   const isRejectValid = rejectReasons.length > 0 && rejectComment.trim() !== ""
 
-  const handleApprove = async () => {
-    if (!isApproveValid) {
-      setError("Please select at least one plant and add a comment.")
-      return
-    }
-    try {
-      const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
-        rfq_id: selectedRFQ.rfq_id,
-        user_id: user.id,
-        state_id: 2,
-        plant_ids: selectedPlants,            // array of plants 
-        comments: approveComment || null,
-      })
-      if (response.data.success) {
-        fetchRFQs()
-        setIsApproveModalOpen(false)
-        setSelectedRFQ(null)
-        setSelectedPlants([])
-        setApproveComment("")
-        setSuccessMessage("RFQ approved successfully")
-      } else {
-        setError("Failed to approve RFQ. Please try again.")
-      }
-    } catch (error) {
-      setError("Error approving RFQ: " + (error.response?.data?.message || error.message))
-    }
+  // const handleApprove = async () => {
+  //   if (!isApproveValid) {
+  //     setError("Please select at least one plant and add a comment.")
+  //     return
+  //   }
+  //   try {
+  //     const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
+  //       rfq_id: selectedRFQ.rfq_id,
+  //       user_id: user.id,
+  //       state_id: 2,
+  //       plant_ids: selectedPlants,            // array of plants 
+  //       comments: approveComment || null,
+  //     })
+  //     if (response.data.success) {
+
+  //       // Send email notification to each plant head
+
+
+  //       fetchRFQs()
+  //       setIsApproveModalOpen(false)
+  //       setSelectedRFQ(null)
+  //       setSelectedPlants([])
+  //       setApproveComment("")
+  //       setSuccessMessage("RFQ approved successfully")
+  //     } else {
+  //       setError("Failed to approve RFQ. Please try again.")
+  //     }
+  //   } catch (error) {
+  //     setError("Error approving RFQ: " + (error.response?.data?.message || error.message))
+  //   }
+  // }
+
+const handleApprove = async () => {
+  if (!isApproveValid) {
+    setError("Please select at least one plant and add a comment.");
+    return;
   }
+
+  setIsApproving(true); // Add loading state
+  setError("");
+  setSuccessMessage("");
+
+  try {
+    // 1. First approve the RFQ
+    const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
+      rfq_id: selectedRFQ.rfq_id,
+      user_id: user.id,
+      state_id: 2,
+      plant_ids: selectedPlants.map(plant => plant.id),
+      comments: approveComment || null,
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to approve RFQ");
+    }
+
+    console.log("selectedPlants: ", selectedPlants);
+
+    // 2. Prepare email notification data
+    const emailNotifications = selectedPlants.map(plant => ({
+      emailConfigId: 1,
+      toMail: plant.email,
+      subject: `RFQ Approved: ${selectedRFQ.rfq_id}`,
+      emailContent: `Dear Plant Head,\n\n` +
+                   `The RFQ ${selectedRFQ.rfq_id} has been approved and assigned to your plant.\n\n` +
+                   `Approver Comments: ${approveComment}\n\n` +
+                   `Please take necessary actions.\n\n` +
+                   `Regards,\n` +
+                   `Procurement Team`,
+      rfq_id: selectedRFQ.rfq_id // Add RFQ ID for tracking
+    }));
+
+    console.log("emailNotifications: ", emailNotifications);
+
+    // 3. Send all email notifications in a single batch
+    const emailResponse = await axiosInstance.post("/email-config/notify-batch", {
+      notifications: emailNotifications
+    });
+
+    // 4. Handle results
+    let successMessage = "RFQ approved successfully";
+    if (emailResponse.data.failedNotifications && emailResponse.data.failedNotifications.length > 0) {
+      successMessage += `. Failed to send notifications to: ${emailResponse.data.failedNotifications.join(', ')}`;
+    }
+
+    // 5. Update UI state
+    fetchRFQs();
+    setSuccessMessage(successMessage);
+    
+  } catch (error) {
+    console.error("Approval error:", error);
+    setError(error.response?.data?.message || error.message || "Error approving RFQ");
+  } finally {
+    setIsApproving(false);
+    setIsApproveModalOpen(false);
+    setSelectedRFQ(null);
+    setSelectedPlants([]);
+    setApproveComment("");
+  }
+};
 
   const handleSendtoReview = async (e) => {
     console.log("called me");
@@ -1153,8 +1268,10 @@ export default function RFQListingPage() {
   const handleRFQClose = (rfq) => {
     fetchSkus(rfq.rfq_id);
     setSelectedRFQ(rfq);
+    setSelectedSkus([]); // Reset selected SKUs
+    setSelectAll(false); // Reset select all
     setOpenCloseRfqbyClientApprovalModal(true);
-  }
+  };
 
   return (
     <motion.div
@@ -1581,8 +1698,8 @@ export default function RFQListingPage() {
                               </>
                             )}
 
-                            {/* Commercial team and commercial manager login*/}
-                            {((rfq.state_id === 6 || rfq.state_id === 18) && (roleId === 22 || roleId === 23) && rfq.rfq_status === true) && (
+                            {/* commercial manager login*/}
+                            {((rfq.state_id === 18) && (roleId === 23) && rfq.rfq_status === true) && (
                               <>
                                 <button
                                   onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
@@ -1593,24 +1710,38 @@ export default function RFQListingPage() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    if (rfq.state_id === 6) {
-                                      openSendRfqtoCommercialManager(rfq, 1);   // 1: Sending to Commercial Manager
-                                    } else {
-                                      openSendRfqtoCommercialManager(rfq, 2);   // 2: Sending to Account Manager
-                                    }
+                                    openSendRfqtoCommercialManager(rfq, 2);   // 2: Sending to Account Manager
                                   }}
                                   className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                   id="assign-rfq"
                                 >
                                   <UserRoundPlusIcon className="w-5 h-5" />
                                 </button>
-                                {(rfq.state_id === 6) ?
-                                  <Tooltip anchorSelect="#assign-rfq">Assign to Commercial Manager</Tooltip>
-                                  :
-                                  <Tooltip anchorSelect="#assign-rfq">Assign to Account Manager</Tooltip>
-                                }
+                                <Tooltip anchorSelect="#assign-rfq">Assign to Account Manager</Tooltip>
+                              </>
+                            )}
 
 
+                            {/* Commercial team  login*/}
+                            {((rfq.state_id === 6) && (roleId === 22) && rfq.rfq_status === true) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    openSendRfqtoCommercialManager(rfq, 1);
+                                  }}
+                                  className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="assign-rfq"
+                                >
+                                  <UserRoundPlusIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#assign-rfq">Assign to Commercial Manager</Tooltip>
                               </>
                             )}
 
@@ -1671,12 +1802,17 @@ export default function RFQListingPage() {
                 <label key={plant.plant_id} className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={selectedPlants.includes(plant.plant_id)}
+                    // checked={selectedPlants.includes(plant.plant_id)}
+                    checked={selectedPlants.some(p => p.id === plant.plant_id)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedPlants([...selectedPlants, plant.plant_id])
+                        setSelectedPlants([...selectedPlants, { id: plant.plant_id, email: plant.plant_head_email }]);
+
                       } else {
-                        setSelectedPlants(selectedPlants.filter((id) => id !== plant.plant_id))
+                        // Remove by plant ID
+                        setSelectedPlants(
+                          selectedPlants.filter((p) => p.id !== plant.plant_id)
+                        );
                       }
                     }}
                     className="form-checkbox h-5 w-5 text-[#000060] rounded border-gray-300 focus:ring-[#000060] transition duration-150 ease-in-out"
@@ -1707,7 +1843,7 @@ export default function RFQListingPage() {
               </button>
               <button
                 onClick={handleApprove}
-                disabled={!isApproveValid}
+                disabled={!isApproveValid || isApproving}
                 className={`px-4 py-2 rounded-lg transition-colors ${isApproveValid
                   ? "bg-[#000060] text-white hover:bg-[#0000a0]"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -2590,8 +2726,10 @@ export default function RFQListingPage() {
                   <div className="bg-[#f8f8fd] rounded-lg p-6 shadow-xl">
                     <SKUTable
                       skus={sku}
-                      // onAddProduct={roleId === 21 ? handleAddBOMProductDetails : handleAddProductDetails}
-                      // onViewProduct={handleProductDetails}
+                      selectedSkus={selectedSkus}
+                      onSelectSkus={setSelectedSkus}
+                      selectAll={selectAll}
+                      onSelectAll={setSelectAll}
                       role_id={roleId}
                       navigate={navigate}
                       rfq_id={selectedRFQ.rfq_id}
@@ -2616,13 +2754,17 @@ export default function RFQListingPage() {
               {/* Modal Footer */}
               <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
                 <button
-                  onClick={() => setOpenCloseRfqbyClientApprovalModal(false)}
+                  onClick={() => {
+                    setOpenCloseRfqbyClientApprovalModal(false);
+                    setSelectedSkus([]); // Reset selected SKUs
+                    setSelectAll(false); // Reset select all
+                  }}
                   className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleSendRFQtoClient}
+                  onClick={handleSubmitWithConfirmation}
                   disabled={isLoading}
                   className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -2635,28 +2777,65 @@ export default function RFQListingPage() {
       </AnimatePresence>
 
 
+
+      <AnimatePresence>
+        {showCustomConfirmModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+              <h3 className="text-lg font-medium text-[#000060] mb-4">Confirm Submission</h3>
+              <p className="mb-6">{confirmMessage}</p>
+              <div className="flex justify-end space-x-4">
+                <button
+                  onClick={() => setShowCustomConfirmModal(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCustomConfirmModal(false);
+                    confirmCallback();
+                  }}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
+
+
     </motion.div>
   )
 }
 
 
 // SKU table for Close RFQ popup
-function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id, stateId }) {
-  const [selectedSkus, setSelectedSkus] = useState([]);
-  const [selectAll, setSelectAll] = useState(false);
-
+function SKUTable({
+  skus,
+  selectedSkus,
+  onSelectSkus,
+  selectAll,
+  onSelectAll,
+  role_id,
+  navigate,
+  rfq_id,
+  stateId
+}) {
   const handleSelectAllChange = (e) => {
     const isChecked = e.target.checked;
-    setSelectAll(isChecked);
+    onSelectAll(isChecked);
     if (isChecked) {
-      setSelectedSkus(skus.map(sku => sku.sku_id));
+      onSelectSkus(skus.map(sku => sku.sku_id));
     } else {
-      setSelectedSkus([]);
+      onSelectSkus([]);
     }
   };
 
   const handleCheckboxChange = (skuId) => {
-    setSelectedSkus(prevSelected => {
+    onSelectSkus(prevSelected => {
       if (prevSelected.includes(skuId)) {
         return prevSelected.filter(id => id !== skuId);
       } else {
