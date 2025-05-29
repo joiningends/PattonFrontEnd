@@ -1,6 +1,5 @@
-"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import axiosInstance from "../../axiosConfig";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -39,6 +39,8 @@ export default function AddUser() {
   const [backendError, setBackendError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailTemplate, setEmailTemplate] = useState([]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -94,6 +96,26 @@ export default function AddUser() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // fetch the email template 
+  const fetchEmailTemplate = async () => {
+    try {
+      const tagId = 1;
+      const response = await axiosInstance.get(`/email-template/email-with-tag/${tagId}`);
+
+      if (response.data.data) {
+        return response.data.data; // Return the data instead of setting state
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching email template:", error);
+      return null;
+    }
+  };
+
+  // useEffect(() => {
+  //   fetchEmailTemplate();
+  // }, []);
+
   const handleSubmit = async e => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -101,6 +123,10 @@ export default function AddUser() {
 
     if (validateForm()) {
       try {
+
+        const emailTemplate= await fetchEmailTemplate();
+        const emailTemplateData = emailTemplate[0];
+
         const userData = {
           username: formData.username, // Use the username from formData
           first_name: formData.firstName,
@@ -117,11 +143,34 @@ export default function AddUser() {
           userData
         );
         if (response.data.success) {
-          console.log("User created successfully:", response.data.data);
-          setSuccessMessage("User created successfully");
-          setTimeout(() => {
-            navigate("/users");
-          }, 2000);
+
+          console.log("Email template: ", emailTemplateData);
+
+          // Email notification object for send email trigger
+          const emailNotification = {
+            emailConfigId: 1,
+            toMail: formData.email,
+            subject: `${emailTemplateData.subject ? emailTemplateData.subject : 'User account created successfully with Patton'}`,
+            emailContent: `Dear ${formData?.firstName} ${formData?.lastName},\n\n` +
+              `${emailTemplateData?.email_content}` + 
+              `\n\n` +
+              `${emailTemplateData?.email_signature}`,
+          };
+
+          // Add mail trigger function to the user
+          const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+          if (emailResponse.data.success) {
+            setSuccessMessage("User created successfully");
+            setTimeout(() => {
+              navigate("/users");
+            }, 2000);
+          } else {
+            setBackendError(
+              response.data.message ||
+              "An error occurred while creating the user."
+            );
+          }
         } else {
           setBackendError(
             response.data.message ||
@@ -495,8 +544,8 @@ export default function AddUser() {
                 whileTap={{ scale: 0.98 }}
                 disabled={isSubmitting}
                 className={`px-6 py-3 rounded-lg bg-gradient-to-r from-[#000060] to-[#0000a0] text-white transition-all duration-300 flex items-center ${isSubmitting
-                    ? "opacity-70 cursor-not-allowed"
-                    : "hover:shadow-lg transform hover:-translate-y-1"
+                  ? "opacity-70 cursor-not-allowed"
+                  : "hover:shadow-lg transform hover:-translate-y-1"
                   }`}
               >
                 {isSubmitting ? (

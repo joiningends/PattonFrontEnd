@@ -50,11 +50,16 @@ export default function AddProductDetailsPage() {
   const fileInputRef = useRef(null);
   const [showPopup, setShowPopup] = useState(false);
   const [rawMaterial, setRawMaterial] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchSkuData();
     fetchRawMaterial();
   }, []);
+
+  const appState = localStorage.getItem("appState");
+  const parsedState = JSON.parse(appState);
+  const userEmail = parsedState?.user?.email || null;
 
   const fetchSkuData = async () => {
     setIsLoading(true);
@@ -361,6 +366,59 @@ export default function AddProductDetailsPage() {
     }
   };
 
+
+  // fetch the email template 
+  const fetchEmailTemplate = async () => {
+    try {
+      const tagId = 2;  // Hard coded tagId For RFQ creation dont change it
+      const response = await axiosInstance.get(`/email-template/email-with-tag/${tagId}`);
+
+      if (response.data.data) {
+        return response.data.data; // Return the data instead of setting state
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching email template:", error);
+      return null;
+    }
+  };
+
+  const handleRFQSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      // fetch the email template
+      const emailTemplate = await fetchEmailTemplate();
+      const emailTemplateData = emailTemplate[0];
+
+      const emailNotification = {
+        emailConfigId: 1,
+        toMail: userEmail,
+        subject: `${emailTemplateData.subject ? emailTemplateData.subject : 'RFQ created successfully'}`,
+        emailContent: `Dear Sir,\n\n` +
+          `RFQ with Id: ${id} was successfully created.` +
+          `${emailTemplateData?.email_content}` +
+          `\n\n` +
+          `${emailTemplateData?.email_signature}`,
+      };
+
+      // Add mail trigger function to the user
+      const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+      if (emailResponse.data.success) {
+        setSuccessMessage("Documents uploaded successfully.");
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      }
+    } catch (error) {
+      setError("Error saving RFQ.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const indexOfLastDocument = currentDocumentPage * documentsPerPage;
   const indexOfFirstDocument = indexOfLastDocument - documentsPerPage;
   const currentDocuments = documents.slice(
@@ -446,25 +504,7 @@ export default function AddProductDetailsPage() {
                         <td className="p-3 border-b border-[#e1e1f5]">
                           {sku.annual_usage}
                         </td>
-                        {/* <td className="p-3 border-b border-[#e1e1f5] text-center">
-                          {sku.products && sku.products.length > 0 ? (
-                            <span className="text-green-500">
-                              {sku.products.length} product(s)
-                            </span>
-                          ) : (
-                            <span className="text-red-500">No products</span>
-                          )}
-                        </td>
-                        <td className="p-3 text-center border-b border-[#e1e1f5]">
-                          <button
-                            onClick={() => handleAddProductDetails(sku)}
-                            className="bg-[#000060] text-white px-4 py-2 rounded-md hover:bg-[#0000a0] transition-colors"
-                          >
-                            {sku.products && sku.products.length > 0
-                              ? "Edit Products"
-                              : "Add Products"}
-                          </button>
-                        </td> */}
+
                       </tr>
                     ))}
                   </tbody>
@@ -503,37 +543,6 @@ export default function AddProductDetailsPage() {
                     </button>
                   </div>
                 </div>
-
-                {/* Next button */}
-                {/* <div className="mt-8 flex justify-end">
-                  <button
-                    onClick={() => {
-                      const allSkusHaveProducts = skuData.every(
-                        sku => sku.products && sku.products.length > 0
-                      );
-                      if (allSkusHaveProducts) {
-                        setShowDocumentUpload(true);
-                      } else {
-                        setError(
-                          "Please add at least one product to each SKU before proceeding to document upload."
-                        );
-                      }
-                    }}
-                    disabled={
-                      !skuData.every(
-                        sku => sku.products && sku.products.length > 0
-                      )
-                    }
-                    className={`px-6 py-3 rounded-lg text-white transition-all duration-300 ${skuData.every(
-                      sku => sku.products && sku.products.length > 0
-                    )
-                      ? "bg-[#000060] hover:bg-[#0000a0] hover:shadow-lg transform hover:-translate-y-1"
-                      : "bg-gray-400 cursor-not-allowed"
-                      }`}
-                  >
-                    Next: Upload Documents
-                  </button>
-                </div> */}
 
                 <div className="mt-8 flex justify-end">
                   <button
@@ -714,11 +723,7 @@ export default function AddProductDetailsPage() {
               <button
                 onClick={() => {
                   if (documents.length > 0) {
-                    setSuccessMessage("Documents uploaded successfully.");
-                    // setShowPopup(true);
-                    setTimeout(()=>{
-                      navigate("/");
-                    }, 2000);
+                    handleRFQSave();
                   } else {
                     setUploadError(
                       "Please upload at least one document before saving the RFQ."
@@ -738,291 +743,6 @@ export default function AddProductDetailsPage() {
         )}
       </div>
 
-      {/* <AnimatePresence>
-        {isModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-            >
-              {successMessage && (
-                <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">
-                  {successMessage}
-                </div>
-              )}
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-[#000060]">
-                  Products for {selectedSku?.sku_name}
-                </h2>
-                <button
-                  onClick={handleCloseModal}
-                  className="text-[#000060] hover:text-[#0000a0]"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <h3 className="text-xl font-semibold text-[#000060] mb-4">
-                {isEditMode ? "Edit Product" : "Add New Product"}
-              </h3>
-              <form
-                onSubmit={e => e.preventDefault()}
-                className="space-y-4 mb-6"
-              >
-                <div>
-                  <label
-                    htmlFor="product_name"
-                    className="block text-sm font-medium text-[#000060] mb-1"
-                  >
-                    Product Name
-                  </label>
-                  <input
-                    type="text"
-                    id="product_name"
-                    name="product_name"
-                    value={newProduct.product_name}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                    placeholder="Enter product name"
-                  />
-                  {validationErrors.product_name && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {validationErrors.product_name}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="quantity_per_assembly"
-                    className="block text-sm font-medium text-[#000060] mb-1"
-                  >
-                    Quantity per Assembly
-                  </label>
-                  <input
-                    type="number"
-                    id="quantity_per_assembly"
-                    name="quantity_per_assembly"
-                    value={newProduct.quantity_per_assembly}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                    placeholder="Enter quantity"
-                  />
-                  {validationErrors.quantity_per_assembly && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {validationErrors.quantity_per_assembly}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="raw_material_type"
-                    className="block text-sm font-medium text-[#000060] mb-1"
-                  >
-                    Raw Material Type
-                  </label>
-                 
-                  <Select
-                    id="raw_material_type"
-                    name="raw_material_type"
-                    options={rawMaterialOptions}
-                    onChange={option =>
-                      handleSelectChange(option, { name: "raw_material_type" })
-                    }
-                    className="react-select-container"
-                    classNamePrefix="react-select"
-                    placeholder="Select raw material type"
-                  />
-                  {validationErrors.raw_material_type && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {validationErrors.raw_material_type}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="yield_percentage"
-                    className="block text-sm font-medium text-[#000060] mb-1"
-                  >
-                    Yield Percentage
-                  </label>
-                  <input
-                    type="number"
-                    id="yield_percentage"
-                    name="yield_percentage"
-                    value={newProduct.yield_percentage}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                    placeholder="Enter yield percentage"
-                  />
-                  {validationErrors.yield_percentage && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {validationErrors.yield_percentage}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor="bom_cost_per_kg"
-                    className="block text-sm font-medium text-[#000060] mb-1"
-                  >
-                    BOM Cost per KG
-                  </label>
-                  <div className="flex">
-                    <select
-                      value={currency}
-                      onChange={e => setCurrency(e.target.value)}
-                      className="p-2 border rounded-l focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                    >
-                      <option value="INR">₹</option>
-                      <option value="USD">$</option>
-                      <option value="EUR">€</option>
-                    </select>
-                    <input
-                      type="number"
-                      id="bom_cost_per_kg"
-                      name="bom_cost_per_kg"
-                      value={newProduct.bom_cost_per_kg}
-                      onChange={handleInputChange}
-                      className="flex-grow p-2 border-t border-b border-r rounded-r focus:ring-2 focus:ring-[#000060] focus:border-transparent"
-                      placeholder="Enter BOM cost per KG"
-                    />
-                  </div>
-                  {validationErrors.bom_cost_per_kg && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {validationErrors.bom_cost_per_kg}
-                    </p>
-                  )}
-                </div>
-              </form>
-
-              <div className="mt-6 flex justify-end space-x-4 mb-6">
-                <button
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveProducts}
-                  className="px-4 py-2 bg-[#000060] text-white rounded-md hover:bg-[#0000a0] transition-colors"
-                >
-                  {isEditMode ? "Save Changes" : "Add Product"}
-                </button>
-              </div>
-
-              {selectedSku?.products && selectedSku.products.length > 0 ? (
-                <div>
-                  <h3 className="text-xl font-semibold text-[#000060] mb-2">
-                    Existing Products
-                  </h3>
-                  <table className="w-full border-collapse rounded-lg overflow-hidden">
-                    <thead>
-                      <tr className="bg-[#f0f0f9]">
-                        <th className="p-2 text-left">Name</th>
-                        <th className="p-2 text-left">Quantity</th>
-                        <th className="p-2 text-left">Raw Material</th>
-                        <th className="p-2 text-left">Yield %</th>
-                        <th className="p-2 text-left">BOM Cost</th>
-                        <th className="p-2 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentProducts.map((product, index) => (
-                        <tr key={index} className="border-b">
-                          <td className="p-2 border-b border-[#e1e1f5]">
-                            {product.product_name}
-                          </td>
-                          <td className="p-2 border-b border-[#e1e1f5]">
-                            {product.quantity_per_assembly}
-                          </td>
-                          <td className="p-2 border-b border-[#e1e1f5]">
-                            {product.raw_material_type}
-                          </td>
-                          <td className="p-2 border-b border-[#e1e1f5]">
-                            {product.yield_percentage}%
-                          </td>
-                          <td className="p-2 border-b border-[#e1e1f5]">
-                            {currency} {product.bom_cost_per_kg}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() =>
-                                handleEditProduct(selectedSku.sku_id, index)
-                              }
-                              className="text-[#000060] hover:text-[#0000a0] mr-2 p-1 rounded-full hover:bg-gray-100"
-                              title="Edit"
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveProduct(selectedSku.sku_id, index)
-                              }
-                              className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100"
-                              title="Remove"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <div className="mt-4 flex justify-center">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() =>
-                          handleProductPageChange(currentProductPage - 1)
-                        }
-                        disabled={currentProductPage === 1}
-                        className="px-3 py-2 bg-[#f0f0f9] text-[#000060] rounded-md hover:bg-[#e1e1f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      {Array.from(
-                        { length: totalProductPages },
-                        (_, i) => i + 1
-                      ).map(page => (
-                        <button
-                          key={page}
-                          onClick={() => handleProductPageChange(page)}
-                          className={`px-3 py-1 rounded-md transition-colors ${currentProductPage === page
-                            ? "bg-[#000060] text-white"
-                            : "bg-[#f0f0f9] text-[#000060] hover:bg-[#e1e1f5]"
-                            }`}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() =>
-                          handleProductPageChange(currentProductPage + 1)
-                        }
-                        disabled={currentProductPage === totalProductPages}
-                        className="px-3 py-2 bg-[#f0f0f9] text-[#000060] rounded-md hover:bg-[#e1e1f5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-[#4b4b80] italic">
-                  No products added yet. Use the form above to add a new
-                  product.
-                </p>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence> */}
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md">

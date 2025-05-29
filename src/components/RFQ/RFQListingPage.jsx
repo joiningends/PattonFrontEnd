@@ -878,6 +878,22 @@ export default function RFQListingPage() {
     setIsPauseModalOpen(true);
   }
 
+  // fetch the email template 
+  const fetchEmailTemplate = async () => {
+    try {
+      const tagId = 1;
+      const response = await axiosInstance.get(`/email-template/email-with-tag/${tagId}`);
+
+      if (response.data.data) {
+        return response.data.data; // Return the data instead of setting state
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching email template:", error);
+      return null;
+    }
+  };
+
   // handle pause RFQ 
   const handlePauseRFQ = async () => {
     setIsLoading(true);
@@ -887,6 +903,10 @@ export default function RFQListingPage() {
     console.log("selectedRFQ: ", selectedRFQ);
 
     try {
+      // Email template
+      const emailTemplate = await fetchEmailTemplate();
+      const emailTemplateData = emailTemplate[0];
+
       const response = await axiosInstance.get(`/rfq/update-rfq/status/${selectedRFQ.rfq_id}/${status}`);
       console.log("Status update response: ", response);
 
@@ -898,13 +918,33 @@ export default function RFQListingPage() {
       });
 
       if (response.data.success && commentResponse.data.success) {
-        setSuccessMessage("RFQ status updated successfully.");
-        fetchRFQs();
-        setIsPauseModalOpen(false);
-        setSelectedRFQ(null);
-        setSelectedStatus(null);
-        setApproveComment("");
-        setTimeout(() => setSuccessMessage(""), 3000);
+
+        // Email notification object for send email trigger
+        const emailNotification = {
+          emailConfigId: 1,
+          toMail: parsedState?.user?.email,
+          subject: `${status ? 'RFQ status changed to Active successfully' : 'RFQ status changed to Pause successfully'}`,
+          emailContent: `Dear Sir/Ma'am,\n\n` +
+            `The RFQ status with Id: ${selectedRFQ.rfq_id} was changed.` +
+            `And is set to ${status ? 'Active' : 'Paused'} successfully` +
+            `\n\n` +
+            `Thank you`,
+        };
+
+        // Add mail trigger function to the user
+        const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+        if (emailResponse.data.success) {
+          setSuccessMessage("RFQ status updated successfully.");
+          fetchRFQs();
+          setIsPauseModalOpen(false);
+          setSelectedRFQ(null);
+          setSelectedStatus(null);
+          setApproveComment("");
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError("Failed to update RFQ status successfully");
+        }
       }
     } catch (error) {
       setError("Error pausing RFQ.");
@@ -1010,74 +1050,75 @@ export default function RFQListingPage() {
   //   }
   // }
 
-const handleApprove = async () => {
-  if (!isApproveValid) {
-    setError("Please select at least one plant and add a comment.");
-    return;
-  }
-
-  setIsApproving(true); // Add loading state
-  setError("");
-  setSuccessMessage("");
-
-  try {
-    // 1. First approve the RFQ
-    const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
-      rfq_id: selectedRFQ.rfq_id,
-      user_id: user.id,
-      state_id: 2,
-      plant_ids: selectedPlants.map(plant => plant.id),
-      comments: approveComment || null,
-    });
-
-    if (!response.data.success) {
-      throw new Error(response.data.message || "Failed to approve RFQ");
+  const handleApprove = async () => {
+    if (!isApproveValid) {
+      setError("Please select at least one plant and add a comment.");
+      return;
     }
 
-    console.log("selectedPlants: ", selectedPlants);
+    setIsApproving(true); // Add loading state
+    setError("");
+    setSuccessMessage("");
 
-    // 2. Prepare email notification data
-    const emailNotifications = selectedPlants.map(plant => ({
-      emailConfigId: 1,
-      toMail: plant.email,
-      subject: `RFQ Approved: ${selectedRFQ.rfq_id}`,
-      emailContent: `Dear Plant Head,\n\n` +
-                   `The RFQ ${selectedRFQ.rfq_id} has been approved and assigned to your plant.\n\n` +
-                   `Approver Comments: ${approveComment}\n\n` +
-                   `Please take necessary actions.\n\n` +
-                   `Regards,\n` +
-                   `Procurement Team`,
-      rfq_id: selectedRFQ.rfq_id // Add RFQ ID for tracking
-    }));
+    try {
+      // 1. First approve the RFQ
+      const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
+        rfq_id: selectedRFQ.rfq_id,
+        user_id: user.id,
+        state_id: 2,
+        plant_ids: selectedPlants.map(plant => plant.id),
+        comments: approveComment || null,
+      });
 
-    console.log("emailNotifications: ", emailNotifications);
+      if (!response.data.success) {
+        setError("Error aapproving RFQ");
+        throw new Error(response.data.message || "Failed to approve RFQ");
+      }
 
-    // 3. Send all email notifications in a single batch
-    const emailResponse = await axiosInstance.post("/email-config/notify-batch", {
-      notifications: emailNotifications
-    });
+      console.log("selectedPlants: ", selectedPlants);
 
-    // 4. Handle results
-    let successMessage = "RFQ approved successfully";
-    if (emailResponse.data.failedNotifications && emailResponse.data.failedNotifications.length > 0) {
-      successMessage += `. Failed to send notifications to: ${emailResponse.data.failedNotifications.join(', ')}`;
+      // 2. Prepare email notification data
+      const emailNotifications = selectedPlants.map(plant => ({
+        emailConfigId: 1,
+        toMail: plant.email,
+        subject: `RFQ Approved: ${selectedRFQ.rfq_id}`,
+        emailContent: `Dear Plant Head,\n\n` +
+          `The RFQ ${selectedRFQ.rfq_id} has been approved and assigned to your plant.\n\n` +
+          `Approver Comments: ${approveComment}\n\n` +
+          `Please take necessary actions.\n\n` +
+          `Regards,\n` +
+          `Procurement Team`,
+        rfq_id: selectedRFQ.rfq_id // Add RFQ ID for tracking
+      }));
+
+      console.log("emailNotifications: ", emailNotifications);
+
+      // 3. Send all email notifications in a single batch
+      const emailResponse = await axiosInstance.post("/email-config/notify-batch", {
+        notifications: emailNotifications
+      });
+
+      // 4. Handle results
+      let successMessage = "RFQ approved successfully";
+      if (emailResponse.data.failedNotifications && emailResponse.data.failedNotifications.length > 0) {
+        successMessage += `. Failed to send notifications to: ${emailResponse.data.failedNotifications.join(', ')}`;
+      }
+
+      // 5. Update UI state
+      fetchRFQs();
+      setSuccessMessage(successMessage);
+
+    } catch (error) {
+      console.error("Approval error:", error);
+      setError(error.response?.data?.message || error.message || "Error approving RFQ");
+    } finally {
+      setIsApproving(false);
+      setIsApproveModalOpen(false);
+      setSelectedRFQ(null);
+      setSelectedPlants([]);
+      setApproveComment("");
     }
-
-    // 5. Update UI state
-    fetchRFQs();
-    setSuccessMessage(successMessage);
-    
-  } catch (error) {
-    console.error("Approval error:", error);
-    setError(error.response?.data?.message || error.message || "Error approving RFQ");
-  } finally {
-    setIsApproving(false);
-    setIsApproveModalOpen(false);
-    setSelectedRFQ(null);
-    setSelectedPlants([]);
-    setApproveComment("");
-  }
-};
+  };
 
   const handleSendtoReview = async (e) => {
     console.log("called me");
@@ -1145,7 +1186,7 @@ const handleApprove = async () => {
     try {
       const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
         rfq_id: selectedRFQ.rfq_id,
-        user_id: 3, // This should be dynamically set based on the logged-in user
+        user_id: userId, // This should be dynamically set based on the logged-in user
         state_id: 0,
         plant_id: null,
         comments: rejectComment || null,
@@ -1179,15 +1220,38 @@ const handleApprove = async () => {
         p_rfq_id: selectedRFQ.rfq_id,
         p_user_id: user.id,
         p_comments: rejectComment || null,
-        p_state_id: 10
+        p_state_id: 3     // Hardcode stateID RFQ rejected by plant head.
       });
       if (response.data.success) {
-        setSuccessMessage("RFQ rejected by plant head successfully");
-        fetchRFQs();
-        setIsRejectPlantHeadModalOpen(false);
-        setSelectedRFQ(null);
-        setRejectReasons([]);
-        setRejectComment("");
+
+        const response = await axiosInstance.get(`/user/get-account-manager/${selectedRFQ.rfq_id}`);
+        if (!response.data.data) setError("Error rejecting RFQ.");
+
+        // Email notification object for send email trigger
+        const emailNotification = {
+          emailConfigId: 1,
+          toMail: response?.data?.data?.email,
+          subject: `RFQ rejected by plant head`,
+          emailContent: `Dear Sir/Ma'am,\n\n` +
+            `RFQ with Id: ${selectedRFQ.rfq_id} was rejected by Plant head.` +
+            `\n\n` +
+            `Thank you \n\n` +
+            `Plant Head \n\n`,
+        };
+
+        // Add mail trigger function to the user
+        const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+          if (emailResponse.data.success) {
+            setSuccessMessage("RFQ rejected by plant head successfully");
+            fetchRFQs();
+            setIsRejectPlantHeadModalOpen(false);
+            setSelectedRFQ(null);
+            setRejectReasons([]);
+            setRejectComment("");
+          }else{  
+            setError("Error rejecting RFQ");
+          }
       }
     } catch (error) {
       setError("Error rejecting RFQ: " + (error.response?.data?.message || error.message));
