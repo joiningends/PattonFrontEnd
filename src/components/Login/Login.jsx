@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { ChartNoAxesColumnDecreasing, EyeIcon, EyeOffIcon } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for redirection
 import Cookies from "js-cookie";
@@ -43,6 +43,8 @@ export default function PattonLoginPage() {
 
       // Optionally, save user details in localStorage or context
       // localStorage.setItem("user", JSON.stringify(response.data.user));
+
+      console.log("USER data: ", response.data.user);
 
       // Update the App state
       setUser(response.data.user);

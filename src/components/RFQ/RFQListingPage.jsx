@@ -231,6 +231,11 @@ export default function RFQListingPage() {
   const [selectedSkus, setSelectedSkus] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
 
+  const [emailTemplate, setEmailTemplate] = useState();
+  const [plantHeadInfo, setPlantHeadInfo] = useState();
+  const [userInfo, setUserInfo] = useState();
+  const [allEngineersByAssignment, setAllEngineersByAssignment] = useState([]);
+
   const handleSubmitWithConfirmation = () => {
     let message = "";
     if (selectedSkus.length === 0) {
@@ -257,7 +262,10 @@ export default function RFQListingPage() {
 
   const roleId = parsedState?.user?.roleid || null;
   const userId = parsedState?.user?.id || null;
-
+  const userEmail = parsedState?.user?.email || null;
+  const userfirstName = parsedState?.user?.first_name || null;
+  const userlastName = parsedState?.user?.last_name || null;
+  const userRoleid = parsedState?.user?.roleid || null;
 
   if (isStoreLoading) {
     return <div>Loading user data...</div>;
@@ -510,11 +518,15 @@ export default function RFQListingPage() {
     let successCount = 0;
     let errorMessages = [];
 
+    console.log("emailTemplate: ", emailTemplate);
+
     try {
       // Assign to NPD Engineer if selected
       if (selectedNPDEngineer) {
         try {
-          const response = await axiosInstance.post("/rfq/assign", {
+
+          // API assign object
+          const assignData = {
             p_rfq_id: selectedRFQ.rfq_id,
             p_assigned_to_id: selectedNPDEngineer.user_id,
             p_assigned_to_roleid: 19, // NPD Engineer role
@@ -522,8 +534,30 @@ export default function RFQListingPage() {
             p_assigned_by_roleid: 15, // Plant Head role
             p_status: true,
             p_comments: approveComment,
-          });
-          if (response.data.success) successCount++;
+          }
+
+          // Email notification object for send email trigger
+          const emailNotification = {
+            emailConfigId: 1,
+            toMail: selectedNPDEngineer.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+            emailContent: `Dear ${selectedNPDEngineer.first_name} ${selectedNPDEngineer.last_name},
+
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName} (Plant Head)`,
+          };
+
+          const [assignResponse, emailResponse] = await Promise.all([
+            axiosInstance.post("/rfq/assign", assignData),
+            axiosInstance.post("/email-config/notify", emailNotification)
+          ])
+
+          if (assignResponse.data.success && emailResponse.data.success) successCount++;
+
         } catch (error) {
           errorMessages.push(`NPD Engineer: ${error.response?.data?.message || error.message}`);
         }
@@ -532,7 +566,9 @@ export default function RFQListingPage() {
       // Assign to Vendor Engineer if selected
       if (selectedVendorEngineer) {
         try {
-          const response = await axiosInstance.post("/rfq/assign", {
+
+          // Assign object data
+          const assignData = {
             p_rfq_id: selectedRFQ.rfq_id,
             p_assigned_to_id: selectedVendorEngineer.user_id,
             p_assigned_to_roleid: 21, // Vendor Engineer role
@@ -540,8 +576,29 @@ export default function RFQListingPage() {
             p_assigned_by_roleid: 15, // Plant Head role
             p_status: true,
             p_comments: approveComment,
-          });
-          if (response.data.success) successCount++;
+          };
+
+          // Email notification object for send email trigger
+          const emailNotification = {
+            emailConfigId: 1,
+            toMail: selectedVendorEngineer.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+            emailContent: `Dear ${selectedVendorEngineer.first_name} ${selectedVendorEngineer.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName} (Plant Head)`,
+          };
+
+          const [assignResponse, emailResponse] = await Promise.all([
+            axiosInstance.post("/rfq/assign", assignData),
+            axiosInstance.post("/email-config/notify", emailNotification)
+          ])
+
+          if (assignResponse.data.success && emailResponse.data.success) successCount++;
+
         } catch (error) {
           errorMessages.push(`Vendor Engineer: ${error.response?.data?.message || error.message}`);
         }
@@ -550,7 +607,9 @@ export default function RFQListingPage() {
       // Assign to Process Engineer if selected
       if (selectedProcessEngineer) {
         try {
-          const response = await axiosInstance.post("/rfq/assign", {
+
+          // Assign object data
+          const assignData = {
             p_rfq_id: selectedRFQ.rfq_id,
             p_assigned_to_id: selectedProcessEngineer.user_id,
             p_assigned_to_roleid: 20, // Process Engineer role
@@ -558,8 +617,29 @@ export default function RFQListingPage() {
             p_assigned_by_roleid: 15, // Plant Head role
             p_status: true,
             p_comments: approveComment,
-          });
-          if (response.data.success) successCount++;
+          };
+
+          // Email notification object for send email trigger
+          const emailNotification = {
+            emailConfigId: 1,
+            toMail: selectedProcessEngineer.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+            emailContent: `Dear ${selectedProcessEngineer.first_name} ${selectedProcessEngineer.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName} (Plant Head)`,
+          };
+
+          const [assignResponse, emailResponse] = await Promise.all([
+            axiosInstance.post("/rfq/assign", assignData),
+            axiosInstance.post("/email-config/notify", emailNotification)
+          ])
+
+          if (assignResponse.data.success && emailResponse.data.success) successCount++;
+
         } catch (error) {
           errorMessages.push(`Process Engineer: ${error.response?.data?.message || error.message}`);
         }
@@ -574,6 +654,7 @@ export default function RFQListingPage() {
         setSelectedProcessEngineer(null);
         setApproveComment("");
         setTimeout(() => setSuccessMessage(""), 3000);
+        setEmailTemplate(null);
       }
 
       if (errorMessages.length > 0) {
@@ -610,11 +691,34 @@ export default function RFQListingPage() {
       });
 
       if (response.data.success && stateResponse.data.success) {
+
+        const engineerInfo = allEngineersByAssignment?.find((p) => p.roleid == 21)    // FOR VDE
+
+        // Email notification object for send email trigger
+        const emailNotification = {
+          emailConfigId: 1,
+          toMail: engineerInfo.email,
+          subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+          emailContent: `Dear ${engineerInfo.first_name} ${engineerInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+        };
+
+        const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+        if (!emailResponse) setError("Error assigning RFQ to commercial manager.");
+
         setSuccessMessage("RFQ assigned successfully to vendor engineer!");
         fetchRFQsforUserRole();
         setVendorModalIsOpen(false);
         setSelectedVendorEngineer([]);
         setApproveComment("");
+        setEmailTemplate(null);
+        setAllEngineersByAssignment([]);
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign RFQ");
@@ -646,17 +750,147 @@ export default function RFQListingPage() {
       console.log("Assign response: ", assignResponse);
 
       if (assignResponse.data.success) {
+
+        // Email notification object for send email trigger
+        const emailNotification = {
+          emailConfigId: 1,
+          toMail: selectedCommercialTeam.email,
+          subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+          emailContent: `Dear ${selectedCommercialTeam.firstname} ${selectedCommercialTeam.lastname},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName} (Plant Head)`,
+        };
+
+        const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+        if (!emailResponse) setError("Error assigning RFQ to commercial team.");
+
         setSuccessMessage("RFQ assigned successfully to Commercial Team.");
         fetchRFQs();
         setIsSendtoCommercialTeamModalOpen(false);
         setSelectedCommercialTeam(null);
         setApproveComment("");
+        setEmailTemplate(null);
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign RFQ");
       }
     } catch (error) {
       setError("Error sending to commercial team");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+
+
+  const handleAssignToCommercialManager = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let response;
+      if (sendType == 1) {
+        // Sending to Commercial Manager
+        response = await axiosInstance.post("/rfq/assign", {
+          p_rfq_id: selectedRFQ.rfq_id,
+          p_assigned_to_id: 29,               // Default Commercial Manager userId
+          p_assigned_to_roleid: 23,           // Commercial Manager
+          p_assigned_by_id: userId,
+          p_assigned_by_roleid: 22,           // Commercial Team
+          p_status: true,
+          p_comments: approveComment,
+        })
+
+        if (response.data.success) {
+
+          // Email notification object for send email trigger
+          const emailNotification = {
+            emailConfigId: 1,
+            toMail: userInfo.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+            emailContent: `Dear ${userInfo.first_name} ${userInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+          };
+
+          const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+          if (!emailResponse) setError("Error assigning RFQ to commercial manager.");
+
+          setSuccessMessage("RFQ assigned successfully to Commercial Manager.");
+          fetchRFQsforUserRole();
+          setOpenSendRfqtoCommercialManagerModal(false);
+          setApproveComment("");
+          setSendType(null);
+          setEmailTemplate(null);
+          setUserInfo(null);
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError("Failed to assign RFQ");
+        }
+
+      } else if (sendType == 2) {
+        // Sending back to Account manager
+        response = await axiosInstance.post("/rfq/save-comments", {
+          user_id: userId,
+          rfq_id: selectedRFQ.rfq_id,
+          state_id: 19,                 // RFQ sent to Account manager for review
+          comments: approveComment,
+        });
+
+        if (response.data.success) {
+          const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+            rfq_id: selectedRFQ.rfq_id,
+            rfq_state: 19,                 // RFQ sent to Account manager for review
+          });
+
+          if (stateResponse.data.success) {
+
+            // Email notification object for send email trigger
+            const emailNotification = {
+              emailConfigId: 1,
+              toMail: userInfo.email,
+              subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ recieved for review'}`,
+              emailContent: `Dear ${userInfo.first_name} ${userInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully for review.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+            };
+
+            const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+            if (!emailResponse) setError("Error assigning RFQ to Account manager.");
+
+            setSuccessMessage("RFQ sent to Account manager for review.");
+            fetchRFQsforUserRole();
+            setOpenSendRfqtoCommercialManagerModal(false);
+            setApproveComment("");
+            setSendType(null);
+            setEmailTemplate(null);
+            setUserInfo(null);
+            setTimeout(() => setSuccessMessage(""), 3000);
+          } else {
+            setError("Failed to assign RFQ");
+          }
+        }
+      } else {
+        setError("Error Assigning this RFQ.");
+      }
+
+    } catch (error) {
+      setError("Error Assigning this RFQ");
     } finally {
       setIsLoading(false);
     }
@@ -688,11 +922,34 @@ export default function RFQListingPage() {
       });
 
       if (response.data.success && stateResponse.data.success && autoCalResponse.data.success) {
+
+        const engineerInfo = allEngineersByAssignment?.find((p) => p.roleid == 20)    // FOR VDE
+
+        // Email notification object for send email trigger
+        const emailNotification = {
+          emailConfigId: 1,
+          toMail: engineerInfo.email,
+          subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+          emailContent: `Dear ${engineerInfo.first_name} ${engineerInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+        };
+
+        const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+        if (!emailResponse) setError("Error assigning RFQ to commercial manager.");
+
         setSuccessMessage("Auto calculation done and RFQ assigned successfully to process engineer!");
         fetchRFQsforUserRole();
         setProcessModalIsOpen(false);
         setSelectedProcessEngineer([]);
         setApproveComment("");
+        setEmailTemplate(null);
+        setAllEngineersByAssignment([]);
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign RFQ");
@@ -742,10 +999,34 @@ export default function RFQListingPage() {
       }
 
       if (response.data.success && stateResponse.data.success) {
+
+        // Mail trigger 
+        // Email notification object for send email trigger
+        const emailNotification = {
+          emailConfigId: 1,
+          toMail: plantHeadInfo.email,
+          subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved for review'}`,
+          emailContent: `Dear ${plantHeadInfo.first_name} ${plantHeadInfo.last_name},
+
+              The RFQ with Id: ${selectedRFQ?.rfq_id} was assigned to you successfully for review.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName} (Process engineer)`,
+        };
+
+
+        const mailRes = await axiosInstance.post("/email-config/notify", emailNotification);
+
+        if (!mailRes) setError("Error Assigning to plant head for review.");
+
         setSuccessMessage("Assigned to plant head for review.");
         setopenSendRfqtoPlantHeadByProcessModal(false);
         setSelectedRFQ(null);
         fetchRFQsforUserRole();
+        setEmailTemplate(null);
+        setPlantHeadInfo(null);
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
         setError("Failed to assign to plant head");
@@ -757,79 +1038,6 @@ export default function RFQListingPage() {
     }
   };
 
-
-  const handleAssignToCommercialManager = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      let response;
-      if (sendType == 1) {
-        // Sending to Commercial Manager
-        response = await axiosInstance.post("/rfq/assign", {
-          p_rfq_id: selectedRFQ.rfq_id,
-          p_assigned_to_id: 29,               // Default Commercial Manager userId
-          p_assigned_to_roleid: 23,           // Commercial Manager
-          p_assigned_by_id: userId,
-          p_assigned_by_roleid: 22,           // Commercial Team
-          p_status: true,
-          p_comments: approveComment,
-        })
-
-        if (response.data.success) {
-          setSuccessMessage("RFQ assigned successfully to Commercial Manager.");
-          fetchRFQsforUserRole();
-          setOpenSendRfqtoCommercialManagerModal(false);
-          setApproveComment("");
-          setSendType(null);
-          setTimeout(() => setSuccessMessage(""), 3000);
-        } else {
-          setError("Failed to assign RFQ");
-        }
-
-      } else if (sendType == 2) {
-        // Sending back to Account manager
-        response = await axiosInstance.post("/rfq/save-comments", {
-          user_id: userId,
-          rfq_id: selectedRFQ.rfq_id,
-          state_id: 19,                 // RFQ sent to Account manager for review
-          comments: approveComment,
-        });
-
-        if (response.data.success) {
-          const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
-            rfq_id: selectedRFQ.rfq_id,
-            rfq_state: 19,                 // RFQ sent to Account manager for review
-          });
-
-          if (stateResponse.data.success) {
-            setSuccessMessage("RFQ sent to Account manager for review.");
-            fetchRFQsforUserRole();
-            setOpenSendRfqtoCommercialManagerModal(false);
-            setApproveComment("");
-            setSendType(null);
-            setTimeout(() => setSuccessMessage(""), 3000);
-          } else {
-            setError("Failed to assign RFQ");
-          }
-        }
-      } else {
-        setError("Error Assigning this RFQ.");
-      }
-
-    } catch (error) {
-      setError("Error Assigning this RFQ");
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-
-  // const filteredRFQs = rfqs.filter(
-  //   (rfq) =>
-  //     rfq.rfq_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     rfq.client_name.toLowerCase().includes(searchTerm.toLowerCase()),
-  // )
 
   const filteredRFQs = rfqs.filter((rfq) => {
     const matchesSearchTerm =
@@ -878,19 +1086,21 @@ export default function RFQListingPage() {
     setIsPauseModalOpen(true);
   }
 
-  // fetch the email template 
-  const fetchEmailTemplate = async () => {
-    try {
-      const tagId = 1;
-      const response = await axiosInstance.get(`/email-template/email-with-tag/${tagId}`);
 
+  // fetch the email template 
+  const fetchEmailTemplate = async (tagId) => {
+    try {
+      // const tagId = 1;
+      const response = await axiosInstance.get(`/email-template/email-with-tag/${tagId}`);
       if (response.data.data) {
-        return response.data.data; // Return the data instead of setting state
+        console.log("Email template data: ", response.data.data[0]);
+        setEmailTemplate(response.data.data[0]); // Return the data instead of setting state
+      } else {
+        setError("Error fetching email templates, please try again later");
       }
-      return null;
     } catch (error) {
       console.error("Error fetching email template:", error);
-      return null;
+      setError("Error fetching email template.");
     }
   };
 
@@ -904,7 +1114,7 @@ export default function RFQListingPage() {
 
     try {
       // Email template
-      const emailTemplate = await fetchEmailTemplate();
+      const emailTemplate = await fetchEmailTemplate(1);
       const emailTemplateData = emailTemplate[0];
 
       const response = await axiosInstance.get(`/rfq/update-rfq/status/${selectedRFQ.rfq_id}/${status}`);
@@ -953,6 +1163,70 @@ export default function RFQListingPage() {
     }
   };
 
+  const fetchPlantHeadInfo = async (userId) => {
+    try {
+
+      const response = await axiosInstance.get(`/users/get-plant-head/${userId}`);
+      if (response.data.data) {
+        console.log("Plant head data: ", response.data.data[0]);
+        setPlantHeadInfo(response.data.data[0]);
+      } else {
+        setError("Error fetching plant head info, please try again later");
+      }
+    } catch (error) {
+      console.error("Error fetching plant head info:", error);
+      setError("Error fetching plant head info.");
+    }
+  }
+
+  const fetchUserInfo = async (roleId) => {
+    try {
+
+      const response = await axiosInstance.get(`/users/get-user-info/${roleId}`);
+      if (response.data.data) {
+        console.log("Commercial manager data: ", response.data.data);
+        setUserInfo(response.data.data);
+      } else {
+        setError("Error fetching commercial manager info, please try again later");
+      }
+    } catch (error) {
+      console.error("Error fetching commercial manager info:", error);
+      setError("Error fetching commercial manager info.");
+    }
+  }
+
+  const fetchAllEngineersByAssignment = async () => {
+    try {
+      const payload = {
+        rfq_id: selectedRFQ.rfq_id,
+        assigned_by_id: userId,
+        assigned_by_roleid: 15     // Plant head role
+      }
+      const response = await axiosInstance.post('/users/get-engineers-review/', payload);
+
+      if (response.data.success) setAllEngineersByAssignment(response.data.data);
+    } catch (error) {
+      console.error("Error fetching all engineer by assignment");
+      setError("Error fetching all engineer by assignment");
+    }
+  };
+
+  const fetchAllEngineersByAssignEngineer = async () => {
+    try {
+      const payload = {
+        p_engineer_id: userId,
+        p_rfq_id: selectedRFQ.rfq_id,
+        p_engineer_roleid: userRoleid
+      }
+      const response = await axiosInstance.post('/users/get-engineers-assign', payload);
+
+      if (response.data.success) setAllEngineersByAssignment(response.data.data);
+    } catch (error) {
+      console.error("Error fetching all engineer by assignment");
+      setError("Error fetching all engineer by assignment");
+    }
+  };
+
   const openApproveModal = (rfq) => {
     setSelectedRFQ(rfq)
     setIsApproveModalOpen(true)
@@ -960,6 +1234,7 @@ export default function RFQListingPage() {
 
   const openSendtoCommercialTeamModal = (rfq) => {
     fetchCommercialTeam();
+    fetchEmailTemplate(3);      // TagId = 3 (RFQ assignment) DO NOT CHANGE
     setSelectedRFQ(rfq);
     setIsSendtoCommercialTeamModalOpen(true);
   }
@@ -969,8 +1244,12 @@ export default function RFQListingPage() {
     setIsRejectModalOpen(true)
   }
 
+
+
   const openApprvalModalForReview = (rfq) => {
     setSelectedRFQ(rfq);
+    fetchEmailTemplate(7);            // tagId = 7 (RFQ review template) [DO NOT CHANGE]
+    fetchAllEngineersByAssignment();
     setIsApproveAndSentToReviewModalOpen(true);
   }
 
@@ -980,7 +1259,10 @@ export default function RFQListingPage() {
     fetchNPDengineers(rfq.rfq_id);
     fetchVendorEngineer(rfq.rfq_id);
     fetchProcessEngineer(rfq.rfq_id);
+    fetchEmailTemplate(3);    // tagId = 3  (RFQ assignment) [DO NOT CHANGE]
     setIsOpen(true);
+    console.log(userfirstName, userlastName);
+
   }
 
 
@@ -991,21 +1273,35 @@ export default function RFQListingPage() {
 
   const openApproveAssignVendorengModal = (rfq) => {
     setSelectedRFQ(rfq);
+    fetchAllEngineersByAssignEngineer();
+    fetchEmailTemplate(3);
     setVendorModalIsOpen(true);
   }
 
   const openApproveAssignProcessengModal = (rfq) => {
     setSelectedRFQ(rfq);
+    fetchEmailTemplate(3);
+    fetchAllEngineersByAssignEngineer();
     setProcessModalIsOpen(true);
   }
 
   const openSendRfqtoPlantHeadByProcess = (rfq) => {
     setSelectedRFQ(rfq);
     setopenSendRfqtoPlantHeadByProcessModal(true);
+    fetchPlantHeadInfo(userId);
+    fetchEmailTemplate(7);    // tagId = 7  (RFQ review template) [DO NOT CHANGE]
   }
 
   const openSendRfqtoCommercialManager = (rfq, send_type) => {
     setSelectedRFQ(rfq);
+    // fetch template as per sendtype : Assign or Review
+    if (send_type == 1) {
+      fetchEmailTemplate(3);            // tagId = 3 (RFQ Assignment) [DO NOT CHANGE]
+      fetchUserInfo(23);                // roleId = 23 Commercial manager
+    } else if (send_type == 2) {
+      fetchEmailTemplate(7);            // tagId = 7 (RFQ review template) [DO NOT CHANGE]
+      fetchUserInfo(8);                 // roleId = 8 Admin / Account Manager
+    }
     setOpenSendRfqtoCommercialManagerModal(true);
     setSendType(send_type);
     // console.log("LLOS: ", send_type);
@@ -1018,37 +1314,7 @@ export default function RFQListingPage() {
   const isApproveValid = selectedPlants.length > 0 && approveComment.trim() !== ""
   const isRejectValid = rejectReasons.length > 0 && rejectComment.trim() !== ""
 
-  // const handleApprove = async () => {
-  //   if (!isApproveValid) {
-  //     setError("Please select at least one plant and add a comment.")
-  //     return
-  //   }
-  //   try {
-  //     const response = await axiosInstance.post("http://localhost:3000/api/rfq/approve", {
-  //       rfq_id: selectedRFQ.rfq_id,
-  //       user_id: user.id,
-  //       state_id: 2,
-  //       plant_ids: selectedPlants,            // array of plants 
-  //       comments: approveComment || null,
-  //     })
-  //     if (response.data.success) {
 
-  //       // Send email notification to each plant head
-
-
-  //       fetchRFQs()
-  //       setIsApproveModalOpen(false)
-  //       setSelectedRFQ(null)
-  //       setSelectedPlants([])
-  //       setApproveComment("")
-  //       setSuccessMessage("RFQ approved successfully")
-  //     } else {
-  //       setError("Failed to approve RFQ. Please try again.")
-  //     }
-  //   } catch (error) {
-  //     setError("Error approving RFQ: " + (error.response?.data?.message || error.message))
-  //   }
-  // }
 
   const handleApprove = async () => {
     if (!isApproveValid) {
@@ -1082,12 +1348,12 @@ export default function RFQListingPage() {
         emailConfigId: 1,
         toMail: plant.email,
         subject: `RFQ Approved: ${selectedRFQ.rfq_id}`,
-        emailContent: `Dear Plant Head,\n\n` +
+        emailContent: `Dear ${plant.firstName} ${plant.lastName},\n\n` +
           `The RFQ ${selectedRFQ.rfq_id} has been approved and assigned to your plant.\n\n` +
           `Approver Comments: ${approveComment}\n\n` +
           `Please take necessary actions.\n\n` +
           `Regards,\n` +
-          `Procurement Team`,
+          `${userfirstName} ${userlastName}`,
         rfq_id: selectedRFQ.rfq_id // Add RFQ ID for tracking
       }));
 
@@ -1120,6 +1386,7 @@ export default function RFQListingPage() {
     }
   };
 
+
   const handleSendtoReview = async (e) => {
     console.log("called me");
     if (!engineerTypeForReview || !approveComment) {
@@ -1128,13 +1395,65 @@ export default function RFQListingPage() {
     }
 
     try {
-
+      let engineerInfo = null;
       let state = null;
+      let emailNotification = {};
       console.log("Etype: ", engineerTypeForReview);
       switch (engineerTypeForReview) {
-        case "NPD": state = 15; break;
-        case "VDE": state = 16; break;
-        case "PE": state = 17; break;
+        case "NPD":
+          state = 15;
+          engineerInfo = allEngineersByAssignment?.find((p) => p.assigned_to_roleid == 19);     // For NPD engineer
+
+          // Email notification object for send email trigger
+          emailNotification = {
+            emailConfigId: 1,
+            toMail: engineerInfo.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ recieved for review'}`,
+            emailContent: `Dear ${engineerInfo.first_name} ${useengineerInforInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully for review.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+          };
+          break;
+        case "VDE":
+          state = 16;
+          engineerInfo = allEngineersByAssignment?.find((p) => p.assigned_to_roleid == 21);      // For VDE engineer
+
+          // Email notification object for send email trigger
+          emailNotification = {
+            emailConfigId: 1,
+            toMail: engineerInfo.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ recieved for review'}`,
+            emailContent: `Dear ${engineerInfo.first_name} ${useengineerInforInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully for review.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+          };
+          break;
+        case "PE":
+          state = 17;
+          engineerInfo = allEngineersByAssignment?.find((p) => p.assigned_to_roleid == 20);     // For Process engineer
+
+          // Email notification object for send email trigger
+          emailNotification = {
+            emailConfigId: 1,
+            toMail: engineerInfo.email,
+            subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ recieved for review'}`,
+            emailContent: `Dear ${engineerInfo.first_name} ${useengineerInforInfo.last_name},
+              The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully for review.
+
+              ${emailTemplate.email_content}
+
+              ${emailTemplate.email_signature}
+              ${userfirstName} ${userlastName}`,
+          };
+          break;
         default:
           setError("Invalid engineer type selected");
           return;
@@ -1142,7 +1461,7 @@ export default function RFQListingPage() {
 
       console.log("state: ", state);
 
-      const [updateStateResponse, insertCommentResponse] = await Promise.all([
+      const [updateStateResponse, insertCommentResponse, emailResponse] = await Promise.all([
         axiosInstance.post("/rfq/update/rfq-state/", {
           rfq_id: selectedRFQ.rfq_id,
           rfq_state: state
@@ -1152,20 +1471,23 @@ export default function RFQListingPage() {
           rfq_id: selectedRFQ.rfq_id,
           state_id: state,
           comments: approveComment
-        })
+        }),
+        axiosInstance.post("/email-config/notify", emailNotification)
       ]);
 
       console.log("response1: ", updateStateResponse);
       console.log("response2: ", insertCommentResponse);
 
 
-      if (updateStateResponse.data.success && insertCommentResponse.data.success) {
+      if (updateStateResponse.data.success && insertCommentResponse.data.success && emailResponse.data.success) {
         fetchRFQs();
         setIsApproveAndSentToReviewModalOpen(false);
         setSelectedRFQ(null);
         setEngineerTypeForReview("");
         setApproveComment("");
         setError("");
+        setEmailTemplate(null);
+        setAllEngineersByAssignment([]);
         setSuccessMessage("RFQ sent successfully for review.");
         // Consider adding a callback here to refresh parent component state
       } else {
@@ -1242,16 +1564,16 @@ export default function RFQListingPage() {
         // Add mail trigger function to the user
         const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
 
-          if (emailResponse.data.success) {
-            setSuccessMessage("RFQ rejected by plant head successfully");
-            fetchRFQs();
-            setIsRejectPlantHeadModalOpen(false);
-            setSelectedRFQ(null);
-            setRejectReasons([]);
-            setRejectComment("");
-          }else{  
-            setError("Error rejecting RFQ");
-          }
+        if (emailResponse.data.success) {
+          setSuccessMessage("RFQ rejected by plant head successfully");
+          fetchRFQs();
+          setIsRejectPlantHeadModalOpen(false);
+          setSelectedRFQ(null);
+          setRejectReasons([]);
+          setRejectComment("");
+        } else {
+          setError("Error rejecting RFQ");
+        }
       }
     } catch (error) {
       setError("Error rejecting RFQ: " + (error.response?.data?.message || error.message));
@@ -1798,7 +2120,7 @@ export default function RFQListingPage() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    openSendRfqtoCommercialManager(rfq, 1);
+                                    openSendRfqtoCommercialManager(rfq, 1);   // 1: Sending to Commercial Manager
                                   }}
                                   className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                   id="assign-rfq"
@@ -1870,7 +2192,7 @@ export default function RFQListingPage() {
                     checked={selectedPlants.some(p => p.id === plant.plant_id)}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedPlants([...selectedPlants, { id: plant.plant_id, email: plant.plant_head_email }]);
+                        setSelectedPlants([...selectedPlants, { id: plant.plant_id, email: plant.plant_head_email, firstName: plant.plant_head_firstname, lastName: plant.plant_head_lastname }]);
 
                       } else {
                         // Remove by plant ID
