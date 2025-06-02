@@ -17,7 +17,8 @@ import {
   Satellite,
   FastForward,
   CircleArrowRightIcon,
-  CopyCheckIcon
+  CopyCheckIcon,
+  FileSymlinkIcon
 } from "lucide-react";
 import axios from "axios"
 import axiosInstance from "../../axiosConfig"
@@ -235,6 +236,9 @@ export default function RFQListingPage() {
   const [plantHeadInfo, setPlantHeadInfo] = useState();
   const [userInfo, setUserInfo] = useState();
   const [allEngineersByAssignment, setAllEngineersByAssignment] = useState([]);
+
+  const [openModalForRevision, setOpenModalForRevision] = useState(false);
+  const [revisionTeam, setRevisionTeam] = useState(null);
 
   const handleSubmitWithConfirmation = () => {
     let message = "";
@@ -1500,6 +1504,65 @@ export default function RFQListingPage() {
   }
 
 
+
+  // Function to handle sent for revision
+  const handleSendtoRevision = async (e) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      let state;
+      let emailNotification = {};
+
+      switch (revisionTeam) {
+        case "plant":
+          state = 20; // For sending to Plant head for revision
+          break;
+        case "commercial":
+          state = 21  // For sending to Commercial team for revision
+          break;
+        default:
+          setError("Invalid team type");
+      }
+
+
+      const [revisionResponse, updateStateResponse, insertCommentResponse] = await Promise.all([
+        axiosInstance.post("/rfq/save-rfq-version/",{
+          p_rfq_id: selectedRFQ.rfq_id
+        }),
+        axiosInstance.post("/rfq/update/rfq-state/", {
+          rfq_id: selectedRFQ.rfq_id,
+          rfq_state: state
+        }),
+        axiosInstance.post("/rfq/save-comments/", {
+          user_id: userId,
+          rfq_id: selectedRFQ.rfq_id,
+          state_id: state,
+          comments: approveComment
+        }),
+        // axiosInstance.post("/email-config/notify", emailNotification)
+      ]);
+
+      if (revisionResponse.data.success && updateStateResponse.data.success && insertCommentResponse.data.success) {
+        fetchRFQs();
+        setOpenModalForRevision(false);
+        setSelectedRFQ(null);
+        setRevisionTeam(null);
+        setApproveComment("");
+        setError("");
+        // setEmailTemplate(null);
+        // setAllEngineersByAssignment([]);
+        setSuccessMessage("RFQ sent successfully for revision.");
+      } else {
+        setError("Failed to send the RFQ for revision.");
+      }
+
+    } catch (error) {
+      setIsLoading(false);
+    }
+  }
+
+
+
   const handleReject = async () => {
     if (!isRejectValid) {
       setError("Please select at least one reason and add a comment.")
@@ -1658,6 +1721,13 @@ export default function RFQListingPage() {
     setSelectAll(false); // Reset select all
     setOpenCloseRfqbyClientApprovalModal(true);
   };
+
+
+  // function to handle assign RFQ for revision
+  const handleRFQRevision = (rfq) => {
+    setSelectedRFQ(rfq);
+    setOpenModalForRevision(true);
+  }
 
   return (
     <motion.div
@@ -1947,6 +2017,16 @@ export default function RFQListingPage() {
                                     </button>
 
                                     <Tooltip anchorSelect="#close-sku">Close RFQ</Tooltip>
+
+                                    <button
+                                      onClick={() => handleRFQRevision(rfq)}
+                                      className="p-2 rounded-full hover:bg-green-100"
+                                      id="rfq_revision"
+                                    >
+                                      <FileSymlinkIcon className="w-5 h-5" />
+                                    </button>
+
+                                    <Tooltip anchorSelect="#rfq_revision">Send for Revision</Tooltip>
                                   </>
                                 )}
                               </>
@@ -2365,6 +2445,78 @@ export default function RFQListingPage() {
                     }`}
                 >
                   Send to {engineerTypeForReview || "Engineer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* Modal For sending RFQ for revision */}
+      {openModalForRevision && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md space-y-4 animate-fade-in">
+            <h2 className="text-2xl font-bold text-[#000060] mb-4">RFQ Revision</h2>
+            <p className="mb-4 text-[#4b4b80]">
+              Select one of the team to send for revision and add a comment to this RFQ.
+            </p>
+
+            {/* Display error message if exists */}
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={async (e) => {
+              e.preventDefault(); // Prevent default form submission
+              await handleSendtoRevision();
+            }}>
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="text-md font-medium text-[#000060]">Send to Team <span className="text-red-500">*</span></span>
+                  <select
+                    className="w-full px-4 py-2 border-2 border-[#c8c8e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 text-[#000060] mt-1"
+                    onChange={(e) => setRevisionTeam(e.target.value)}
+                    required
+                  >
+                    <option value="">Select the team</option>
+                    <option value="plant">Plant team</option>
+                    <option value="commercial">Commercial team</option>
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-md font-medium text-[#000060]">Comments <span className="text-red-500">*</span></span>
+                  <textarea
+                    value={approveComment}
+                    onChange={(e) => setApproveComment(e.target.value)}
+                    placeholder="Add your comment here..."
+                    className="w-full p-3 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mt-1"
+                    rows="3"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-6">
+                <button
+                  type="button"
+                  onClick={() => { setOpenModalForRevision(false); setError(""); setApproveComment(""); setRevisionTeam(null) }}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!revisionTeam && !approveComment}
+                  className={`px-4 py-2 rounded-lg transition-colors ${(revisionTeam && approveComment)
+                    ? "bg-[#000060] text-white hover:bg-[#0000a0]"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    }`}
+                >
+                  Send to {revisionTeam} team
                 </button>
               </div>
             </form>

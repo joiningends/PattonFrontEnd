@@ -45,6 +45,7 @@ export default function CreateRFQPage() {
   const [isDescriptionModalOpen, setIsDescriptionModalOpen] = useState(false);
   const [selectedSKU, setSelectedSKU] = useState(null);
   const [submitError, setSubmitError] = useState("");
+  const [allSkuData, setAllSkuData] = useState(null);
 
   const { user } = useAppStore();
 
@@ -58,8 +59,28 @@ export default function CreateRFQPage() {
     setSelectedSKU(null);
   };
 
+  const fetchAllSKUdata = async () => {
+    setIsLoading(true);
+    setErrors("");
+    try{
+      const response = await axiosInstance.get(`/sku/get-all/skus`);
+      if(response.data.success){
+        console.log("ALL sku data: ", response.data.data[0]);
+        setAllSkuData(response.data.data[0]);
+      }else{
+        setErrors("Error fetching All sku data for existing products.");
+      }
+    }catch(error){
+      console.log("Error fetching sku data. Error: ", error);
+      setErrors("Error fetching All sku data.");
+    }finally{
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchClients();
+    fetchAllSKUdata();
   }, []);
 
   const fetchClients = async () => {
@@ -180,7 +201,7 @@ export default function CreateRFQPage() {
           "/rfq/saverfq",
           {
             p_rfq_name: rfqName,
-            p_user_id: user.id, 
+            p_user_id: user.id,
             p_client_id: selectedClient.value,
             p_skus: skus.map(sku => ({
               sku_name: sku.name,
@@ -454,6 +475,8 @@ export default function CreateRFQPage() {
               </div>
             </div>
 
+
+            {/* For New Product */}
             {productType === "new" && (
               <>
                 <div className="bg-[#f8f8fd] p-6 rounded-lg shadow-md mt-6">
@@ -691,6 +714,66 @@ export default function CreateRFQPage() {
                 </div>
               </>
             )}
+
+
+            {/* For Existing Products */}
+            {productType === "existing" && (
+              <>
+                <div className="bg-[#f8f8fd] p-6 rounded-lg shadow-md mt-6">
+                  <h3 className="text-2xl font-semibold text-[#000060] mb-6">
+                    Existsing SKU list
+                  </h3>
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full border-collapse mb-6">
+                      <thead>
+                        <tr className="bg-[#000060] text-white">
+                          <th></th>
+                          <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
+                            Name
+                          </th>
+                          <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
+                            Annual Usage
+                          </th>
+                          <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
+                            Drawing No
+                          </th>
+                          <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
+                            Part No
+                          </th>
+                          <th className="p-3 text-left font-semibold text-sm uppercase tracking-wider">
+                            Size
+                          </th>
+                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allSkuData.map((sku, index) => (
+                          <tr
+                            key={index}
+                            className={`border-b border-[#e1e1f5] transition-colors ${index % 2 === 0 ? "bg-white" : "bg-[#f8f8fd]"
+                              } hover:bg-[#f0f0f9]`}
+                          >
+                            <td><input type="checkbox"/></td>
+                            <td className="p-3 text-sm">{sku.sku_name}</td>
+                            <td className="p-3 text-sm">{sku.annual_usage}</td>
+                            <td className="p-3 text-sm">{sku.drawing_no}</td>
+                            <td className="p-3 text-sm">{sku.part_no}</td>
+                            <td className="p-3 text-sm">{sku.size}</td>
+                            
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {skus.length === 0 && (
+                    <p className="text-[#4b4b80] text-sm italic">
+                      No SKUs added yet. Use the form below to add SKUs.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
 
             {errors.skus && (
               <p className="mt-1 text-sm text-red-500">{errors.skus}</p>
