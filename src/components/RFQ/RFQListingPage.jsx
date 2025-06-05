@@ -1526,7 +1526,7 @@ export default function RFQListingPage() {
 
 
       const [revisionResponse, updateStateResponse, insertCommentResponse] = await Promise.all([
-        axiosInstance.post("/rfq/save-rfq-version/",{
+        axiosInstance.post("/rfq/save-rfq-version/", {
           p_rfq_id: selectedRFQ.rfq_id
         }),
         axiosInstance.post("/rfq/update/rfq-state/", {
@@ -2067,6 +2067,36 @@ export default function RFQListingPage() {
                                   className="p-2 rounded-xl hover:bg-green-100 bg-blue-400 text-white hover:text-black"
                                 >
                                   Send for Review
+                                </button>
+                                <button
+                                  onClick={() => openSendtoCommercialTeamModal(rfq)}
+                                  className="p-2 text-black-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="send-comercial"
+                                >
+                                  <UserRoundPlusIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#send-comercial">Send to Commercial team</Tooltip>
+                              </>
+                            )}
+
+                          
+                            {/* For plant head Revision */}
+                            {(rfq.state_id === 20 && roleId === 15 && rfq.rfq_status === true) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}/${rfq.version_no}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
+
+                                <Tooltip anchorSelect="#add-products">SKU Lists</Tooltip>
+                                <button
+                                  onClick={() => openApprvalModalForReview(rfq)}
+                                  className="p-2 rounded-xl hover:bg-green-100 bg-blue-400 text-white hover:text-black"
+                                >
+                                  Send for Revision
                                 </button>
                                 <button
                                   onClick={() => openSendtoCommercialTeamModal(rfq)}

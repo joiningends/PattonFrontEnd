@@ -10,7 +10,7 @@ import { Tooltip } from "react-tooltip";
 
 export default function SkuDetailPage() {
     const navigate = useNavigate();
-    const { rfqId, skuId, stateId } = useParams();
+    const { rfqId, skuId, stateId, version_no } = useParams();
     const [rfq, setRFQ] = useState(null);
     const [sku, setSku] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -133,7 +133,15 @@ export default function SkuDetailPage() {
         console.log("RFQID: ", rfqId);
 
         try {
-            const response = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+            let query;
+
+            if (version_no > 0) {
+                query = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+
+            }
+            const response = await axiosInstance.get(query);
 
             console.log("response data: ", response.data.data);
 
@@ -216,7 +224,13 @@ export default function SkuDetailPage() {
 
     const fetchJobCosts = async () => {
         try {
-            const response = await axiosInstance.get(`/sku/fetch/job-cost/${rfqId}/${skuId}`);
+            let query;
+            if (version_no > 0) {
+                query = `/sku/fetch/job-cost-latest/${rfqId}/${skuId}`;
+            } else {
+                query = `/sku/fetch/job-cost/${rfqId}/${skuId}`;
+            }
+            const response = await axiosInstance.get(query);
             if (response.data.success) {
                 setJobCosts(response.data.data);
                 console.log("Job Cost: ", response.data.data);
@@ -229,10 +243,17 @@ export default function SkuDetailPage() {
 
     const fetchOtherCostsForSku = async () => {
         try {
-            const response = await axiosInstance.get(`other-cost/get-byskurfq/${rfqId}/${skuId}`);
+            console.log("version NO: ", version_no);
+            let query;
+            if (version_no > 0) {
+                query = `/other-cost/get-latest-byskurfq/${rfqId}/${skuId}`;
+            } else {
+                query = `/other-cost/get-byskurfq/${rfqId}/${skuId}`;
+            }
+            const response = await axiosInstance.get(query);
             if (response.data.success) {
                 setSkuOtherCosts(response.data.data);
-                console.log(response.data.data);
+                console.log("fetchOtherCostsForSku response: ",response.data.data);
             }
         } catch (error) {
             console.error("Error fetching other costs for SKU:", error);
@@ -1145,7 +1166,10 @@ export default function SkuDetailPage() {
                 >
                     <div>
                         <button
-                            onClick={() => navigate(`/sku-details/${rfqId}/${stateId}`)}
+                            onClick={() => {
+                                if (version_no > 0) navigate(`/sku-details/${rfqId}/${stateId}/${version_no}`);
+                                else navigate(`/sku-details/${rfqId}/${stateId}`);
+                            }}
                             className="text-[#000060] hover:text-[#0000a0] transition-colors flex items-center mb-4"
                         >
                             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -1264,7 +1288,7 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.yield_percentage || "-"}</span>
-                                                    {(stateId == 13 && product.is_bom != true) && (
+                                                    {((stateId == 13 || stateId == 20) && product.is_bom != true) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1290,7 +1314,7 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.bom_cost_per_kg || "-"}</span>
-                                                    {(stateId == 13 && product.is_bom == true) && (
+                                                    {((stateId == 13 || stateId == 20) && product.is_bom == true) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1323,7 +1347,7 @@ export default function SkuDetailPage() {
                                             <td key={index} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{product.net_weight_of_product || "-"}</span>
-                                                    {stateId == 13 && (
+                                                    {(stateId == 13 || stateId == 20) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1406,7 +1430,7 @@ export default function SkuDetailPage() {
                                         <td colSpan={sku?.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
                                                 <h2 className="text-lg text-gray-800">B LABOUR COST</h2>
-                                                {stateId == 13 && (
+                                                {(stateId == 13 || stateId == 20) && (
                                                     <button
                                                         onClick={() => setShowJobCostModal(true)}
                                                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-flex items-center"
@@ -1439,7 +1463,7 @@ export default function SkuDetailPage() {
                                                     <td key={index} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">
                                                         <div className="flex justify-between items-center">
                                                             <span>{jobCostGroup.job_name}</span>
-                                                            {stateId == 13 && (
+                                                            {(stateId == 13 || stateId == 20) && (
                                                                 <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
                                                                     <PencilIcon
                                                                         className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
@@ -1492,7 +1516,7 @@ export default function SkuDetailPage() {
                                                         {/* {jobCostGroup.job_name} */}
                                                         <div className="flex justify-between items-center">
                                                             <span>{jobCostGroup.job_name}</span>
-                                                            {stateId == 13 && (
+                                                            {(stateId == 13 || stateId == 20) && (
                                                                 <>
                                                                     <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
                                                                         <PencilIcon
@@ -1553,7 +1577,7 @@ export default function SkuDetailPage() {
                                         <td colSpan={sku?.products?.length + 1} className="px-4 py-3 whitespace-nowrap text-sm font-medium text-black border border-gray-200 ">
                                             <div className="flex justify-between items-center">
                                                 <h2 className="text-lg text-gray-800">OTHER COST</h2>
-                                                {stateId == 13 && (
+                                                {(stateId == 13 || stateId == 20) && (
                                                     <button
                                                         onClick={() => setShowOtherCostModal(true)}
                                                         className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm"
@@ -1572,7 +1596,7 @@ export default function SkuDetailPage() {
                                                 <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">
                                                     <div className="flex justify-between items-center">
                                                         <span>{cost.other_cost_name}</span>
-                                                        {stateId == 13 && (
+                                                        {(stateId == 13 || stateId == 20) && (
                                                             <div className="flex space-x-2 group-hover:opacity-100 transition-opacity">
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-blue-500 hover:text-blue-700 cursor-pointer"
@@ -1653,7 +1677,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Over head  */}
-                                    {((roleId === 22 || roleId === 15) && !sku?.over_head_perc) && (
+                                    {((roleId === 22) && !sku?.over_head_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td> */}
                                             <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
@@ -1741,7 +1765,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.freight_cost} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.freight_cost || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18) && (
+                                                        {(stateId == 6 || stateId == 18 || stateId == 20) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1768,7 +1792,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.insurance_cost} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.insurance_cost || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18 || roleId === 15) && (
+                                                        {(stateId == 6 || stateId == 18 || stateId == 20) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1826,7 +1850,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.margin_value} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.margin_value || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18 || roleId === 15) && (
+                                                        {(stateId == 6 || stateId == 18 || stateId == 20) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1876,7 +1900,7 @@ export default function SkuDetailPage() {
                                                 {/* {sku?.client_cost} */}
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{sku?.client_cost || "-"}</span>
-                                                    {(stateId == 6 || stateId == 18) && (
+                                                    {(stateId == 6 || stateId == 18 || stateId == 20) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"

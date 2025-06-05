@@ -23,7 +23,7 @@ import { Tooltip } from 'react-tooltip'
 export default function AddProductPage() {
 
     const navigate = useNavigate();
-    const { rfqId, stateId } = useParams();
+    const { rfqId, stateId, version_no } = useParams();
     const [sku, setSku] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -62,7 +62,14 @@ export default function AddProductPage() {
 
         try {
 
-            const response = await axiosInstance.get(`/sku/getsku/${rfqId}`);
+            let query;
+            if(version_no > 0) {
+                query = `/sku/getlatestsku/${rfqId}`;
+            }else{
+                query = `/sku/getsku/${rfqId}`;
+            }
+
+            const response = await axiosInstance.get(query);
 
             console.log(response.data.data);
 
@@ -725,6 +732,7 @@ export default function AddProductPage() {
                                 navigate={navigate}
                                 rfq_id={rfqId}
                                 stateId={stateId}
+                                version_no={version_no}
                             />
                         </div>
                     )}
@@ -1588,7 +1596,7 @@ export default function AddProductPage() {
 
 
 
-function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id, stateId }) {
+function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id, stateId, version_no }) {
     return (
 
         <div className="overflow-x-auto">
@@ -1659,7 +1667,10 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                 )}
                                 {(role_id === 20 || role_id === 15 || role_id === 22 || role_id === 23 || role_id === 8) && (
                                     <button
-                                        onClick={() => navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}`)}
+                                        onClick={() => {
+                                            if(version_no > 0) navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}/${sku.version_no}`);
+                                            else navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}`)
+                                        }}
                                         className="p-2 rounded-full hover:bg-green-100"
                                         data-tooltip-id={`cost-tooltip-${sku.sku_id}`}
                                     >

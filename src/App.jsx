@@ -143,7 +143,10 @@ const AppLayout = () => {
           <Route path="/rfq-detail/:rfqId" element={<RFQDetailsPage />} />
           <Route path="/sku-details/:rfqId" element={<AddProductPage />} />
           <Route path="/sku-details/:rfqId/:stateId" element={<AddProductPage />} />
+          <Route path="/sku-details/:rfqId/:stateId/:version_no" element={<AddProductPage />} />
           <Route path="/sku-cost/:rfqId/:skuId/:stateId" element={<SkuDetailPage />} />
+          <Route path="/sku-cost/:rfqId/:skuId/:stateId/:version_no" element={<SkuDetailPage />} />
+
 
           {/* Plant module */}
           <Route path="/plants" element={<PlantListingPage />} />
