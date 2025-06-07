@@ -139,7 +139,6 @@ export default function SkuDetailPage() {
                 query = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
             } else {
                 query = `/sku/getsku/${rfqId}?skuId=${skuId}`;
-
             }
             const response = await axiosInstance.get(query);
 
@@ -253,7 +252,7 @@ export default function SkuDetailPage() {
             const response = await axiosInstance.get(query);
             if (response.data.success) {
                 setSkuOtherCosts(response.data.data);
-                console.log("fetchOtherCostsForSku response: ",response.data.data);
+                console.log("fetchOtherCostsForSku response: ", response.data.data);
             }
         } catch (error) {
             console.error("Error fetching other costs for SKU:", error);
@@ -359,12 +358,23 @@ export default function SkuDetailPage() {
             if (editModal.fieldName === "yield_percentage") {
 
                 console.log("yield_percentage edit: ", editModal);
-                const response = await axiosInstance.post("/sku/edit-yield", {
+                let query1, query2, query3;
+                if (version_no > 0) {
+                    query1 = `/sku/edit-latest-yield`;
+                    query2 = `/rfq/auto-latest-calculate`;
+                    query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+                } else {
+                    query1 = `/sku/edit-yield`;
+                    query2 = `/rfq/auto-calculate`;
+                    query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+                }
+
+                const response = await axiosInstance.post(query1, {
                     product_id: editModal.productId,
                     yield_percentage: parseFloat(editModal.newValue)
                 });
 
-                const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+                const autoCalResponse = await axiosInstance.post(query2, {
                     p_rfq_id: rfqId
                 });
 
@@ -376,7 +386,7 @@ export default function SkuDetailPage() {
                     setShowAlert(true);
 
                     // Refresh the SKU data
-                    const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                    const skuResponse = await axiosInstance.get(query3);
                     if (skuResponse.data.success) {
                         // setSku(skuResponse.data.data[0]);
                         // Sort the products: GP COIL first, then BOM
@@ -402,12 +412,23 @@ export default function SkuDetailPage() {
             if (editModal.fieldName === "bom_cost_per_kg") {
                 console.log("bom_cost_per_kg edit :", editModal);
 
-                const response = await axiosInstance.post("/sku/edit-bom-cost", {
+                let query1, query2, query3;
+                if(version_no > 0){
+                    query1 = `/sku/edit-latest-bom-cost`;
+                    query2 = `/rfq/auto-latest-calculate`;
+                    query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+                }else{
+                    query1 = `/sku/edit-bom-cost`;
+                    query2 = `/rfq/auto-calculate`;
+                    query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+                }
+
+                const response = await axiosInstance.post(query1, {
                     product_id: editModal.productId,
                     bom_cost_per_kg: parseFloat(editModal.newValue)
                 });
 
-                const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+                const autoCalResponse = await axiosInstance.post(query2, {
                     p_rfq_id: rfqId
                 });
 
@@ -419,7 +440,7 @@ export default function SkuDetailPage() {
                     setShowAlert(true);
 
                     // Refresh the SKU data
-                    const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                    const skuResponse = await axiosInstance.get(query3);
                     if (skuResponse.data.success) {
                         // setSku(skuResponse.data.data[0]);
                         // Sort the products: GP COIL first, then BOM
@@ -445,12 +466,23 @@ export default function SkuDetailPage() {
             if (editModal.fieldName === "net_weight_of_product") {
                 console.log("net_weight_of_product edit :", editModal);
 
-                const response = await axiosInstance.post("/sku/edit-net-weight", {
+                let query1, query2, query3;
+                if(version_no > 0){
+                    query1 = `/sku/edit-latest-net-weight`;
+                    query2 = `/rfq/auto-latest-calculate`;
+                    query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+                }else{
+                    query1 = `/sku/edit-net-weight`;
+                    query2 = `/rfq/auto-calculate`;
+                    query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+                }
+
+                const response = await axiosInstance.post(query1, {
                     product_id: editModal.productId,
                     net_weight_of_product: parseFloat(editModal.newValue)
                 });
 
-                const autoCalResponse = await axiosInstance.post("/rfq/auto-calculate", {
+                const autoCalResponse = await axiosInstance.post(query2, {
                     p_rfq_id: rfqId
                 });
 
@@ -462,7 +494,7 @@ export default function SkuDetailPage() {
                     setShowAlert(true);
 
                     // Refresh the SKU data
-                    const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                    const skuResponse = await axiosInstance.get(query3);
                     if (skuResponse.data.success) {
                         // setSku(skuResponse.data.data[0]);
                         // Sort the products: GP COIL first, then BOM
