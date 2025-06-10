@@ -240,6 +240,9 @@ export default function RFQListingPage() {
   const [openModalForRevision, setOpenModalForRevision] = useState(false);
   const [revisionTeam, setRevisionTeam] = useState(null);
 
+  const [isSendtoCommercialTeamRevisionModalOpen, setIsSendtoCommercialTeamRevisionModalOpen] = useState(false);
+  const [rfqParentRevisionId, setRFQParentRevisionId] = useState(null);
+
   const handleSubmitWithConfirmation = () => {
     let message = "";
     if (selectedSkus.length === 0) {
@@ -791,6 +794,75 @@ export default function RFQListingPage() {
   }
 
 
+  const handleAssignToCommercialTeamRevision = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+
+      // const assignResponse = await axiosInstance.post("/rfq/assign", {
+      //   p_rfq_id: selectedRFQ.rfq_id,
+      //   p_assigned_to_id: selectedCommercialTeam.userid,
+      //   p_assigned_to_roleid: 22,           // Commercial team
+      //   p_assigned_by_id: userId,
+      //   p_assigned_by_roleid: 15,           // Plant Head role
+      //   p_status: true,
+      //   p_comments: approveComment,
+      // });
+
+      console.log("RFQ parent id ", rfqParentRevisionId);
+
+      const commentResponse = await axiosInstance.post("/rfq/save-comments", {
+        user_id: user.id,
+        rfq_id: rfqParentRevisionId,
+        state_id: 21,                 // Hardcode state for RFQ sent to Commercial team for revision.
+        comments: approveComment,
+      });
+
+      console.log("Save comments response: ", commentResponse);
+
+
+      const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+        rfq_id: rfqParentRevisionId,
+        rfq_state: 21,                 // Hardcode state for RFQ sent to Commercial team for revision.
+      });
+
+      if (commentResponse.data.success && stateResponse.data.success) {
+
+        // // Email notification object for send email trigger
+        // const emailNotification = {
+        //   emailConfigId: 1,
+        //   toMail: selectedCommercialTeam.email,
+        //   subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+        //   emailContent: `Dear ${selectedCommercialTeam.firstname} ${selectedCommercialTeam.lastname},
+        //       The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+        //       ${emailTemplate.email_content}
+
+        //       ${emailTemplate.email_signature}
+        //       ${userfirstName} ${userlastName} (Plant Head)`,
+        // };
+
+        // const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+        // if (!emailResponse) setError("Error assigning RFQ to commercial team.");
+
+        setSuccessMessage("RFQ assigned successfully to Commercial Team for revision.");
+        fetchRFQs();
+        setIsSendtoCommercialTeamRevisionModalOpen(false);
+        setApproveComment("");
+        setRFQParentRevisionId(null);
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        setError("Failed to assign RFQ");
+      }
+    } catch (error) {
+      setError("Error sending to commercial team Error: ", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+
 
   const handleAssignToCommercialManager = async () => {
     setIsLoading(true);
@@ -899,6 +971,120 @@ export default function RFQListingPage() {
       setIsLoading(false);
     }
   }
+
+
+  const handleAssignToCommercialManagerRevision = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let response;
+      if (sendType == 1) {
+        // Sending to Commercial Manager
+        const commentResponse = await axiosInstance.post("/rfq/save-comments", {
+          user_id: user.id,
+          rfq_id: rfqParentRevisionId,
+          state_id: 18,                 // Hardcode state for RFQ sent to Commercial team for revision.
+          comments: approveComment,
+        });
+
+        const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+          rfq_id: rfqParentRevisionId,
+          rfq_state: 18,                 // Hardcode state for RFQ sent to Commercial team for revision.
+        });
+
+        if (commentResponse.data.success && stateResponse.data.success) {
+
+          // Email notification object for send email trigger
+          // const emailNotification = {
+          //   emailConfigId: 1,
+          //   toMail: userInfo.email,
+          //   subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ Recieved'}`,
+          //   emailContent: `Dear ${userInfo.first_name} ${userInfo.last_name},
+          //     The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully.
+
+          //     ${emailTemplate.email_content}
+
+          //     ${emailTemplate.email_signature}
+          //     ${userfirstName} ${userlastName}`,
+          // };
+
+          // const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+          // if (!emailResponse) setError("Error assigning RFQ to commercial manager.");
+
+          setSuccessMessage("RFQ assigned successfully to Commercial Manager for revision.");
+          fetchRFQsforUserRole();
+          setOpenSendRfqtoCommercialManagerModal(false);
+          setEmailTemplate(null);
+          setUserInfo(null);
+          setApproveComment("");
+          setRFQParentRevisionId(null);
+          setSendType(null);
+          setTimeout(() => setSuccessMessage(""), 3000);
+        } else {
+          setError("Failed to assign RFQ");
+        }
+
+      } else if (sendType == 2) {
+        // Sending back to Account manager
+        response = await axiosInstance.post("/rfq/save-comments", {
+          user_id: userId,
+          rfq_id: rfqParentRevisionId,
+          state_id: 19,                 // RFQ sent to Account manager for review
+          comments: approveComment,
+        });
+
+        if (response.data.success) {
+          const stateResponse = await axiosInstance.post("/rfq/update/rfq-state/", {
+            rfq_id: rfqParentRevisionId,
+            rfq_state: 19,                 // RFQ sent to Account manager for review
+          });
+
+          if (stateResponse.data.success) {
+
+            // Email notification object for send email trigger
+            // const emailNotification = {
+            //   emailConfigId: 1,
+            //   toMail: userInfo.email,
+            //   subject: `${emailTemplate.subject ? emailTemplate.subject : 'RFQ recieved for review'}`,
+            //   emailContent: `Dear ${userInfo.first_name} ${userInfo.last_name},
+            //   The RFQ with Id: ${selectedRFQ.rfq_id} was assigned to you successfully for review.
+
+            //   ${emailTemplate.email_content}
+
+            //   ${emailTemplate.email_signature}
+            //   ${userfirstName} ${userlastName}`,
+            // };
+
+            // const emailResponse = await axiosInstance.post("/email-config/notify", emailNotification);
+
+            // if (!emailResponse) setError("Error assigning RFQ to Account manager.");
+
+            setSuccessMessage("RFQ sent to Account manager for revision.");
+            fetchRFQsforUserRole();
+            setOpenSendRfqtoCommercialManagerModal(false);
+            setApproveComment("");
+            setSendType(null);
+            setEmailTemplate(null);
+            setRFQParentRevisionId(null);
+            setUserInfo(null);
+            setTimeout(() => setSuccessMessage(""), 3000);
+          } else {
+            setError("Failed to assign RFQ");
+          }
+        }
+      } else {
+        setError("Error Assigning this RFQ.");
+      }
+
+    } catch (error) {
+      setError("Error Assigning this RFQ");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
 
 
   const handleAssignRFQByVendorEng = async () => {
@@ -1236,11 +1422,29 @@ export default function RFQListingPage() {
     setIsApproveModalOpen(true)
   }
 
+  const fetchParentRevisionRFQId = async (rfq_id) => {
+    setError("");
+    try {
+      const response = await axiosInstance.get(`/rfq/get-parent-id?p_rfq_version_id=${rfq_id}`);
+      console.log(response);
+      if (response.data.success) setRFQParentRevisionId(response.data.data.rfq_id);
+    } catch (error) {
+      console.error("Error fetching RFQ revision parent id Error: ", error);
+      setError("Error fetching RFQ revision parent id");
+    }
+  }
+
   const openSendtoCommercialTeamModal = (rfq) => {
     fetchCommercialTeam();
     fetchEmailTemplate(3);      // TagId = 3 (RFQ assignment) DO NOT CHANGE
     setSelectedRFQ(rfq);
     setIsSendtoCommercialTeamModalOpen(true);
+  }
+
+  const openSendtoCommercialTeamModalRevision = (rfq) => {
+    setSelectedRFQ(rfq);
+    fetchParentRevisionRFQId(rfq.rfq_id);
+    setIsSendtoCommercialTeamRevisionModalOpen(true);
   }
 
   const openRejectModal = (rfq) => {
@@ -1306,6 +1510,22 @@ export default function RFQListingPage() {
       fetchEmailTemplate(7);            // tagId = 7 (RFQ review template) [DO NOT CHANGE]
       fetchUserInfo(8);                 // roleId = 8 Admin / Account Manager
     }
+    setOpenSendRfqtoCommercialManagerModal(true);
+    setSendType(send_type);
+    // console.log("LLOS: ", send_type);
+  }
+
+  const openSendRfqtoCommercialManagerRevision = (rfq, send_type) => {
+    setSelectedRFQ(rfq);
+    // fetch template as per sendtype : Assign or Review
+    // if (send_type == 1) {
+    //   fetchEmailTemplate(3);            // tagId = 3 (RFQ Assignment) [DO NOT CHANGE]
+    //   fetchUserInfo(23);                // roleId = 23 Commercial manager
+    // } else if (send_type == 2) {
+    //   fetchEmailTemplate(7);            // tagId = 7 (RFQ review template) [DO NOT CHANGE]
+    //   fetchUserInfo(8);                 // roleId = 8 Admin / Account Manager
+    // }
+    fetchParentRevisionRFQId(rfq.rfq_id);
     setOpenSendRfqtoCommercialManagerModal(true);
     setSendType(send_type);
     // console.log("LLOS: ", send_type);
@@ -2079,7 +2299,7 @@ export default function RFQListingPage() {
                               </>
                             )}
 
-                          
+
                             {/* For plant head Revision */}
                             {(rfq.state_id === 20 && roleId === 15 && rfq.rfq_status === true) && (
                               <>
@@ -2099,7 +2319,7 @@ export default function RFQListingPage() {
                                   Send for Revision
                                 </button>
                                 <button
-                                  onClick={() => openSendtoCommercialTeamModal(rfq)}
+                                  onClick={() => openSendtoCommercialTeamModalRevision(rfq)}
                                   className="p-2 text-black-500 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                   id="send-comercial"
                                 >
@@ -2198,15 +2418,16 @@ export default function RFQListingPage() {
                             {((rfq.state_id === 18) && (roleId === 23) && rfq.rfq_status === true) && (
                               <>
                                 <button
-                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}`)}
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}/${rfq.version_no}`)}
                                   className="p-2 rounded-full hover:bg-green-100"
                                   id="add-products"
                                 >
                                   <ScrollIcon className="w-5 h-5" />
                                 </button>
                                 <button
-                                  onClick={() => {
-                                    openSendRfqtoCommercialManager(rfq, 2);   // 2: Sending to Account Manager
+                                  onClick={() => { 
+                                    if(rfq.version_no > 0) openSendRfqtoCommercialManagerRevision(rfq, 2);
+                                    else openSendRfqtoCommercialManager(rfq, 2);   // 2: Sending to Account Manager
                                   }}
                                   className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                   id="assign-rfq"
@@ -2231,6 +2452,30 @@ export default function RFQListingPage() {
                                 <button
                                   onClick={() => {
                                     openSendRfqtoCommercialManager(rfq, 1);   // 1: Sending to Commercial Manager
+                                  }}
+                                  className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
+                                  id="assign-rfq"
+                                >
+                                  <UserRoundPlusIcon className="w-5 h-5" />
+                                </button>
+                                <Tooltip anchorSelect="#assign-rfq">Assign to Commercial Manager</Tooltip>
+                              </>
+                            )}
+
+                            {/* Commercial team revision login*/}
+                            {((rfq.state_id === 21) && (roleId === 22) && rfq.rfq_status === true) && (
+                              <>
+                                <button
+                                  onClick={() => navigate(`/sku-details/${rfq.rfq_id}/${rfq.state_id}/${rfq.version_no}`)}
+                                  className="p-2 rounded-full hover:bg-green-100"
+                                  id="add-products"
+                                >
+                                  <ScrollIcon className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (rfq.version_no > 0) openSendRfqtoCommercialManagerRevision(rfq, 1);
+                                    else openSendRfqtoCommercialManager(rfq, 1);   // 1: Sending to Commercial Manager
                                   }}
                                   className="p-2 hover:text-green-700 transition-colors rounded-full hover:bg-green-100"
                                   id="assign-rfq"
@@ -3051,7 +3296,10 @@ export default function RFQListingPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleAssignToCommercialManager}
+                  onClick={() => {
+                    if (selectedRFQ.version_no > 0) handleAssignToCommercialManagerRevision();
+                    else handleAssignToCommercialManager();
+                  }}
                   disabled={isLoading}
                   className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -3188,6 +3436,69 @@ export default function RFQListingPage() {
                 </button>
                 <button
                   onClick={handleAssignToCommercialTeam}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Assigning..." : "Assign RFQ"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
+      {/* Commercial team send to revision open modal */}
+      <AnimatePresence>
+        {isSendtoCommercialTeamRevisionModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-lg shadow-xl w-full max-w-md"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-[#000060]">Assign RFQ</h2>
+                <p className="text-sm text-[#4b4b80]">Assign this RFQ {selectedRFQ.rfq_name} to Commercial Team</p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+
+                {/* Commercial team Section */}
+                <div className="space-y-4">
+                  <h3 className="text-md font-medium text-[#000060]">Commercial Team</h3>
+                </div>
+
+                <textarea
+                  value={approveComment}
+                  onChange={(e) => setApproveComment(e.target.value)}
+                  placeholder="Add your comment here... (required)"
+                  className="w-full p-2 border-2 border-[#e1e1f5] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#000060] focus:border-transparent transition-all duration-300 mb-4"
+                  rows="3"
+                  required
+                />
+
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 flex justify-end space-x-4">
+                <button
+                  onClick={() => setIsSendtoCommercialTeamRevisionModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 text-[#000060] rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignToCommercialTeamRevision}
                   disabled={isLoading}
                   className="px-4 py-2 bg-[#000060] text-white rounded-lg hover:bg-[#0000a0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >

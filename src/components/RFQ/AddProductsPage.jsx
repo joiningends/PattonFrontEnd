@@ -63,9 +63,9 @@ export default function AddProductPage() {
         try {
 
             let query;
-            if(version_no > 0) {
+            if (version_no > 0) {
                 query = `/sku/getlatestsku/${rfqId}`;
-            }else{
+            } else {
                 query = `/sku/getsku/${rfqId}`;
             }
 
@@ -224,8 +224,17 @@ export default function AddProductPage() {
         }
 
         try {
+            let query1, query2;
+            if(version_no > 0) {
+                query1 = `/rfq/save-factory-overhead-latest`;
+                query2 = `/rfq/calculate/total-factory-cost-latest/${rfqId}`;
+            }else{
+                query1 = `/rfq/save-factory-overhead`;
+                query2 = `/rfq/calculate/total-factory-cost/${rfqId}`;
+            }
+
             const response = await axiosInstance.post(
-                `/rfq/save-factory-overhead`,
+                query1,
                 {
                     rfq_id: rfqId,
                     factory_overhead_perc: factoryOverheadPercent.factory_overhead_perc
@@ -242,7 +251,7 @@ export default function AddProductPage() {
                 );
 
                 // Calculate total factory cost
-                await axiosInstance.get(`/rfq/calculate/total-factory-cost/${rfqId}`);
+                await axiosInstance.get(query2);
 
                 fetchSkus();
 
@@ -712,7 +721,7 @@ export default function AddProductPage() {
                         <div className="bg-[#f8f8fd] rounded-lg p-6">
                             <div className="flex justify-between mb-2 items-center text-center">
                                 <h2 className="text-xl font-semibold text-[#000060] mb-4">SKU List</h2>
-                                {stateId == 14 && (
+                                {(stateId == 14 || stateId == 20) && (
                                     <>
                                         <button
                                             onClick={() => setShowFactoryOverheadModal(true)}
@@ -1604,16 +1613,16 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                 <thead className="bg-[#f8f8fd]">
                     <tr className="text-center">
                         <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Name</th>
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Description</th>}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Part No.</th>}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Annual Usage</th>}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>}
-                        {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Sub-Total Cost</th>)}
-                        {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total Factory Cost</th>)}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">FOB Value</th>)}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">CIF value</th>)}
-                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total</th>)}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Description</th>}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Part No.</th>}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Drawing No.</th>}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Annual Usage</th>}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Size</th>}
+                        {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Sub-Total Cost</th>)}
+                        {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total Factory Cost</th>)}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">FOB Value</th>)}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">CIF value</th>)}
+                        {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<th className="px-6 py-3 whitespace-nowrap text-center text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Total</th>)}
                         <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Status</th>
                         <th className="px-6 py-3 whitespace-nowrap text-left text-xs font-medium text-[#4b4b80] uppercase tracking-wider">Action</th>
                     </tr>
@@ -1622,16 +1631,16 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                     {skus.map((sku, index) => (
                         <tr key={index} className="text-center">
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-[#000060]">{sku.sku_name}</td>
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.description}</td>}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.part_no}</td>}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.drawing_no}</td>}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.annual_usage}</td>}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>}
-                            {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
-                            {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_factory_cost}</td>)}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.fob_value}</td>)}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.cif_value}</td>)}
-                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_cost}</td>)}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.description}</td>}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.part_no}</td>}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.drawing_no}</td>}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.annual_usage}</td>}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) ? null : <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.size}</td>}
+                            {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.sub_total_cost}</td>)}
+                            {(stateId == 14 || stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_factory_cost}</td>)}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.fob_value}</td>)}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.cif_value}</td>)}
+                            {(stateId == 6 || stateId == 18 || stateId == 19 || stateId == 8 || stateId == 20 || stateId == 21) && (<td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">{sku.total_cost}</td>)}
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-[#4b4b80]">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${sku.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                     {sku.status ? 'Active' : 'Inactive'}
@@ -1668,7 +1677,7 @@ function SKUTable({ skus, onAddProduct, onViewProduct, role_id, navigate, rfq_id
                                 {(role_id === 20 || role_id === 15 || role_id === 22 || role_id === 23 || role_id === 8) && (
                                     <button
                                         onClick={() => {
-                                            if(version_no > 0) navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}/${sku.version_no}`);
+                                            if (version_no > 0) navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}/${sku.version_no}`);
                                             else navigate(`/sku-cost/${rfq_id}/${sku.sku_id}/${stateId}`)
                                         }}
                                         className="p-2 rounded-full hover:bg-green-100"

@@ -413,11 +413,11 @@ export default function SkuDetailPage() {
                 console.log("bom_cost_per_kg edit :", editModal);
 
                 let query1, query2, query3;
-                if(version_no > 0){
+                if (version_no > 0) {
                     query1 = `/sku/edit-latest-bom-cost`;
                     query2 = `/rfq/auto-latest-calculate`;
                     query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
-                }else{
+                } else {
                     query1 = `/sku/edit-bom-cost`;
                     query2 = `/rfq/auto-calculate`;
                     query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
@@ -467,11 +467,11 @@ export default function SkuDetailPage() {
                 console.log("net_weight_of_product edit :", editModal);
 
                 let query1, query2, query3;
-                if(version_no > 0){
+                if (version_no > 0) {
                     query1 = `/sku/edit-latest-net-weight`;
                     query2 = `/rfq/auto-latest-calculate`;
                     query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
-                }else{
+                } else {
                     query1 = `/sku/edit-net-weight`;
                     query2 = `/rfq/auto-calculate`;
                     query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
@@ -578,11 +578,22 @@ export default function SkuDetailPage() {
                 requestData.job_costs = jobCostData.job_costs;
             }
 
+            let query1, query2, query3;
+            if (version_no > 0) {
+                query1 = `/sku/job-cost-latest`;
+                query2 = `/sku/calculate/sub-total-cost-latest/${skuId}/${rfqId}`;
+                query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query1 = `/sku/job-cost`;
+                query2 = `/sku/calculate/sub-total-cost/${skuId}/${rfqId}`;
+                query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+            }
+
             // Call the API - same endpoint but with isEdit flag
-            const response = await axiosInstance.post("/sku/job-cost", requestData);
+            const response = await axiosInstance.post(query1, requestData);
 
             // re-calculate the sub_total_cost
-            const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+            const calculateSubTotal_response = await axiosInstance.get(query2);
 
             if (response.data.success && calculateSubTotal_response.data.success) {
                 setAlertMessage({
@@ -607,7 +618,7 @@ export default function SkuDetailPage() {
 
                 fetchJobCosts(); // Refresh job costs after saving
                 // Refresh the SKU data
-                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                const skuResponse = await axiosInstance.get(query3);
                 if (skuResponse.data.success) {
                     const sortedSku = { ...skuResponse.data.data[0] };
                     if (sortedSku.products && sortedSku.products.length > 0) {
@@ -663,10 +674,23 @@ export default function SkuDetailPage() {
 
             console.log("Edited other cost: ", editingOtherCost);
 
+            let query1, query2, query3, query4;
+            if (version_no) {
+                query1 = `other-cost/edit/othercost-latest/sku/`;
+                query2 = `/other-cost/by-skuid-latest`;
+                query3 = `/sku/calculate/sub-total-cost-latest/${skuId}/${rfqId}`;
+                query4 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query1 = `other-cost/edit/othercost/sku/`;
+                query2 = `/other-cost/by-skuid`;
+                query3 = `/sku/calculate/sub-total-cost/${skuId}/${rfqId}`;
+                query4 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+            }
+
             let response;
             if (editingOtherCost) {
                 // Update existing cost
-                response = await axiosInstance.post("other-cost/edit/othercost/sku/", {
+                response = await axiosInstance.post(query1, {
                     p_id: editingOtherCost.id,
                     other_cost_id: otherCosts.other_cost_id,
                     other_cost_per_kg: otherCosts.other_cost_per_kg,
@@ -674,10 +698,10 @@ export default function SkuDetailPage() {
                 });
             } else {
                 // Create new cost
-                response = await axiosInstance.post("/other-cost/by-skuid", requestData);
+                response = await axiosInstance.post(query2, requestData);
             }
 
-            const calculateSubTotal_response = await axiosInstance.get(`/sku/calculate/sub-total-cost/${skuId}/${rfqId}`);
+            const calculateSubTotal_response = await axiosInstance.get(query3);
 
             if (response.data.success && calculateSubTotal_response.data.success) {
                 setAlertMessage({
@@ -701,7 +725,7 @@ export default function SkuDetailPage() {
 
                 fetchOtherCostsForSku();
                 // Refresh the SKU data
-                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                const skuResponse = await axiosInstance.get(query4);
                 if (skuResponse.data.success) {
                     // setSku(skuResponse.data.data[0]);
                     // Sort the products: GP COIL first, then BOM
@@ -746,20 +770,34 @@ export default function SkuDetailPage() {
                 return;
             }
 
+            let query1, query2, query3, query4, query5;
+            if (version_no > 0) {
+                query1 = `/sku/overhead/value-latest`;
+                query2 = `/sku/recalculate/cif-latest/${skuId}`;
+                query3 = `/sku/margin-latest/total-cost`;
+                query4 = `/sku/client-currency/cost-latest`;
+                query5 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query1 = `/sku/overhead/value`;
+                query2 = `/sku/recalculate/cif/${skuId}`;
+                query3 = `/sku/margin/total-cost`;
+                query4 = `/sku/client-currency/cost`;
+                query5 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+            }
 
-            const response = await axiosInstance.post("/sku/overhead/value", {
+            const response = await axiosInstance.post(query1, {
                 p_sku_id: skuId,
                 p_over_head_perc: overheadPercentage,
             });
 
             // Re-calculate CIF value
             if (sku?.freight_cost_per_kg && sku?.insurance_cost_per_kg) {
-                const responseReCalCif = await axiosInstance.get(`/sku/recalculate/cif/${skuId}`);
+                const responseReCalCif = await axiosInstance.get(query2);
 
                 if (responseReCalCif.data.success) {
                     // Re-calculate Margin
                     if (sku?.pil_margin_perc) {
-                        const responseReCalMargin = await axiosInstance.post("/sku/margin/total-cost", {
+                        const responseReCalMargin = await axiosInstance.post(query3, {
                             p_sku_id: skuId,
                             p_pil_margin: sku?.pil_margin_perc || null,
                         });
@@ -768,7 +806,7 @@ export default function SkuDetailPage() {
                         if (responseReCalMargin.data.success) {
 
                             if (sku?.total_cost && sku?.client_currency_id) {
-                                const currencyFetchResponse = await axiosInstance.post("/sku/client-currency/cost", {
+                                const currencyFetchResponse = await axiosInstance.post(query4, {
                                     p_sku_id: skuId,
                                     p_currency_id: sku?.client_currency_id || null,
                                 });
@@ -802,7 +840,7 @@ export default function SkuDetailPage() {
                 setOverheadPercentage(null);
 
                 // Refresh the SKU data
-                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                const skuResponse = await axiosInstance.get(query5);
                 if (skuResponse.data.success) {
                     // setSku(skuResponse.data.data[0]);
                     // Sort the products: GP COIL first, then BOM
@@ -847,8 +885,21 @@ export default function SkuDetailPage() {
                 return;
             }
 
+            let query1, query2, query3, query4;
+            if (version_no > 0) {
+                query1 = `/sku/freight-insurance/cal-cif-latest`;
+                query2 = `/sku/margin-latest/total-cost`;
+                query3 = `/sku/client-currency/cost-latest`;
+                query4 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query1 = `/sku/freight-insurance/cal-cif`;
+                query2 = `/sku/margin/total-cost`;
+                query3 = `/sku/client-currency/cost`;
+                query4 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+            }
+
             // Save freight insurance first
-            const response = await axiosInstance.post("/sku/freight-insurance/cal-cif", {
+            const response = await axiosInstance.post(query1, {
                 p_sku_id: skuId,
                 p_freight_cost_per_kg: freightInsurance.freight_cost_per_kg || null,
                 p_insurance_cost_per_kg: freightInsurance.insurance_cost_per_kg || null,
@@ -860,7 +911,7 @@ export default function SkuDetailPage() {
 
             // Re-calculate PIL margin and total cost if needed
             if (sku?.pil_margin_perc && sku?.cif_value) {
-                const responseReCalMargin = await axiosInstance.post("/sku/margin/total-cost", {
+                const responseReCalMargin = await axiosInstance.post(query2, {
                     p_sku_id: skuId,
                     p_pil_margin: sku?.pil_margin_perc || null,
                 });
@@ -870,7 +921,7 @@ export default function SkuDetailPage() {
                 }
 
                 // Re-calculate currency conversion
-                const responseReCalCurrency = await axiosInstance.post("/sku/client-currency/cost", {
+                const responseReCalCurrency = await axiosInstance.post(query3, {
                     p_sku_id: skuId,
                     p_currency_id: sku?.client_currency_id || null,
                 });
@@ -881,7 +932,7 @@ export default function SkuDetailPage() {
             }
 
             // Refresh the SKU data
-            const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+            const skuResponse = await axiosInstance.get(query4);
             if (skuResponse.data.success) {
                 const sortedSku = { ...skuResponse.data.data[0] };
                 if (sortedSku.products && sortedSku.products.length > 0) {
@@ -926,8 +977,19 @@ export default function SkuDetailPage() {
                 return;
             }
 
+            let query1, query2, query3;
+            if (version_no > 0) {
+                query1 = `/sku/margin-latest/total-cost`;
+                query2 = `/sku/client-currency/cost-latest`;
+                query3 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query1 = `/sku/margin/total-cost`;
+                query2 = `/sku/client-currency/cost`;
+                query3 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+            }
+
             // Save margin first
-            const response = await axiosInstance.post("/sku/margin/total-cost", {
+            const response = await axiosInstance.post(query1, {
                 p_sku_id: skuId,
                 p_pil_margin: margin || null,
             });
@@ -938,7 +1000,7 @@ export default function SkuDetailPage() {
 
             // Re-calculate currency conversion if needed
             if (sku?.client_currency_id && sku?.total_cost) {
-                const responseReCalCurrency = await axiosInstance.post("/sku/client-currency/cost", {
+                const responseReCalCurrency = await axiosInstance.post(query2, {
                     p_sku_id: skuId,
                     p_currency_id: sku?.client_currency_id || null,
                 });
@@ -949,7 +1011,7 @@ export default function SkuDetailPage() {
             }
 
             // Refresh the SKU data
-            const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+            const skuResponse = await axiosInstance.get(query3);
             if (skuResponse.data.success) {
                 const sortedSku = { ...skuResponse.data.data[0] };
                 if (sortedSku.products && sortedSku.products.length > 0) {
@@ -1018,8 +1080,17 @@ export default function SkuDetailPage() {
                 return;
             }
 
+            let query1, query2;
+            if (version_no > 0) {
+                query1 = `/sku/client-currency/cost-latest`;
+                query2 = `/sku/getlatestsku/${rfqId}?skuId=${skuId}`;
+            } else {
+                query1 = `/sku/client-currency/cost`;
+                query2 = `/sku/getsku/${rfqId}?skuId=${skuId}`;
+            }
 
-            const response = await axiosInstance.post("/sku/client-currency/cost", {
+
+            const response = await axiosInstance.post(query1, {
                 p_sku_id: skuId,
                 p_currency_id: currencyId || null,
             });
@@ -1039,7 +1110,7 @@ export default function SkuDetailPage() {
                 setCurrencyValue(null);
 
                 // Refresh the SKU data
-                const skuResponse = await axiosInstance.get(`/sku/getsku/${rfqId}?skuId=${skuId}`);
+                const skuResponse = await axiosInstance.get(query2);
                 if (skuResponse.data.success) {
                     // setSku(skuResponse.data.data[0]);
                     // Sort the products: GP COIL first, then BOM
@@ -1729,7 +1800,7 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.over_head_perc) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.over_head_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-700 border border-gray-200">Over head</td> */}
                                             <td className="items-center whitespace-nowrap text-sm font-medium text-gray-700 grid grid-cols-3">
@@ -1740,7 +1811,7 @@ export default function SkuDetailPage() {
                                                 {/* {sku?.over_head_value} */}
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{sku?.over_head_value || "-"}</span>
-                                                    {(stateId == 6 || stateId == 18 || roleId === 15) && (
+                                                    {(stateId == 6 || stateId == 18 || roleId === 15 || stateId == 21) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1760,7 +1831,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Fob value */}
-                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.fob_value) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8) && sku?.fob_value) && (
                                         <tr className="bg-blue-500 ">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">FOB Value</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1770,7 +1841,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* freight and insurance value */}
-                                    {((roleId === 22 || roleId === 15) && (!sku?.freight_cost_per_kg || !sku?.insurance_cost_per_kg) && sku?.fob_value) && (
+                                    {((roleId === 22 ) && (!sku?.freight_cost_per_kg || !sku?.insurance_cost_per_kg) && sku?.fob_value) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost & Insurance cost</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1785,7 +1856,7 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && (sku?.freight_cost_per_kg || sku?.insurance_cost_per_kg)) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 ) && (sku?.freight_cost_per_kg || sku?.insurance_cost_per_kg)) && (
                                         <>
                                             <tr className="bg-blue-50 hover:bg-gray-50">
                                                 {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost</td> */}
@@ -1797,7 +1868,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.freight_cost} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.freight_cost || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18 || stateId == 20) && (
+                                                        {(stateId == 6 || stateId == 18 || stateId == 20 || stateId == 21) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1824,7 +1895,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.insurance_cost} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.insurance_cost || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18 || stateId == 20) && (
+                                                        {(stateId == 6 || stateId == 18 || stateId == 20 || stateId == 21) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1845,7 +1916,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* CIF value */}
-                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.cif_value) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 ) && sku?.cif_value) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">CIF Value</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1855,7 +1926,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Margin value */}
-                                    {((roleId === 22 || roleId === 15) && !sku?.pil_margin_perc && sku?.cif_value) && (
+                                    {((roleId === 22) && !sku?.pil_margin_perc && sku?.cif_value) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">PIL Quote with {sku?.pil_margin_perc ? sku?.pil_margin_perc : ""} margin</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1870,7 +1941,7 @@ export default function SkuDetailPage() {
                                         </tr>
                                     )}
 
-                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.pil_margin_perc) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 ) && sku?.pil_margin_perc) && (
                                         <>
                                             <tr className="bg-blue-400">
                                                 {/* <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Freight cost</td> */}
@@ -1882,7 +1953,7 @@ export default function SkuDetailPage() {
                                                     {/* {sku?.margin_value} */}
                                                     <div className="flex items-center justify-center space-x-2">
                                                         <span>{sku?.margin_value || "-"}</span>
-                                                        {(stateId == 6 || stateId == 18 || stateId == 20) && (
+                                                        {(stateId == 6 || stateId == 18 || stateId == 20 || stateId == 21) && (
                                                             <>
                                                                 <PencilIcon
                                                                     className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -1909,7 +1980,7 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Currency Conversion */}
-                                    {((roleId === 22 || roleId === 15) && !sku?.client_cost && sku?.pil_margin_perc) && (
+                                    {((roleId === 22 ) && !sku?.client_cost && sku?.pil_margin_perc) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">Currency conversion</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
@@ -1925,14 +1996,14 @@ export default function SkuDetailPage() {
                                     )}
 
                                     {/* Currency Conversion */}
-                                    {((roleId === 22 || roleId === 23 || roleId === 8 || roleId === 15) && sku?.client_cost) && (
+                                    {((roleId === 22 || roleId === 23 || roleId === 8 ) && sku?.client_cost) && (
                                         <tr className="bg-blue-50 hover:bg-gray-50">
                                             <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 border border-gray-200">INR - {sku?.currency_code ? sku?.currency_code : ""}</td>
                                             <td colSpan={sku?.products?.length} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-center border border-gray-200">
                                                 {/* {sku?.client_cost} */}
                                                 <div className="flex items-center justify-center space-x-2">
                                                     <span>{sku?.client_cost || "-"}</span>
-                                                    {(stateId == 6 || stateId == 18 || stateId == 20) && (
+                                                    {(stateId == 6 || stateId == 18 || stateId == 20 || stateId == 21) && (
                                                         <>
                                                             <PencilIcon
                                                                 className="h-3 w-3 text-gray-500 hover:text-gray-700 cursor-pointer"
